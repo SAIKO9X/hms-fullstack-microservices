@@ -1,0 +1,124 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAppSelector } from "@/hooks/hooks";
+import type { PatientProfile } from "@/types/patient.types";
+import type { DoctorProfile } from "@/types/doctor.types";
+import type {
+  PatientProfileFormData,
+  DoctorProfileFormData,
+} from "@/lib/schemas/profile";
+import {
+  getMyPatientProfile,
+  getMyDoctorProfile,
+  updateMyPatientProfile,
+  updateMyDoctorProfile,
+} from "@/services/profileService";
+
+// Types
+type Profile = PatientProfile | DoctorProfile;
+type ProfileFormData = PatientProfileFormData | DoctorProfileFormData;
+
+// Query Keys
+export const profileKeys = {
+  all: ["profile"] as const,
+  patient: () => [...profileKeys.all, "patient"] as const,
+  doctor: () => [...profileKeys.all, "doctor"] as const,
+};
+
+// Hook para buscar perfil baseado na role do usuário
+export const useProfileQuery = () => {
+  const { user } = useAppSelector((state) => state.auth);
+
+  return useQuery({
+    queryKey:
+      user?.role === "PATIENT" ? profileKeys.patient() : profileKeys.doctor(),
+    queryFn: async (): Promise<Profile> => {
+      if (!user) throw new Error("Usuário não autenticado");
+
+      if (user.role === "PATIENT") {
+        return await getMyPatientProfile();
+      } else if (user.role === "DOCTOR") {
+        return await getMyDoctorProfile();
+      } else {
+        throw new Error("Role de usuário não suportada");
+      }
+    },
+    enabled: !!user && (user.role === "PATIENT" || user.role === "DOCTOR"),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: (failureCount, error: any) => {
+      // Não retry para erros 404 (perfil não encontrado)
+      if (error?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
+  });
+};
+
+// Hook para atualizar perfil
+export const useUpdateProfileMutation = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAppSelector((state) => state.auth);
+
+  return useMutation({
+    mutationFn: async (data: ProfileFormData): Promise<Profile> => {
+      if (!user) throw new Error("Usuário não autenticado");
+
+      if (user.role === "PATIENT") {
+        return await updateMyPatientProfile(data as PatientProfileFormData);
+      } else if (user.role === "DOCTOR") {
+        return await updateMyDoctorProfile(data as DoctorProfileFormData);
+      } else {
+        throw new Error("Role de usuário não suportada");
+      }
+    },
+    onSuccess: (updatedProfile) => {
+      // Atualiza o cache com o perfil atualizado
+      const queryKey =
+        user?.role === "PATIENT" ? profileKeys.patient() : profileKeys.doctor();
+      queryClient.setQueryData(queryKey, updatedProfile);
+
+      // Opcional: invalidar outras queries relacionadas se necessário
+      // queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar perfil:", error);
+    },
+  });
+};
+
+// Hook personalizado que combina query e mutation
+export const useProfile = () => {
+  const { user } = useAppSelector((state) => state.auth);
+  const profileQuery = useProfileQuery();
+  const updateProfileMutation = useUpdateProfileMutation();
+
+  return {
+    // Dados do perfil
+    profile: profileQuery.data,
+    user,
+
+    // Estados de loading
+    isLoading: profileQuery.isLoading,
+    isError: profileQuery.isError,
+    isSuccess: profileQuery.isSuccess,
+    isFetching: profileQuery.isFetching,
+
+    // Estados de update
+    isUpdating: updateProfileMutation.isPending,
+
+    // Erros
+    error: profileQuery.error?.message || null,
+    updateError: updateProfileMutation.error?.message || null,
+
+    // Funções
+    refetch: profileQuery.refetch,
+    updateProfile: updateProfileMutation.mutateAsync,
+
+    // Status para compatibilidade com código existente
+    status: profileQuery.isLoading
+      ? "loading"
+      : profileQuery.isError
+      ? "failed"
+      : profileQuery.isSuccess
+      ? "succeeded"
+      : "idle",
+  };
+};
