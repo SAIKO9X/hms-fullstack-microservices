@@ -16,13 +16,16 @@ Thumbs.db
 .pnpm-store/
 
 # Arquivos de build do Frontend (Vite)
+/frontend/node_modules/
 /frontend/dist/
 /frontend/.output/
 /frontend/.vite-inspect/
+/frontend/.env.local
+/frontend/.env.*.local
 
 # Arquivos de build do Backend (Maven)
 /backend/**/target/
-.mvn/
+/backend/.mvn/
 
 # Arquivos gerados pelo Maven
 pom.xml.tag
@@ -38,14 +41,6 @@ dependency-reduced-pom.xml
 *.iml
 *.ipr
 *.iws
-.classpath
-.project
-.settings/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # Arquivos de ambiente local
 *.local
