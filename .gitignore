@@ -7,41 +7,48 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependências do Node
-node_modules
-.pnpm-store
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
 
-# Arquivos de Build do Frontend
-dist
-dist-ssr
-.output
-.vite-inspect
+# Diretórios de dependências
+/node_modules/
+.pnpm-store/
 
-# Arquivos de IDE
-.idea
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Arquivos de build do Frontend (Vite)
+/frontend/dist/
+/frontend/.output/
+/frontend/.vite-inspect/
 
-# Arquivos do Maven (Backend)
-target/
+# Arquivos de build do Backend (Maven)
+/backend/**/target/
 .mvn/
+
+# Arquivos gerados pelo Maven
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup
 pom.xml.next
 release.properties
 dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
 
-# Outros
-.DS_Store
+# Arquivos de configuração de IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Arquivos de ambiente local
+*.local
+.env
+.env.*
+!.env.example
