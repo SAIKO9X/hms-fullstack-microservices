@@ -25,6 +25,7 @@ const getUserFromToken = (): UserResponse | null => {
       sub: string;
       exp: number;
     } = jwtDecode(token);
+
     // Verifica se o token não expirou
     if (decodedToken.exp * 1000 > Date.now()) {
       return {
@@ -33,13 +34,16 @@ const getUserFromToken = (): UserResponse | null => {
         email: decodedToken.sub, // 'sub' é o e-mail
         role: decodedToken.role as "PATIENT" | "DOCTOR" | "ADMIN",
       };
+    } else {
+      // Token expirado - remove do localStorage
+      localStorage.removeItem("authToken");
+      return null;
     }
   } catch (error) {
     // Se o token for inválido, limpa
     localStorage.removeItem("authToken");
     return null;
   }
-  return null;
 };
 
 const initialState: AuthState = {
@@ -72,6 +76,25 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem("authToken");
     },
+    // Nova ação para limpar token expirado
+    clearExpiredToken: (state) => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          const decodedToken: { exp: number } = jwtDecode(token);
+          if (decodedToken.exp * 1000 <= Date.now()) {
+            state.user = null;
+            state.token = null;
+            localStorage.removeItem("authToken");
+          }
+        } catch {
+          // Token inválido
+          state.user = null;
+          state.token = null;
+          localStorage.removeItem("authToken");
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,5 +118,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, clearExpiredToken } = authSlice.actions;
 export default authSlice.reducer;
