@@ -29,6 +29,7 @@ public class PatientServiceImpl implements PatientService {
     Patient newPatient = new Patient();
     newPatient.setUserId(request.userId());
     newPatient.setCpf(request.cpf());
+    newPatient.setName(request.name());
 
     Patient savedPatient = patientRepository.save(newPatient);
 
@@ -60,6 +61,7 @@ public class PatientServiceImpl implements PatientService {
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
 
     // Mapeia os campos do DTO de atualização para a entidade existente
+    patientToUpdate.setName(request.name());
     patientToUpdate.setGender(request.gender());
     patientToUpdate.setDateOfBirth(request.dateOfBirth());
     patientToUpdate.setPhoneNumber(request.phoneNumber());

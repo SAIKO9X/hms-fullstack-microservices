@@ -10,6 +10,9 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record PatientUpdateRequest(
+  @NotBlank(message = "O nome não pode ser vazio.")
+  String name,
+
   @NotNull(message = "O gênero não pode ser nulo.")
   Gender gender,
 

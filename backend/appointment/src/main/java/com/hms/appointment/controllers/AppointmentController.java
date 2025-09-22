@@ -2,6 +2,7 @@ package com.hms.appointment.controllers;
 
 import com.hms.appointment.request.AppointmentCreateRequest;
 import com.hms.appointment.request.AppointmentUpdateRequest;
+import com.hms.appointment.response.AppointmentDetailResponse;
 import com.hms.appointment.response.AppointmentResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
@@ -44,6 +45,13 @@ public class AppointmentController {
   public List<AppointmentResponse> getMyAppointmentsAsDoctor(@RequestHeader("Authorization") String token) {
     Long doctorId = getUserIdFromToken(token);
     return appointmentService.getAppointmentsForDoctor(doctorId);
+  }
+
+  @GetMapping("/doctor/details")
+  @ResponseStatus(HttpStatus.OK)
+  public List<AppointmentDetailResponse> getMyAppointmentsAsDoctorWithPatientDetails(@RequestHeader("Authorization") String token) {
+    Long doctorId = getUserIdFromToken(token);
+    return appointmentService.getAppointmentDetailsForDoctor(doctorId);
   }
 
   @PatchMapping("/{id}/complete")

@@ -10,6 +10,7 @@ import { RoleBasedGuard } from "./RoleBasedGuard";
 import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 import { DoctorProfilePage } from "@/pages/doctor/DoctorProfilePage";
 import { PatientAppointmentsPage } from "@/pages/patient/PatientAppointmentsPage";
+import { DoctorAppointmentsPage } from "@/pages/doctor/DoctorAppointmentsPage";
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -43,6 +44,7 @@ export const AppRoutes = () => {
           <Route path="/doctor/*" element={<DoctorDashboard />}>
             <Route path="dashboard" element={<DoctorHomePage />} />
             <Route path="profile" element={<DoctorProfilePage />} />
+            <Route path="appointments" element={<DoctorAppointmentsPage />} />
           </Route>
         </Route>
       </Route>

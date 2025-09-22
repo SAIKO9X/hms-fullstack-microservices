@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     try {
       // Tenta criar o perfil no outro serviço
       if (savedUser.getRole() == UserRole.PATIENT) {
-        profileFeignClient.createPatientProfile(new PatientCreateRequest(savedUser.getId(), request.cpfOuCrm()));
+        profileFeignClient.createPatientProfile(new PatientCreateRequest(savedUser.getId(), request.cpfOuCrm(), savedUser.getName()));
       } else if (savedUser.getRole() == UserRole.DOCTOR) {
         profileFeignClient.createDoctorProfile(
           new DoctorCreateRequest(savedUser.getId(), request.cpfOuCrm(), savedUser.getName())

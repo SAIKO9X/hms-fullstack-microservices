@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,31 @@ public class AppointmentServiceImpl implements AppointmentService {
     return appointmentRepository.findByDoctorId(doctorId).stream()
       .map(AppointmentResponse::fromEntity)
       .collect(Collectors.toList());
+  }
+
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId) {
+    List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
+    DoctorProfileResponse doctor = profileFeignClient.getDoctorProfile(doctorId);
+
+    List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
+    for (Appointment appointment : appointments) {
+      PatientProfileResponse patient = profileFeignClient.getPatientProfile(appointment.getPatientId());
+      appointmentDetails.add(new AppointmentDetailResponse(
+        appointment.getId(),
+        appointment.getPatientId(),
+        patient.name(),
+        patient.phoneNumber(),
+        appointment.getDoctorId(),
+        doctor.name(),
+        appointment.getAppointmentDateTime(),
+        appointment.getReason(),
+        appointment.getStatus()
+      ));
+    }
+    return appointmentDetails;
   }
 
   @Override
@@ -147,10 +173,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     return new AppointmentDetailResponse(
       appointment.getId(),
       appointment.getPatientId(),
-      patient.name(), // Nome vindo do profile-service
+      patient.name(),
+      patient.phoneNumber(),
       appointment.getDoctorId(),
-      doctor.name(),  // Nome vindo do profile-service
+      doctor.name(),
       appointment.getAppointmentDateTime(),
+      appointment.getReason(),
       appointment.getStatus()
     );
   }

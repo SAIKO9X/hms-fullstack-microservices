@@ -32,6 +32,8 @@ public class Patient {
 
   private String phoneNumber;
 
+  private String name;
+
   @Enumerated(EnumType.STRING)
   private BloodGroup bloodGroup;
 

@@ -1,6 +1,7 @@
 package com.hms.appointment.services;
 
 import com.hms.appointment.request.AppointmentCreateRequest;
+import com.hms.appointment.response.AppointmentDetailResponse;
 import com.hms.appointment.response.AppointmentResponse;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,8 @@ public interface AppointmentService {
   List<AppointmentResponse> getAppointmentsForPatient(Long patientId);
 
   List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId);
+
+  List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId);
 
   // --- Métodos de Atualização ---
   AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterId);

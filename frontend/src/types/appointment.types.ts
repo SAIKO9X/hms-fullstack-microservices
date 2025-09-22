@@ -22,6 +22,7 @@ export interface AppointmentDetail {
   id: number;
   patientId: number;
   patientName: string;
+  patientPhoneNumber: string;
   doctorId: number;
   doctorName: string;
   appointmentDateTime: string;

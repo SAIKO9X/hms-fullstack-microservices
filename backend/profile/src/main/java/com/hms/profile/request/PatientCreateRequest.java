@@ -8,6 +8,9 @@ public record PatientCreateRequest(
   Long userId,
 
   @NotBlank(message = "O CPF é obrigatório.")
-  String cpf
+  String cpf,
+
+  @NotBlank(message = "O nome do doutor é obrigatório.")
+  String name
 ) {
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/hooks";
 import type { AppointmentFormData } from "@/lib/schemas/appointment";
-import type { Appointment } from "@/types/appointment.types";
+import type { Appointment, AppointmentDetail } from "@/types/appointment.types";
 import {
   getMyAppointments,
   getMyAppointmentsAsDoctor,
@@ -13,6 +13,7 @@ import {
   completeAppointment,
   getDoctorsForDropdown,
 } from "@/services/appointmentService";
+import api from "@/lib/interceptor/AxiosInterceptor";
 
 // Tipo estendido com informações do médico
 export interface AppointmentWithDoctor extends Appointment {
@@ -58,7 +59,18 @@ export const useAppointments = () => {
   });
 };
 
-// NOVO Hook para buscar consultas com nome do doutor
+export const useAppointmentsWithPatientDetails = () => {
+  return useQuery({
+    queryKey: appointmentKeys.doctor(),
+    queryFn: async (): Promise<AppointmentDetail[]> => {
+      const { data } = await api.get("/appointments/doctor/details");
+      return data;
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutos
+  });
+};
+
+// Hook para buscar consultas com nome do doutor
 export const useAppointmentsWithDoctorNames = () => {
   const { user } = useAppSelector((state) => state.auth);
 
