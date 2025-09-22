@@ -39,6 +39,7 @@ const getStatusBadge = (status: AppointmentStatus) => {
 
 export const columns = (options: {
   handleCompleteAppointment: (appointmentId: number, notes: string) => void;
+  handleCancelAppointment: (appointmentId: number) => void;
 }): ColumnDef<AppointmentDetail>[] => [
   // Coluna de seleção (Checkbox)
   {
@@ -122,6 +123,8 @@ export const columns = (options: {
     id: "actions",
     cell: ({ row }) => {
       const appointment = row.original;
+      const canModify = appointment.status === "SCHEDULED";
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -146,12 +149,16 @@ export const columns = (options: {
                   "Consulta finalizada."
                 )
               }
-              disabled={appointment.status !== "SCHEDULED"}
+              disabled={!canModify}
             >
               Finalizar Consulta
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              onClick={() => options.handleCancelAppointment(appointment.id)}
+              disabled={!canModify}
+              className="text-destructive"
+            >
               Cancelar
             </DropdownMenuItem>
           </DropdownMenuContent>

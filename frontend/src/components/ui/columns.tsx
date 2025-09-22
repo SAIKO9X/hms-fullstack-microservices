@@ -34,7 +34,9 @@ const getStatusBadge = (status: AppointmentStatus) => {
   );
 };
 
-export const columns: ColumnDef<Appointment>[] = [
+export const columns = (options: {
+  handleCancelAppointment: (appointmentId: number) => void;
+}): ColumnDef<Appointment>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -93,6 +95,8 @@ export const columns: ColumnDef<Appointment>[] = [
     id: "actions",
     cell: ({ row }) => {
       const appointment = row.original;
+      const canCancel = appointment.status === "SCHEDULED";
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -110,7 +114,12 @@ export const columns: ColumnDef<Appointment>[] = [
             </DropdownMenuItem>
             <DropdownMenuItem>Reagendar</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            {/* 2. LIGAR A FUNÇÃO E DESATIVAR QUANDO NECESSÁRIO */}
+            <DropdownMenuItem
+              onClick={() => options.handleCancelAppointment(appointment.id)}
+              disabled={!canCancel}
+              className="text-destructive"
+            >
               Cancelar
             </DropdownMenuItem>
           </DropdownMenuContent>

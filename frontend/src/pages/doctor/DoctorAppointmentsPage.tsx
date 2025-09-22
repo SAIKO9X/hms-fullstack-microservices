@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   useAppointmentsWithPatientDetails,
+  useCancelAppointment,
   useCompleteAppointment,
 } from "@/hooks/appointment-queries";
 import { DataTable } from "@/components/ui/data-table";
@@ -27,6 +28,7 @@ export const DoctorAppointmentsPage = () => {
     error,
   } = useAppointmentsWithPatientDetails();
   const completeAppointmentMutation = useCompleteAppointment();
+  const cancelAppointmentMutation = useCancelAppointment();
 
   const handleCompleteAppointment = async (
     appointmentId: number,
@@ -48,6 +50,24 @@ export const DoctorAppointmentsPage = () => {
         variant: "error",
         title: "Erro ao finalizar consulta",
         description: error.message || "Ocorreu um erro inesperado",
+      });
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: number) => {
+    try {
+      await cancelAppointmentMutation.mutateAsync(appointmentId);
+      setNotification({
+        show: true,
+        variant: "success",
+        title: "Consulta cancelada com sucesso!",
+      });
+    } catch (err: any) {
+      setNotification({
+        show: true,
+        variant: "error",
+        title: "Erro ao cancelar consulta",
+        description: err.message || "Não foi possível cancelar a consulta.",
       });
     }
   };
@@ -106,7 +126,10 @@ export const DoctorAppointmentsPage = () => {
 
       <div className="bg-card rounded-lg border shadow-sm">
         <DataTable
-          columns={columns({ handleCompleteAppointment })}
+          columns={columns({
+            handleCompleteAppointment,
+            handleCancelAppointment,
+          })}
           data={appointments || []}
         />
       </div>

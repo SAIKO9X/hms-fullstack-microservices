@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import {
   useAppointmentsWithDoctorNames,
+  useCancelAppointment,
   useCreateAppointment,
 } from "@/hooks/appointment-queries";
 import { CreateAppointmentDialog } from "@/components/appointment/CreateAppointmentDialog";
@@ -31,6 +32,7 @@ export const PatientAppointmentsPage = () => {
     error,
   } = useAppointmentsWithDoctorNames();
   const createAppointmentMutation = useCreateAppointment();
+  const cancelAppointmentMutation = useCancelAppointment();
 
   const handleCreateAppointment = async (data: AppointmentFormData) => {
     try {
@@ -64,6 +66,24 @@ export const PatientAppointmentsPage = () => {
         variant: "error",
         title: "Erro ao agendar consulta",
         description: errorMessage,
+      });
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: number) => {
+    try {
+      await cancelAppointmentMutation.mutateAsync(appointmentId);
+      setNotification({
+        show: true,
+        variant: "success",
+        title: "Consulta cancelada com sucesso!",
+      });
+    } catch (err: any) {
+      setNotification({
+        show: true,
+        variant: "error",
+        title: "Erro ao cancelar consulta",
+        description: err.message || "Não foi possível cancelar a consulta.",
       });
     }
   };
@@ -179,7 +199,10 @@ export const PatientAppointmentsPage = () => {
 
       {/* Data Table */}
       <div className="bg-card rounded-lg border shadow-sm">
-        <DataTable columns={columns} data={appointments || []} />
+        <DataTable
+          columns={columns({ handleCancelAppointment })}
+          data={appointments || []}
+        />
       </div>
 
       {/* Create Appointment Dialog */}
