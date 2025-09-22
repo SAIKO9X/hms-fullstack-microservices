@@ -1,0 +1,13 @@
+package com.hms.appointment.request;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
+
+public record PrescriptionCreateRequest(
+  @NotNull Long appointmentId,
+  String notes,
+  @NotEmpty List<MedicineRequest> medicines
+) {
+}
