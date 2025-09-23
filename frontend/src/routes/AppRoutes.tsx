@@ -11,6 +11,7 @@ import { PatientProfilePage } from "@/pages/patient/PatientProfilePage";
 import { DoctorProfilePage } from "@/pages/doctor/DoctorProfilePage";
 import { PatientAppointmentsPage } from "@/pages/patient/PatientAppointmentsPage";
 import { DoctorAppointmentsPage } from "@/pages/doctor/DoctorAppointmentsPage";
+import { DoctorAppointmentsDetailPage } from "@/pages/doctor/DoctorAppointmentsDetailPage";
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -45,6 +46,10 @@ export const AppRoutes = () => {
             <Route path="dashboard" element={<DoctorHomePage />} />
             <Route path="profile" element={<DoctorProfilePage />} />
             <Route path="appointments" element={<DoctorAppointmentsPage />} />
+            <Route
+              path="appointments/:id"
+              element={<DoctorAppointmentsDetailPage />}
+            />
           </Route>
         </Route>
       </Route>

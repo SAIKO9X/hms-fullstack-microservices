@@ -54,15 +54,16 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Override
   @Transactional(readOnly = true)
   public PrescriptionResponse getPrescriptionByAppointmentId(Long appointmentId, Long requesterId) {
-    Prescription prescription = prescriptionRepository.findByAppointmentId(appointmentId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada para a consulta com ID: " + appointmentId));
-
-    Appointment appointment = prescription.getAppointment();
-    if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado. Você não tem permissão para ver esta prescrição.");
-    }
-
-    return PrescriptionResponse.fromEntity(prescription);
+    return prescriptionRepository.findByAppointmentId(appointmentId)
+      .map(prescription -> {
+        // Validação de segurança
+        Appointment appointment = prescription.getAppointment();
+        if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
+          throw new SecurityException("Acesso negado. Você não tem permissão para ver esta prescrição.");
+        }
+        return PrescriptionResponse.fromEntity(prescription);
+      })
+      .orElse(null);
   }
 
   @Override

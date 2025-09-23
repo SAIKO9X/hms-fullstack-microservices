@@ -50,15 +50,16 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
   @Override
   @Transactional(readOnly = true)
   public AppointmentRecordResponse getAppointmentRecordByAppointmentId(Long appointmentId, Long requesterId) {
-    AppointmentRecord record = recordRepository.findByAppointmentId(appointmentId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Registo não encontrado para a consulta com ID: " + appointmentId));
-
-    Appointment appointment = record.getAppointment();
-    if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado. Você não tem permissão para ver este registo.");
-    }
-
-    return AppointmentRecordResponse.fromEntity(record);
+    return recordRepository.findByAppointmentId(appointmentId)
+      .map(record -> {
+        // Validação de segurança
+        Appointment appointment = record.getAppointment();
+        if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
+          throw new SecurityException("Acesso negado. Você não tem permissão para ver este registo.");
+        }
+        return AppointmentRecordResponse.fromEntity(record);
+      })
+      .orElse(null);
   }
 
   @Override

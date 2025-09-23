@@ -17,6 +17,7 @@ import type {
   AppointmentDetail,
   AppointmentStatus,
 } from "@/types/appointment.types";
+import { useNavigate } from "react-router";
 
 // Helper para os badges de status
 const getStatusBadge = (status: AppointmentStatus) => {
@@ -124,6 +125,7 @@ export const columns = (options: {
     cell: ({ row }) => {
       const appointment = row.original;
       const canModify = appointment.status === "SCHEDULED";
+      const navigate = useNavigate();
 
       return (
         <DropdownMenu>
@@ -136,9 +138,7 @@ export const columns = (options: {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() =>
-                console.log("Ver detalhes do paciente", appointment.patientId)
-              }
+              onClick={() => navigate(`/doctor/appointments/${appointment.id}`)}
             >
               Ver Prontuário
             </DropdownMenuItem>
