@@ -27,6 +27,7 @@
         <module>appointment</module>
         <module>eureka-server</module>
         <module>pharmacy</module>
+        <module>media</module>
     </modules>
 
     <dependencyManagement>

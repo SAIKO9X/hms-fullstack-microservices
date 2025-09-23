@@ -61,8 +61,24 @@ services:
       - pharmacy-mysql-data:/var/lib/mysql
     restart: always
 
+  # --- Banco de Dados para o Media Service ---
+  mysql-media:
+    image: mysql:8.0
+    container_name: ms-media-db
+    environment:
+      MYSQL_DATABASE: ms_media_db
+      MYSQL_USER: mysql_media_user
+      MYSQL_PASSWORD: mysql_media_password
+      MYSQL_ROOT_PASSWORD: root_password_media
+    ports:
+      - "3311:3306" # Usando uma nova porta externa
+    volumes:
+      - media-mysql-data:/var/lib/mysql
+    restart: always
+
 volumes:
   user-mysql-data:
   profile-mysql-data:
   appointment-mysql-data:
   pharmacy-mysql-data:
+  media-mysql-data:
