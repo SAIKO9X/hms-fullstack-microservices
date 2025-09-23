@@ -4,5 +4,6 @@ public record PrescriptionItemReceiveRequest(
   String medicineName,
   String dosage,
   String frequency,
-  Integer duration
+  Integer duration,
+  Integer quantity
 ) {}

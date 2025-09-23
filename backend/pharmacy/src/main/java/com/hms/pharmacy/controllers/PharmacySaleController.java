@@ -1,0 +1,37 @@
+package com.hms.pharmacy.controllers;
+
+import com.hms.pharmacy.request.PharmacySaleRequest;
+import com.hms.pharmacy.response.PharmacySaleResponse;
+import com.hms.pharmacy.services.PharmacySaleService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/pharmacy/sales")
+public class PharmacySaleController {
+
+  private final PharmacySaleService saleService;
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public PharmacySaleResponse createSale(@Valid @RequestBody PharmacySaleRequest request) {
+    return saleService.createSale(request);
+  }
+
+  @GetMapping("/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  public PharmacySaleResponse getSaleById(@PathVariable Long id) {
+    return saleService.getSaleById(id);
+  }
+
+  @GetMapping("/patient/{patientId}")
+  @ResponseStatus(HttpStatus.OK)
+  public List<PharmacySaleResponse> getSalesByPatient(@PathVariable Long patientId) {
+    return saleService.getSalesByPatientId(patientId);
+  }
+}

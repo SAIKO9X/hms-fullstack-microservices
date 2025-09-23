@@ -109,23 +109,23 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
   @Override
   public String sellStock(Long medicineId, Integer quantityToSell) {
-    // Encontra todos os lotes disponíveis para este medicamento, ordenados por data de validade
     List<MedicineInventory> availableBatches = inventoryRepository
       .findByMedicineIdAndStatusAndQuantityGreaterThanOrderByExpiryDateAsc(medicineId, StockStatus.ACTIVE, 0);
 
     int totalAvailable = availableBatches.stream().mapToInt(MedicineInventory::getQuantity).sum();
     if (totalAvailable < quantityToSell) {
-      throw new InsufficientStockException("Stock insuficiente. Disponível: " + totalAvailable + ", Requisitado: " + quantityToSell);
+      throw new InsufficientStockException("Estoque insuficiente. Disponível: " + totalAvailable + ", Requisitado: " + quantityToSell);
     }
 
     StringBuilder batchDetails = new StringBuilder();
     int remainingToSell = quantityToSell;
 
     for (MedicineInventory batch : availableBatches) {
-      if (remainingToSell <= 0) break;
+      if (remainingToSell <= 0) {
+        break; // Já foi vendida a quantidade necessária
+      }
 
       int quantityFromThisBatch = Math.min(batch.getQuantity(), remainingToSell);
-
       batch.setQuantity(batch.getQuantity() - quantityFromThisBatch);
       remainingToSell -= quantityFromThisBatch;
 
@@ -138,7 +138,6 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
     inventoryRepository.saveAll(availableBatches);
     medicineService.removeStock(medicineId, quantityToSell);
-
     return batchDetails.toString().trim();
   }
 }
