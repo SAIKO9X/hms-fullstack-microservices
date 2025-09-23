@@ -23,8 +23,6 @@ public class Prescription {
   @JoinColumn(name = "appointment_id", unique = true, nullable = false)
   private Appointment appointment;
 
-  // Cascade.ALL: Salva/atualiza/remove os medicamentos junto com a prescrição.
-  // orphanRemoval = true: Remove medicamentos da DB se forem removidos da lista.
   @OneToMany(mappedBy = "prescription", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
   private List<Medicine> medicines = new ArrayList<>();
 

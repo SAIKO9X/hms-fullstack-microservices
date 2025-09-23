@@ -46,7 +46,23 @@ services:
       - appointment-mysql-data:/var/lib/mysql
     restart: always
 
+  # --- Banco de Dados para o Pharmacy Service ---
+  mysql-pharmacy:
+    image: mysql:8.0
+    container_name: ms-pharmacy-db
+    environment:
+      MYSQL_DATABASE: ms_pharmacy_db
+      MYSQL_USER: mysql_pharmacy_user
+      MYSQL_PASSWORD: mysql_pharmacy_password
+      MYSQL_ROOT_PASSWORD: root_password_pharmacy
+    ports:
+      - "3310:3306"
+    volumes:
+      - pharmacy-mysql-data:/var/lib/mysql
+    restart: always
+
 volumes:
   user-mysql-data:
   profile-mysql-data:
   appointment-mysql-data:
+  pharmacy-mysql-data:

@@ -26,6 +26,7 @@
         <module>profile</module>
         <module>appointment</module>
         <module>eureka-server</module>
+        <module>pharmacy</module>
     </modules>
 
     <dependencyManagement>
