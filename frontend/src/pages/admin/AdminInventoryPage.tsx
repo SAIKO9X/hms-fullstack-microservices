@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { InventoryDetailDialog } from "@/components/admin/inventory/InventoryDetailDialog";
 
 type StatusFilter = "all" | "expiring" | "expired" | "lowStock" | "depleted";
 
@@ -40,6 +41,7 @@ export const AdminInventoryPage = () => {
   const [selectedInventory, setSelectedInventory] =
     useState<MedicineInventory | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [notification, setNotification] = useState<{
     message: string;
@@ -48,6 +50,11 @@ export const AdminInventoryPage = () => {
 
   const { data: inventory, isLoading, error } = useInventory();
   const deleteInventoryMutation = useDeleteInventoryItem();
+
+  const handleViewDetails = (inventoryItem: MedicineInventory) => {
+    setSelectedInventory(inventoryItem);
+    setIsDetailOpen(true);
+  };
 
   const filteredInventory = useMemo(() => {
     if (!inventory) return [];
@@ -335,7 +342,11 @@ export const AdminInventoryPage = () => {
             </div>
           ) : (
             <DataTable
-              columns={columns({ onEdit: handleEdit, onDelete: handleDelete })}
+              columns={columns({
+                onEdit: handleEdit,
+                onDelete: handleDelete,
+                onViewDetails: handleViewDetails,
+              })}
               data={filteredInventory}
             />
           )}
@@ -346,6 +357,12 @@ export const AdminInventoryPage = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         inventory={selectedInventory}
+      />
+
+      <InventoryDetailDialog
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        inventoryItem={selectedInventory}
       />
     </div>
   );

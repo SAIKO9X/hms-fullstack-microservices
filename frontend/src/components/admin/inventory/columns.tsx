@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 interface ColumnsOptions {
   onEdit: (inventory: MedicineInventory) => void;
   onDelete?: (inventory: MedicineInventory) => void;
+  onViewDetails: (inventory: MedicineInventory) => void;
 }
 
 const getExpiryStatus = (expiryDate: string) => {
@@ -82,6 +83,7 @@ const getStockStatus = (quantity: number) => {
 export const columns = ({
   onEdit,
   onDelete,
+  onViewDetails,
 }: ColumnsOptions): ColumnDef<MedicineInventory>[] => [
   {
     accessorKey: "medicineName",
@@ -230,9 +232,7 @@ export const columns = ({
               <DropdownMenuItem onClick={() => onEdit(inventory)}>
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => console.log("Ver detalhes", inventory)}
-              >
+              <DropdownMenuItem onClick={() => onViewDetails(inventory)}>
                 Ver detalhes
               </DropdownMenuItem>
               <DropdownMenuSeparator />
