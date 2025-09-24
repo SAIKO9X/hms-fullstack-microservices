@@ -15,71 +15,32 @@ import {
   Home,
   Settings,
   Users,
-  Calendar,
   UserCheck,
-  Shield,
-  Stethoscope,
-  FileText,
   Heart,
-  Clipboard,
+  Pill,
+  Archive,
+  ShoppingCart,
 } from "lucide-react";
 
-export const AppSidebar = () => {
+export const AdminSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const mainItems = [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Pacientes",
-      url: "/dashboard/patients",
-      icon: Users,
-    },
-    {
-      title: "Médicos",
-      url: "/dashboard/doctors",
-      icon: UserCheck,
-    },
-    {
-      title: "Consultas",
-      url: "/dashboard/appointments",
-      icon: Calendar,
-    },
-    {
-      title: "Prontuários",
-      url: "/dashboard/records",
-      icon: FileText,
-    },
+    { title: "Dashboard", url: "/admin/dashboard", icon: Home },
+    { title: "Pacientes", url: "/admin/patients", icon: Users },
+    { title: "Médicos", url: "/admin/doctors", icon: UserCheck },
   ];
 
-  const clinicalItems = [
-    {
-      title: "Diagnósticos",
-      url: "/diagnostics",
-      icon: Stethoscope,
-    },
-    {
-      title: "Exames",
-      url: "/exams",
-      icon: Clipboard,
-    },
-    {
-      title: "Emergência",
-      url: "/emergency",
-      icon: Shield,
-    },
+  // Seção de Farmácia
+  const pharmacyItems = [
+    { title: "Medicamentos", url: "/admin/medicines", icon: Pill },
+    { title: "Inventário", url: "/admin/inventory", icon: Archive },
+    { title: "Vendas", url: "/admin/sales", icon: ShoppingCart },
   ];
 
   const systemItems = [
-    {
-      title: "Configurações",
-      url: "/settings",
-      icon: Settings,
-    },
+    { title: "Configurações", url: "/admin/settings", icon: Settings },
   ];
 
   const isActive = (url: string) => {
@@ -131,16 +92,16 @@ export const AppSidebar = () => {
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-            Clínico
+            Farmácia
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
             <SidebarMenu>
-              {clinicalItems.map((item) => (
+              {pharmacyItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={isActive(item.url)}
                     onClick={() => handleNavigation(item.url)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
                   >
                     <item.icon className="h-5 w-5" />
                     <span>{item.title}</span>
