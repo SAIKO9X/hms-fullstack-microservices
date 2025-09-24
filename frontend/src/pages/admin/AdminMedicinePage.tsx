@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, Filter, Package } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search, Filter, Package, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getAllMedicines } from "@/services/pharmacyService";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Medicine } from "@/types/medicine.types";
 import { columns } from "@/components/admin/columns";
 import { AddEditMedicineDialog } from "@/components/admin/AddEditMedicineDialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+
+type StockFilter = "all" | "lowStock";
 
 export const AdminMedicinesPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -24,6 +38,8 @@ export const AdminMedicinesPage = () => {
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   const {
     data: medicines,
@@ -45,17 +61,29 @@ export const AdminMedicinesPage = () => {
   };
 
   // Filter medicines based on search term
-  const filteredMedicines =
-    medicines?.filter(
-      (medicine) =>
+  const filteredMedicines = useMemo(() => {
+    if (!medicines) return [];
+
+    return medicines.filter((medicine) => {
+      // Filtro de busca por texto
+      const searchMatch =
         medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         medicine.manufacturer
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        medicine.category.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+        medicine.category.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Statistics
+      if (!searchMatch) return false;
+
+      // Filtro de estoque
+      if (stockFilter === "lowStock") {
+        return (medicine.totalStock || 0) < 10;
+      }
+
+      return true; // Retorna true se o filtro for "all"
+    });
+  }, [medicines, searchTerm, stockFilter]);
+
   const stats = {
     total: medicines?.length || 0,
     categories: new Set(medicines?.map((m) => m.category)).size || 0,
@@ -104,9 +132,8 @@ export const AdminMedicinesPage = () => {
           </Button>
         </div>
 
-        {/* Statistics Cards - Abordagem mais sutil */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1 - Total de Medicamentos */}
           <Card className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -127,7 +154,6 @@ export const AdminMedicinesPage = () => {
             </CardContent>
           </Card>
 
-          {/* Card 2 - Categorias */}
           <Card className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -150,7 +176,6 @@ export const AdminMedicinesPage = () => {
             </CardContent>
           </Card>
 
-          {/* Card 3 - Estoque Baixo */}
           <Card className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -195,10 +220,49 @@ export const AdminMedicinesPage = () => {
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="h-11 px-4">
-                <Filter className="mr-2 h-4 w-4" />
-                Filtros
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-11 px-4">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filtros
+                    {stockFilter !== "all" && (
+                      <Badge variant="secondary" className="ml-2">
+                        1
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0" align="end">
+                  <Command>
+                    <CommandList>
+                      <CommandGroup heading="Filtrar por Estoque">
+                        {[
+                          { value: "all", label: "Todos" },
+                          { value: "lowStock", label: "Estoque Baixo" },
+                        ].map((option) => (
+                          <CommandItem
+                            key={option.value}
+                            onSelect={() =>
+                              setStockFilter(option.value as StockFilter)
+                            }
+                            className="cursor-pointer"
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                stockFilter === option.value
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {option.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           {searchTerm && (
