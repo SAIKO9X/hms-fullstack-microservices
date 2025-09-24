@@ -1,5 +1,9 @@
 import api from "@/lib/interceptor/AxiosInterceptor";
-import type { Medicine, MedicineInventory } from "@/types/medicine.types";
+import type {
+  Medicine,
+  MedicineInventory,
+  PharmacySale,
+} from "@/types/medicine.types";
 
 export type MedicineFormData = Omit<Medicine, "id" | "createdAt">;
 
@@ -59,4 +63,10 @@ export const updateInventoryItem = async (
 // Deletar um item do inventário
 export const deleteInventoryItem = async (id: number): Promise<void> => {
   await api.delete(`/pharmacy/inventory/${id}`);
+};
+
+// Buscar todas as vendas
+export const getAllSales = async (): Promise<PharmacySale[]> => {
+  const { data } = await api.get("/pharmacy/sales");
+  return data;
 };

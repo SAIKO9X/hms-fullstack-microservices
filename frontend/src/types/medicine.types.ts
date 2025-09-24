@@ -40,3 +40,22 @@ export interface MedicineInventory {
   expiryDate: string;
   addedDate: string;
 }
+
+export interface PharmacySaleItem {
+  medicineName: string;
+  batchNo: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface PharmacySale {
+  id: number;
+  originalPrescriptionId: number;
+  patientId: number;
+  buyerName: string;
+  buyerContact: string;
+  saleDate: string;
+  totalAmount: number;
+  items: PharmacySaleItem[];
+}

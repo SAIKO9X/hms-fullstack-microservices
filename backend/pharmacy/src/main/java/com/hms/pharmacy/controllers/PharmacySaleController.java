@@ -34,4 +34,10 @@ public class PharmacySaleController {
   public List<PharmacySaleResponse> getSalesByPatient(@PathVariable Long patientId) {
     return saleService.getSalesByPatientId(patientId);
   }
+
+  @GetMapping
+  @ResponseStatus(HttpStatus.OK)
+  public List<PharmacySaleResponse> getAllSales() {
+    return saleService.getAllSales();
+  }
 }

@@ -128,4 +128,11 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
     return createSale(saleRequest);
   }
+
+  @Override
+  public List<PharmacySaleResponse> getAllSales() {
+    return saleRepository.findAll().stream()
+      .map(PharmacySaleResponse::fromEntity)
+      .collect(Collectors.toList());
+  }
 }

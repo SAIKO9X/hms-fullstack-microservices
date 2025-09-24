@@ -4,6 +4,7 @@ import {
   addMedicine,
   deleteInventoryItem,
   getAllInventory,
+  getAllSales,
   updateInventoryItem,
   updateMedicine,
   type InventoryFormData,
@@ -87,5 +88,12 @@ export const useDeleteInventoryItem = () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
+  });
+};
+
+export const useSales = () => {
+  return useQuery({
+    queryKey: ["sales"],
+    queryFn: getAllSales,
   });
 };
