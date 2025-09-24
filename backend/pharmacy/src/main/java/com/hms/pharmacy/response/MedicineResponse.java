@@ -15,6 +15,7 @@ public record MedicineResponse(
   MedicineType type,
   String manufacturer,
   BigDecimal unitPrice,
+  Integer totalStock,
   LocalDateTime createdAt
 ) {
   public static MedicineResponse fromEntity(Medicine medicine) {
@@ -26,6 +27,7 @@ public record MedicineResponse(
       medicine.getType(),
       medicine.getManufacturer(),
       medicine.getUnitPrice(),
+      medicine.getTotalStock(),
       medicine.getCreatedAt()
     );
   }

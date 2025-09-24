@@ -38,6 +38,18 @@ spring:
           predicates:
             - Path=/appointments/**, /records/**, /prescriptions/**
 
+        # Rota para o Pharmacy-Service
+        - id: pharmacy-service-route
+          uri: lb://pharmacy-service
+          predicates:
+            - Path=/pharmacy/**
+                  
+        # Rota para o Media-Service
+        - id: media-service-route
+          uri: lb://media-service
+          predicates:
+            - Path=/media/**
+
 application:
   security:
     jwt:
