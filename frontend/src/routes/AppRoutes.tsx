@@ -14,6 +14,7 @@ import { DoctorAppointmentsPage } from "@/pages/doctor/DoctorAppointmentsPage";
 import { DoctorAppointmentsDetailPage } from "@/pages/doctor/DoctorAppointmentsDetailPage";
 import { AdminDashboard } from "@/layouts/AdminDashboard";
 import { AdminMedicinesPage } from "@/pages/admin/AdminMedicinePage";
+import { AdminInventoryPage } from "@/pages/admin/AdminInventoryPage";
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -59,6 +60,7 @@ export const AppRoutes = () => {
         <Route element={<RoleBasedGuard allowedRoles={["ADMIN"]} />}>
           <Route path="/admin/*" element={<AdminDashboard />}>
             <Route path="medicines" element={<AdminMedicinesPage />} />
+            <Route path="inventory" element={<AdminInventoryPage />} />
           </Route>
         </Route>
       </Route>

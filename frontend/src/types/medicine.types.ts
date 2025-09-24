@@ -30,3 +30,13 @@ export interface Medicine {
   totalStock?: number;
   createdAt: string;
 }
+
+export interface MedicineInventory {
+  id: number;
+  medicineId: number;
+  medicineName: string;
+  batchNo: string;
+  quantity: number;
+  expiryDate: string;
+  addedDate: string;
+}

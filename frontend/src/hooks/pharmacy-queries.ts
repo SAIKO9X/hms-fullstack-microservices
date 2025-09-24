@@ -1,7 +1,12 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  addInventoryItem,
   addMedicine,
+  deleteInventoryItem,
+  getAllInventory,
+  updateInventoryItem,
   updateMedicine,
+  type InventoryFormData,
   type MedicineFormData,
 } from "@/services/pharmacyService";
 import type { Medicine } from "@/types/medicine.types";
@@ -36,6 +41,51 @@ export const useUpdateMedicine = () => {
               )
             : []
       );
+    },
+  });
+};
+
+// Hook para buscar todos os itens do inventário
+export const useInventory = () => {
+  return useQuery({
+    queryKey: ["inventory"],
+    queryFn: getAllInventory,
+  });
+};
+
+// Hook para adicionar um novo item ao inventário
+export const useAddInventoryItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InventoryFormData) => addInventoryItem(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] }); // Invalida medicines para atualizar o totalStock
+    },
+  });
+};
+
+// Hook para atualizar um item do inventário
+export const useUpdateInventoryItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: InventoryFormData }) =>
+      updateInventoryItem(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
+    },
+  });
+};
+
+// Hook para deletar um item do inventário
+export const useDeleteInventoryItem = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteInventoryItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
