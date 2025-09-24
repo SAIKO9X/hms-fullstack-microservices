@@ -10,8 +10,18 @@ export const LandingPage = () => {
 
   const handleNavigate = () => {
     if (user) {
-      const destination =
-        user.role === "DOCTOR" ? "/doctor/dashboard" : "/patient/dashboard";
+      let destination = "/";
+      switch (user.role) {
+        case "ADMIN":
+          destination = "/admin/dashboard";
+          break;
+        case "DOCTOR":
+          destination = "/doctor/dashboard";
+          break;
+        case "PATIENT":
+          destination = "/patient/dashboard";
+          break;
+      }
       navigate(destination);
     } else {
       navigate("/auth");

@@ -8,7 +8,7 @@ import {
 import { Header } from "@/components/header/Header";
 import { useAppDispatch } from "@/hooks/hooks";
 import { logout } from "@/slices/authSlice";
-import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export const AdminDashboard = () => {
   const dispatch = useAppDispatch();
@@ -20,7 +20,7 @@ export const AdminDashboard = () => {
   return (
     <SidebarProvider>
       <Sidebar>
-        <AppSidebar />
+        <AdminSidebar />
       </Sidebar>
       <SidebarInset>
         <header className="bg-card border-b border-border shadow-sm">

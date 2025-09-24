@@ -20,6 +20,14 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   const { setTheme } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
 
+  const roleDisplayMap = {
+    DOCTOR: "Doutor",
+    PATIENT: "Paciente",
+    ADMIN: "Admin",
+  };
+
+  const userRoleDisplay = user ? roleDisplayMap[user.role] : "Usuário";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -38,7 +46,7 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
               {user?.name || "Usuário"}
             </span>
             <span className="text-xs text-muted-foreground">
-              {user?.role === "DOCTOR" ? "Doutor" : "Paciente"}
+              {userRoleDisplay}
             </span>
           </div>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
