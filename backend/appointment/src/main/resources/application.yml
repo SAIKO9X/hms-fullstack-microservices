@@ -1,0 +1,31 @@
+services:
+  profile:
+    base-url: "http://localhost:8082"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+server:
+  port: 8083
+
+spring:
+  application:
+    name: appointment-service
+  datasource:
+    url: jdbc:mysql://localhost:3309/ms_appointment_db
+    username: mysql_appointment_user
+    password: mysql_appointment_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+application:
+  security:
+    jwt:
+      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu

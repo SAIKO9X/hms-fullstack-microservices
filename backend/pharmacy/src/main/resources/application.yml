@@ -1,0 +1,29 @@
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+spring:
+  application:
+    name: pharmacy-service
+  datasource:
+    url: jdbc:mysql://localhost:3310/ms_pharmacy_db
+    username: mysql_pharmacy_user
+    password: mysql_pharmacy_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+# Bloco de configuração aplicação
+application:
+  security:
+    jwt:
+      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
+      expiration: 86400000
