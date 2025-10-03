@@ -18,6 +18,10 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
+<<<<<<< HEAD
+=======
+import { Button } from "@/components/ui/button";
+>>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(

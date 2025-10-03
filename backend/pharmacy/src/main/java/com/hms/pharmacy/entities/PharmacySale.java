@@ -20,7 +20,11 @@ public class PharmacySale {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+<<<<<<< HEAD
   @Column
+=======
+  @Column(nullable = false)
+>>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
   private Long originalPrescriptionId;
 
   @Column(nullable = false)
@@ -42,4 +46,8 @@ public class PharmacySale {
   // Lista dos itens vendidos nesta transação
   @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
   private List<PharmacySaleItem> items = new ArrayList<>();
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
