@@ -20,8 +20,6 @@ export const useAddMedicine = () => {
   return useMutation({
     mutationFn: (medicineData: MedicineFormData) => addMedicine(medicineData),
     onSuccess: () => {
-      // Quando a mutação for bem-sucedida, invalida a query "medicines"
-      // para que a tabela seja atualizada automaticamente com os novos dados.
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
@@ -34,7 +32,6 @@ export const useUpdateMedicine = () => {
     mutationFn: ({ id, data }: { id: number; data: MedicineFormData }) =>
       updateMedicine(id, data),
     onSuccess: (updatedMedicine) => {
-      // Atualiza a lista de medicamentos em cache com os dados atualizados
       queryClient.setQueryData(
         ["medicines"],
         (oldData: Medicine[] | undefined) =>
@@ -63,7 +60,7 @@ export const useAddInventoryItem = () => {
     mutationFn: (data: InventoryFormData) => addInventoryItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["medicines"] }); // Invalida medicines para atualizar o totalStock
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -93,13 +90,13 @@ export const useDeleteInventoryItem = () => {
   });
 };
 
-// Hook para criar uma venda direta
+// Hook para criar uma venda direta - SEM opções customizadas
 export const useCreateDirectSale = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: DirectSaleFormData) => createDirectSale(data),
     onSuccess: () => {
-      // Invalida as queries de vendas e inventário para atualizar os dados
+      // A única responsabilidade do hook é invalidar os caches
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });

@@ -6,11 +6,14 @@ import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.request.PatientCreateRequest;
 import com.hms.profile.request.PatientUpdateRequest;
+import com.hms.profile.response.PatientDropdownResponse;
 import com.hms.profile.response.PatientResponse;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor

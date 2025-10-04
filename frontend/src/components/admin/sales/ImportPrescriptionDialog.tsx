@@ -9,17 +9,25 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePatientsDropdown } from "@/hooks/profile-queries";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ImportPrescriptionDialogProps {
   open: boolean;
@@ -35,6 +43,7 @@ export const ImportPrescriptionDialog = ({
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(
     null
   );
+  const [comboboxOpen, setComboboxOpen] = useState(false);
 
   const { data: patients = [], isLoading: isLoadingPatients } =
     usePatientsDropdown();
@@ -49,6 +58,8 @@ export const ImportPrescriptionDialog = ({
     onSuccess(prescription);
   };
 
+  const selectedPatient = patients.find((p) => p.userId === selectedPatientId);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -58,36 +69,75 @@ export const ImportPrescriptionDialog = ({
             Selecione um paciente para ver e importar suas prescrições.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <Select
-            onValueChange={(value) => setSelectedPatientId(Number(value))}
-            disabled={isLoadingPatients}
-          >
-            <SelectTrigger>
-              <SelectValue
-                placeholder={
-                  isLoadingPatients
-                    ? "Carregando pacientes..."
-                    : "Selecione um paciente"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {patients.map((p) => (
-                <SelectItem key={p.userId} value={String(p.userId)}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
-          {isLoadingPrescriptions && <p>Carregando prescrições...</p>}
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Paciente</label>
+            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={comboboxOpen}
+                  disabled={isLoadingPatients}
+                  className={cn(
+                    "w-full justify-between font-normal",
+                    !selectedPatientId && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">
+                    {selectedPatient?.name ||
+                      (isLoadingPatients
+                        ? "Carregando pacientes..."
+                        : "Selecione um paciente")}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar paciente pelo nome..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum paciente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {patients.map((patient) => (
+                        <CommandItem
+                          key={patient.userId}
+                          value={patient.name}
+                          onSelect={() => {
+                            setSelectedPatientId(patient.userId);
+                            setComboboxOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              selectedPatientId === patient.userId
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          {patient.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {isLoadingPrescriptions && (
+            <p className="text-sm text-muted-foreground text-center">
+              Carregando prescrições...
+            </p>
+          )}
 
           {prescriptions && (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {prescriptions.length === 0 ? (
+              {prescriptions.length === 0 && selectedPatientId ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhuma prescrição encontrada.
+                  Nenhuma prescrição encontrada para este paciente.
                 </p>
               ) : (
                 prescriptions.map((p) => (

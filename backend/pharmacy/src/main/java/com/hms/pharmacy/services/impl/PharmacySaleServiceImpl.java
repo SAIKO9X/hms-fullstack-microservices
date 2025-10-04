@@ -8,6 +8,7 @@ import com.hms.pharmacy.entities.PharmacySaleItem;
 import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.repositories.PharmacySaleRepository;
+import com.hms.pharmacy.request.DirectSaleRequest;
 import com.hms.pharmacy.request.PharmacySaleRequest;
 import com.hms.pharmacy.request.PrescriptionReceiveRequest;
 import com.hms.pharmacy.request.SaleItemRequest;
@@ -162,6 +163,18 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       saleItems
     );
 
+    return createSale(saleRequest);
+  }
+
+  @Override
+  @Transactional
+  public PharmacySaleResponse createDirectSale(DirectSaleRequest request) {
+    // Mapeia o DirectSaleRequest para o PharmacySaleRequest que o createSale espera
+    PharmacySaleRequest saleRequest = new PharmacySaleRequest(
+      null, // ID da prescrição é nulo para venda direta
+      request.patientId(),
+      request.items()
+    );
     return createSale(saleRequest);
   }
 }

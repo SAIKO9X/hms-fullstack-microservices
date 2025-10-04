@@ -2,13 +2,17 @@ package com.hms.profile.controllers;
 
 import com.hms.profile.request.PatientCreateRequest;
 import com.hms.profile.request.PatientUpdateRequest;
+import com.hms.profile.response.PatientDropdownResponse;
 import com.hms.profile.response.PatientResponse;
 import com.hms.profile.services.JwtService;
 import com.hms.profile.services.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -56,6 +60,12 @@ public class PatientController {
   @ResponseStatus(HttpStatus.OK)
   public List<PatientDropdownResponse> getPatientsForDropdown() {
     return patientService.getPatientsForDropdown();
+  }
+
+  @GetMapping("/patients/by-user/{userId}")
+  @ResponseStatus(HttpStatus.OK)
+  public PatientResponse getPatientByUserId(@PathVariable Long userId) {
+    return patientService.getPatientProfileByUserId(userId);
   }
 
   private Long getUserIdFromToken(String token) {

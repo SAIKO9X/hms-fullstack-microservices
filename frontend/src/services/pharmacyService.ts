@@ -83,9 +83,7 @@ export const getAllSales = async (): Promise<PharmacySale[]> => {
 export const createDirectSale = async (
   saleData: DirectSaleFormData
 ): Promise<PharmacySale> => {
-  // Recebe um ID de prescrição nulo ou inválido
-  const requestData = { ...saleData, originalPrescriptionId: null };
-  const { data } = await api.post("/pharmacy/sales/direct", requestData);
+  const { data } = await api.post("/pharmacy/sales/direct", saleData);
   return data;
 };
 

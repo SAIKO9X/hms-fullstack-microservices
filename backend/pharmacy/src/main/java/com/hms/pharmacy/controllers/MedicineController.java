@@ -6,6 +6,7 @@ import com.hms.pharmacy.services.MedicineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class MedicineController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize("hasRole('ADMIN')")
   public MedicineResponse addMedicine(@Valid @RequestBody MedicineRequest request) {
     return medicineService.addMedicine(request);
   }

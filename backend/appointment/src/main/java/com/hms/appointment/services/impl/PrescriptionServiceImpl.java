@@ -86,31 +86,31 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     return PrescriptionResponse.fromEntity(prescriptionRepository.save(prescription));
   }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId) {
-        // Validação de segurança: apenas o próprio paciente ou um médico pode ver
-        List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
-        boolean isAuthorized = appointments.stream()
-                .anyMatch(app -> app.getPatientId().equals(requesterId) || app.getDoctorId().equals(requesterId));
+  @Override
+  @Transactional(readOnly = true)
+  public List<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId) {
+    // Validação de segurança: apenas o próprio paciente ou um médico pode ver
+    List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+    boolean isAuthorized = appointments.stream()
+      .anyMatch(app -> app.getPatientId().equals(requesterId) || app.getDoctorId().equals(requesterId));
 
-        // Por enquanto, vamos simplificar para a comunicação entre serviços
-        // if (!isAuthorized) {
-        //   throw new SecurityException("Acesso negado.");
-        // }
+    // Por enquanto, vamos simplificar para a comunicação entre serviços
+    // if (!isAuthorized) {
+    //   throw new SecurityException("Acesso negado.");
+    // }
 
-        return prescriptionRepository.findByAppointmentPatientId(patientId).stream()
-                .map(PrescriptionResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
+    return prescriptionRepository.findByAppointmentPatientId(patientId).stream()
+      .map(PrescriptionResponse::fromEntity)
+      .collect(Collectors.toList());
+  }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId) {
-        return prescriptionRepository.findById(prescriptionId)
-                .map(PrescriptionForPharmacyResponse::fromEntity)
-                .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
-    }
+  @Override
+  @Transactional(readOnly = true)
+  public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId) {
+    return prescriptionRepository.findById(prescriptionId)
+      .map(PrescriptionForPharmacyResponse::fromEntity)
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
+  }
 
   private List<Medicine> mapToMedicineEntities(List<MedicineRequest> medicineRequests) {
     return medicineRequests.stream().map(dto -> {

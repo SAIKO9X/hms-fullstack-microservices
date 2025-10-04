@@ -2,7 +2,10 @@ package com.hms.profile.services;
 
 import com.hms.profile.request.PatientCreateRequest;
 import com.hms.profile.request.PatientUpdateRequest;
+import com.hms.profile.response.PatientDropdownResponse;
 import com.hms.profile.response.PatientResponse;
+
+import java.util.List;
 
 public interface PatientService {
 

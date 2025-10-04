@@ -40,16 +40,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     final String userEmail = jwtService.extractUsername(jwt);
 
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      // Extrai a 'role' diretamente do token
       String role = jwtService.extractClaim(jwt, claims -> claims.get("role", String.class));
+      Long userId = jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class)); // ADICIONE ISSO
+
       var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
 
-      // Cria o objeto de autenticação com base nos dados do token, sem consultar o BD
+      // Use userId como principal em vez de email
       UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-        userEmail,
+        userId != null ? userId : userEmail, // MUDANÇA AQUI
         null,
         authorities
       );
+
       authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
       SecurityContextHolder.getContext().setAuthentication(authToken);
     }
