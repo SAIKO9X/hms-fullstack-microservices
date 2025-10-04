@@ -19,4 +19,6 @@ public interface DoctorService {
   List<DoctorDropdownResponse> getDoctorsForDropdown();
 
   List<DoctorResponse> findAllDoctors();
+
+  DoctorResponse getDoctorProfileById(Long id);
 }

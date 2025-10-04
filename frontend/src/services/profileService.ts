@@ -46,3 +46,14 @@ export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
   const { data } = await api.get("/profile/doctors/all");
   return data;
 };
+
+// ...
+export const getPatientById = async (id: number): Promise<PatientProfile> => {
+  const { data } = await api.get(`/profile/patients/${id}`);
+  return data;
+};
+
+export const getDoctorById = async (id: number): Promise<DoctorProfile> => {
+  const { data } = await api.get(`/profile/doctors/${id}`);
+  return data;
+};

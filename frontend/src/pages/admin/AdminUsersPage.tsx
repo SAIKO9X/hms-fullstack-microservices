@@ -14,9 +14,11 @@ import {
   doctorColumns,
   patientColumns,
 } from "@/components/admin/patientColumns";
+import { useNavigate } from "react-router";
 
-// Componente de Card para Pacientes (com melhorias de nulidade)
 const PatientCard = ({ patient }: { patient: PatientProfile }) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -53,7 +55,11 @@ const PatientCard = ({ patient }: { patient: PatientProfile }) => {
             <span>{patient.phoneNumber}</span>
           </div>
         )}
-        <Button variant="outline" className="w-full mt-2">
+        <Button
+          variant="outline"
+          className="w-full mt-2"
+          onClick={() => navigate(`/admin/users/patient/${patient.id}`)}
+        >
           Ver Detalhes
         </Button>
       </CardContent>
@@ -63,6 +69,8 @@ const PatientCard = ({ patient }: { patient: PatientProfile }) => {
 
 // Componente de Card para Médicos (com melhorias de nulidade)
 const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -97,7 +105,11 @@ const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
             <span>{doctor.phoneNumber}</span>
           </div>
         )}
-        <Button variant="outline" className="w-full mt-2">
+        <Button
+          variant="outline"
+          className="w-full mt-2"
+          onClick={() => navigate(`/admin/users/doctor/${doctor.id}`)}
+        >
           Ver Detalhes
         </Button>
       </CardContent>

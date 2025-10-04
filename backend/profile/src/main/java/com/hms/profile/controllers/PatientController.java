@@ -75,6 +75,13 @@ public class PatientController {
     return patientService.findAllPatients();
   }
 
+  @GetMapping("/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('ADMIN')")
+  public PatientResponse getPatientProfileById(@PathVariable Long id) {
+    return patientService.getPatientProfileById(id);
+  }
+
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
     return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));

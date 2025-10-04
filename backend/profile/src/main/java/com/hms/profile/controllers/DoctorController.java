@@ -69,6 +69,13 @@ public class DoctorController {
     return doctorService.findAllDoctors();
   }
 
+  @GetMapping("/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('ADMIN')")
+  public DoctorResponse getDoctorProfileById(@PathVariable Long id) {
+    return doctorService.getDoctorProfileById(id);
+  }
+
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
     return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));

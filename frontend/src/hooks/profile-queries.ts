@@ -14,6 +14,8 @@ import {
   getPatientsForDropdown,
   getAllPatients,
   getAllDoctors,
+  getPatientById,
+  getDoctorById,
 } from "@/services/profileService";
 
 // Types
@@ -145,5 +147,21 @@ export const useAllDoctors = () => {
   return useQuery({
     queryKey: ["allDoctors"],
     queryFn: getAllDoctors,
+  });
+};
+
+export const usePatientById = (id: number) => {
+  return useQuery({
+    queryKey: ["patient", id],
+    queryFn: () => getPatientById(id),
+    enabled: !!id, // A query só será executada se o ID for válido
+  });
+};
+
+export const useDoctorById = (id: number) => {
+  return useQuery({
+    queryKey: ["doctor", id],
+    queryFn: () => getDoctorById(id),
+    enabled: !!id,
   });
 };

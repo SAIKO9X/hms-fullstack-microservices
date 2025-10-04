@@ -79,4 +79,12 @@ public class DoctorServiceImpl implements DoctorService {
       .map(DoctorResponse::fromEntity)
       .collect(Collectors.toList());
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public DoctorResponse getDoctorProfileById(Long id) {
+    return doctorRepository.findById(id)
+      .map(DoctorResponse::fromEntity)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil de médico não encontrado para o ID: " + id));
+  }
 }

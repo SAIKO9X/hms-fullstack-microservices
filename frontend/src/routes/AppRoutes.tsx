@@ -19,6 +19,8 @@ import { AdminSalesPage } from "@/pages/admin/AdminSalesPage";
 import { AdminSaleDetailPage } from "@/pages/admin/AdminSaleDetailPage";
 import { AdminNewSalePage } from "@/pages/admin/AdminNewSalePage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
+import { AdminPatientDetailPage } from "@/pages/admin/AdminPatientDetailPage";
+import { AdminDoctorDetailPage } from "@/pages/admin/AdminDoctorDetailPage";
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -69,6 +71,14 @@ export const AppRoutes = () => {
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route
+              path="users/patient/:id"
+              element={<AdminPatientDetailPage />}
+            />
+            <Route
+              path="users/doctor/:id"
+              element={<AdminDoctorDetailPage />}
+            />
           </Route>
         </Route>
       </Route>
