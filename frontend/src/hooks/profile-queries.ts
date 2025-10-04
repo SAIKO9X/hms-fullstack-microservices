@@ -12,6 +12,8 @@ import {
   updateMyPatientProfile,
   updateMyDoctorProfile,
   getPatientsForDropdown,
+  getAllPatients,
+  getAllDoctors,
 } from "@/services/profileService";
 
 // Types
@@ -129,5 +131,19 @@ export const usePatientsDropdown = () => {
     queryKey: ["patientsDropdown"],
     queryFn: getPatientsForDropdown,
     staleTime: 10 * 60 * 1000, // Cache de 10 minutos
+  });
+};
+
+export const useAllPatients = () => {
+  return useQuery({
+    queryKey: ["allPatients"],
+    queryFn: getAllPatients,
+  });
+};
+
+export const useAllDoctors = () => {
+  return useQuery({
+    queryKey: ["allDoctors"],
+    queryFn: getAllDoctors,
   });
 };

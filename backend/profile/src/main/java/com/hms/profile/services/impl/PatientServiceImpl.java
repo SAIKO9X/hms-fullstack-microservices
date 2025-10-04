@@ -14,15 +14,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class PatientServiceImpl implements PatientService {
 
   private final PatientRepository patientRepository;
 
   @Override
-  @Transactional
   public PatientResponse createPatientProfile(PatientCreateRequest request) {
     if (patientRepository.existsByUserIdOrCpf(request.userId(), request.cpf())) {
       throw new ProfileAlreadyExistsException("Um perfil para este usuário ou CPF já existe.");
@@ -57,7 +58,6 @@ public class PatientServiceImpl implements PatientService {
   }
 
   @Override
-  @Transactional
   public PatientResponse updatePatientProfile(Long userId, PatientUpdateRequest request) {
     // Busca a entidade existente pelo userId
     Patient patientToUpdate = patientRepository.findByUserId(userId)
@@ -88,5 +88,13 @@ public class PatientServiceImpl implements PatientService {
   @Override
   public List<PatientDropdownResponse> getPatientsForDropdown() {
     return patientRepository.findAllForDropdown();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<PatientResponse> findAllPatients() {
+    return patientRepository.findAll().stream()
+      .map(PatientResponse::fromEntity)
+      .collect(Collectors.toList());
   }
 }

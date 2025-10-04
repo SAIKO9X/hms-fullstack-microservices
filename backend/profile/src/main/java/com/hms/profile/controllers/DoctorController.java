@@ -9,6 +9,7 @@ import com.hms.profile.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -59,6 +60,13 @@ public class DoctorController {
   @ResponseStatus(HttpStatus.OK)
   public List<DoctorDropdownResponse> getDoctorsForDropdown() {
     return doctorService.getDoctorsForDropdown();
+  }
+
+  @GetMapping("/all")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('ADMIN')")
+  public List<DoctorResponse> getAllDoctorProfiles() {
+    return doctorService.findAllDoctors();
   }
 
   private Long getUserIdFromToken(String token) {

@@ -36,3 +36,13 @@ export const getPatientsForDropdown = async (): Promise<
   const { data } = await api.get("/profile/patients/dropdown");
   return data;
 };
+
+export const getAllPatients = async (): Promise<PatientProfile[]> => {
+  const { data } = await api.get("/profile/patients/all");
+  return data;
+};
+
+export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
+  const { data } = await api.get("/profile/doctors/all");
+  return data;
+};

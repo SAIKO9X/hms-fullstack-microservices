@@ -14,7 +14,6 @@ import {
 import {
   Home,
   Settings,
-  Users,
   UserCheck,
   Heart,
   Pill,
@@ -29,8 +28,7 @@ export const AdminSidebar = () => {
 
   const mainItems = [
     { title: "Dashboard", url: "/admin/dashboard", icon: Home },
-    { title: "Pacientes", url: "/admin/patients", icon: Users },
-    { title: "Médicos", url: "/admin/doctors", icon: UserCheck },
+    { title: "Utilizadores", url: "/admin/users", icon: UserCheck },
   ];
 
   // Seção de Farmácia

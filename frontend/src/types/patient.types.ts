@@ -1,21 +1,4 @@
-export enum BloodGroup {
-  A_POSITIVE = "A_POSITIVE",
-  A_NEGATIVE = "A_NEGATIVE",
-  B_POSITIVE = "B_POSITIVE",
-  B_NEGATIVE = "B_NEGATIVE",
-  AB_POSITIVE = "AB_POSITIVE",
-  AB_NEGATIVE = "AB_NEGATIVE",
-  O_POSITIVE = "O_POSITIVE",
-  O_NEGATIVE = "O_NEGATIVE",
-}
-
-export enum Gender {
-  MALE = "MALE",
-  FEMALE = "FEMALE",
-  OTHER = "OTHER",
-}
-
-export const bloodGroupMap: Record<BloodGroup, string> = {
+export const BloodGroup = {
   A_POSITIVE: "A+",
   A_NEGATIVE: "A-",
   B_POSITIVE: "B+",
@@ -24,15 +7,21 @@ export const bloodGroupMap: Record<BloodGroup, string> = {
   AB_NEGATIVE: "AB-",
   O_POSITIVE: "O+",
   O_NEGATIVE: "O-",
-};
+} as const;
 
-export const genderMap: Record<Gender, string> = {
+export type BloodGroup = keyof typeof BloodGroup;
+
+export const Gender = {
   MALE: "Masculino",
   FEMALE: "Feminino",
   OTHER: "Outro",
-};
+} as const;
+
+export type Gender = keyof typeof Gender;
 
 export interface PatientProfile {
+  id: number;
+  name: string;
   cpf: string;
   dateOfBirth: Date;
   phoneNumber: string;

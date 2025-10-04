@@ -17,4 +17,6 @@ public interface DoctorService {
   boolean doctorProfileExists(Long userId);
 
   List<DoctorDropdownResponse> getDoctorsForDropdown();
+
+  List<DoctorResponse> findAllDoctors();
 }

@@ -18,6 +18,7 @@ import { AdminInventoryPage } from "@/pages/admin/AdminInventoryPage";
 import { AdminSalesPage } from "@/pages/admin/AdminSalesPage";
 import { AdminSaleDetailPage } from "@/pages/admin/AdminSaleDetailPage";
 import { AdminNewSalePage } from "@/pages/admin/AdminNewSalePage";
+import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -59,7 +60,7 @@ export const AppRoutes = () => {
           </Route>
         </Route>
 
-        {/* Rota do Admin */}
+        {/* Admin */}
         <Route element={<RoleBasedGuard allowedRoles={["ADMIN"]} />}>
           <Route path="/admin/*" element={<AdminDashboard />}>
             <Route path="medicines" element={<AdminMedicinesPage />} />
@@ -67,6 +68,7 @@ export const AppRoutes = () => {
             <Route path="sales" element={<AdminSalesPage />} />
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
             <Route path="new-sale" element={<AdminNewSalePage />} />
+            <Route path="users" element={<AdminUsersPage />} />
           </Route>
         </Route>
       </Route>

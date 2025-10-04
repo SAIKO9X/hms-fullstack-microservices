@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Edit } from "lucide-react";
-import {
-  type PatientProfile,
-  bloodGroupMap,
-  genderMap,
-} from "@/types/patient.types";
+import { type PatientProfile, BloodGroup, Gender } from "@/types/patient.types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,13 +116,13 @@ export const PatientProfilePage = () => {
     {
       label: "Tipo Sanguíneo",
       value: patientProfile?.bloodGroup
-        ? bloodGroupMap[patientProfile.bloodGroup] || patientProfile.bloodGroup
+        ? BloodGroup[patientProfile.bloodGroup] || patientProfile.bloodGroup
         : "Não informado",
     },
     {
       label: "Gênero",
       value: patientProfile?.gender
-        ? genderMap[patientProfile.gender] || patientProfile.gender
+        ? Gender[patientProfile.gender] || patientProfile.gender
         : "Não informado",
     },
   ];

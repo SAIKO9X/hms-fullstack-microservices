@@ -14,15 +14,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class DoctorServiceImpl implements DoctorService {
 
   private final DoctorRepository doctorRepository;
 
   @Override
-  @Transactional
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
     if (doctorRepository.existsByUserIdOrCrmNumber(request.userId(), request.crmNumber())) {
       throw new ProfileAlreadyExistsException("Um perfil para este doutor (userId ou CRM) já existe.");
@@ -45,7 +46,6 @@ public class DoctorServiceImpl implements DoctorService {
   }
 
   @Override
-  @Transactional
   public DoctorResponse updateDoctorProfile(Long userId, DoctorUpdateRequest request) {
     Doctor doctorToUpdate = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil de doutor não encontrado para o usuário com ID: " + userId));
@@ -70,5 +70,13 @@ public class DoctorServiceImpl implements DoctorService {
   @Override
   public List<DoctorDropdownResponse> getDoctorsForDropdown() {
     return doctorRepository.findAllForDropdown();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<DoctorResponse> findAllDoctors() {
+    return doctorRepository.findAll().stream()
+      .map(DoctorResponse::fromEntity)
+      .collect(Collectors.toList());
   }
 }
