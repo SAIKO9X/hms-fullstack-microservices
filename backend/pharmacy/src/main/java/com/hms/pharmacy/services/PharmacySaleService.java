@@ -16,4 +16,6 @@ public interface PharmacySaleService {
   PharmacySaleResponse processPrescriptionAndCreateSale(PrescriptionReceiveRequest prescriptionRequest);
 
   List<PharmacySaleResponse> getAllSales();
+
+  PharmacySaleResponse processPrescriptionAndCreateSale(Long prescriptionId);
 }

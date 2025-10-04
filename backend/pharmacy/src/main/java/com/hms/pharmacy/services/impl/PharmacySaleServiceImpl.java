@@ -1,5 +1,6 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.pharmacy.clients.AppointmentFeignClient;
 import com.hms.pharmacy.clients.ProfileFeignClient;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.entities.PharmacySale;
@@ -32,6 +33,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   private final MedicineRepository medicineRepository;
   private final MedicineInventoryService inventoryService;
   private final ProfileFeignClient profileFeignClient;
+  private final AppointmentFeignClient appointmentFeignClient;
 
   @Override
   @Transactional
@@ -134,5 +136,32 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     return saleRepository.findAll().stream()
       .map(PharmacySaleResponse::fromEntity)
       .collect(Collectors.toList());
+  }
+
+  @Override
+  @Transactional
+  public PharmacySaleResponse processPrescriptionAndCreateSale(Long prescriptionId) {
+    PrescriptionReceiveRequest prescriptionRequest = appointmentFeignClient.getPrescriptionForPharmacy(prescriptionId);
+
+    List<SaleItemRequest> saleItems = prescriptionRequest.items().stream()
+      .map(item -> {
+        // Busca o medicamento pelo nome e dosagem para encontrar o ID interno da farmácia
+        Medicine medicine = medicineRepository
+          .findByNameIgnoreCaseAndDosageIgnoreCase(item.medicineName(), item.dosage())
+          .orElseThrow(() -> new MedicineNotFoundException(
+            "Medicamento '" + item.medicineName() + " " + item.dosage() + "' não encontrado no estoque."
+          ));
+
+        return new SaleItemRequest(medicine.getId(), 1);
+      })
+      .collect(Collectors.toList());
+
+    PharmacySaleRequest saleRequest = new PharmacySaleRequest(
+      prescriptionRequest.originalPrescriptionId(),
+      prescriptionRequest.patientId(),
+      saleItems
+    );
+
+    return createSale(saleRequest);
   }
 }
