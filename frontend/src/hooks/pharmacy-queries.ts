@@ -2,19 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   addInventoryItem,
   addMedicine,
-<<<<<<< HEAD
   createDirectSale,
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
   deleteInventoryItem,
   getAllInventory,
   getAllSales,
   updateInventoryItem,
   updateMedicine,
-<<<<<<< HEAD
   type DirectSaleFormData,
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
   type InventoryFormData,
   type MedicineFormData,
 } from "@/services/pharmacyService";
@@ -99,7 +93,6 @@ export const useDeleteInventoryItem = () => {
   });
 };
 
-<<<<<<< HEAD
 // Hook para criar uma venda direta
 export const useCreateDirectSale = () => {
   const queryClient = useQueryClient();
@@ -114,8 +107,6 @@ export const useCreateDirectSale = () => {
   });
 };
 
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 export const useSales = () => {
   return useQuery({
     queryKey: ["sales"],

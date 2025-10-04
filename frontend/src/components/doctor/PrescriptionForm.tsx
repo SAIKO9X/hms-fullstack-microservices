@@ -25,6 +25,10 @@ import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { Prescription } from "@/types/record.types";
 import { useEffect } from "react";
+// NOVAS IMPORTAÇÕES
+import { useQuery } from "@tanstack/react-query";
+import { getAllMedicines } from "@/services/pharmacyService";
+import { Combobox } from "@/components/ui/combobox";
 
 interface PrescriptionFormProps {
   appointmentId: number;
@@ -45,6 +49,19 @@ export const PrescriptionForm = ({
   const updateMutation = useUpdatePrescription();
   const isEditing = !!existingPrescription;
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Busca os medicamentos em stock
+  const { data: stockMedicines = [] } = useQuery({
+    queryKey: ["medicines"],
+    queryFn: getAllMedicines,
+    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
+  });
+
+  // Mapeia os medicamentos para o formato esperado pelo Combobox
+  const medicineOptions = stockMedicines.map((med) => ({
+    value: `${med.name} | ${med.dosage}`, // Usar um valor único para o select
+    label: `${med.name} (${med.dosage})`,
+  }));
 
   const form = useForm<FormData>({
     resolver: zodResolver(
@@ -116,11 +133,26 @@ export const PrescriptionForm = ({
                 control={form.control}
                 name={`medicines.${index}.name`}
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex flex-col">
                     <FormLabel>Nome do Medicamento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Amoxicilina 500mg" {...field} />
-                    </FormControl>
+                    <Combobox
+                      options={medicineOptions}
+                      value={field.value}
+                      onValueChange={(selectedValue) => {
+                        // Quando um item é selecionado, separamos nome e dosagem
+                        const [name, dosage] = selectedValue.split(" | ");
+                        form.setValue(
+                          `medicines.${index}.name`,
+                          name || selectedValue
+                        );
+                        if (dosage) {
+                          form.setValue(`medicines.${index}.dosage`, dosage);
+                        }
+                      }}
+                      placeholder="Selecione ou digite um medicamento"
+                      searchPlaceholder="Buscar medicamento..."
+                      emptyMessage="Nenhum medicamento encontrado."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
