@@ -52,7 +52,6 @@ export const AdminNewSalePage = () => {
   const createSaleMutation = useCreateDirectSale();
 
   const onSubmit = async (data: SaleFormData) => {
-    console.log("Dados do formulário:", data);
     setNotification(null);
 
     // Validação do paciente
@@ -122,8 +121,7 @@ export const AdminNewSalePage = () => {
   };
 
   const form = useForm<SaleFormData>({
-    // REMOVA o resolver
-    // resolver: zodResolver(saleFormSchema),
+    resolver: zodResolver(saleFormSchema) as any,
     defaultValues: { patientId: 0, items: [{ medicineId: 0, quantity: 1 }] },
   });
 

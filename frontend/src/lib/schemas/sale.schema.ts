@@ -1,15 +1,14 @@
 import { z } from "zod";
 
+const SaleItemSchema = z.object({
+  medicineId: z.number().positive("Selecione um medicamento válido."),
+  quantity: z.number().positive("A quantidade deve ser no mínimo 1."),
+});
+
 export const saleFormSchema = z.object({
-  patientId: z.number().min(1, "Selecione um comprador"),
-  medicineId: z.number().min(1, "Selecione um medicamento"),
+  patientId: z.number().positive("Selecione um comprador."),
   items: z
-    .array(
-      z.object({
-        medicineId: z.number().min(1, "Selecione um medicamento"),
-        quantity: z.number().min(1, "A quantidade deve ser no mínimo 1"),
-      })
-    )
+    .array(SaleItemSchema)
     .min(1, "Adicione pelo menos um medicamento à venda."),
 });
 
