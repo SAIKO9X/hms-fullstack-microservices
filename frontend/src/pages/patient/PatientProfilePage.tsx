@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Edit } from "lucide-react";
 import { type PatientProfile, BloodGroup, Gender } from "@/types/patient.types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,7 +9,8 @@ import { ProfileInfoTable } from "@/components/patient/ProfileInfoTable";
 import type { PatientProfileFormData } from "@/lib/schemas/profile";
 import { EditProfileDialog } from "@/components/patient/EditProfileDialog";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
-import { useProfile } from "@/hooks/profile-queries";
+import { useProfile, useUpdateProfilePicture } from "@/hooks/profile-queries";
+import { uploadFile } from "@/services/mediaService";
 
 export const PatientProfilePage = () => {
   const {
@@ -28,6 +29,9 @@ export const PatientProfilePage = () => {
     variant: "success" | "error";
     title: string;
   } | null>(null);
+
+  const updatePictureMutation = useUpdateProfilePicture();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveProfile = async (data: PatientProfileFormData) => {
     try {
@@ -138,6 +142,32 @@ export const PatientProfilePage = () => {
     },
   ];
 
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // 1. Envia para o media-service
+      const mediaResponse = await uploadFile(file);
+      // 2. Envia a URL para o profile-service
+      await updatePictureMutation.mutateAsync(mediaResponse.url);
+
+      setActionNotification({
+        variant: "success",
+        title: "Foto de perfil atualizada com sucesso!",
+      });
+    } catch (err: any) {
+      setActionNotification({
+        variant: "error",
+        title: "Erro ao atualizar a foto",
+      });
+    }
+  };
+
+  const API_BASE_URL = "http://localhost:9000"; // URL do Gateway
+
   return (
     <div className="container mx-auto p-4 space-y-8">
       {/* Aviso para perfil incompleto */}
@@ -163,15 +193,38 @@ export const PatientProfilePage = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage
-                src="https://github.com/SAIKO9X.png"
-                alt="Foto do perfil"
+            <div className="relative group">
+              <Avatar className="h-24 w-24">
+                  <AvatarImage
+                    src={
+                      patientProfile?.profilePictureUrl
+                        ? `${API_BASE_URL}${patientProfile.profilePictureUrl}`
+                        : undefined
+                    }
+                    alt="Foto do perfil"
+                  />
+                <AvatarFallback className="text-3xl">
+                  {user?.name?.charAt(0).toUpperCase() || "P"}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute bottom-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={updatePictureMutation.isPending}
+              >
+                <Edit className="h-3 w-3" />
+                <span className="sr-only">Editar foto</span>
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/png, image/jpeg, image/gif"
               />
-              <AvatarFallback className="text-3xl">
-                {user?.name?.charAt(0).toUpperCase() || "P"}
-              </AvatarFallback>
-            </Avatar>
+            </div>
             <div className="flex-1 text-center sm:text-left">
               <CardTitle className="text-2xl">
                 {user?.name || "Nome não informado"}

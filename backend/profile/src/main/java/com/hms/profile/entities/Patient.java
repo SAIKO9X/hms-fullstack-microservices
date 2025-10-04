@@ -50,4 +50,6 @@ public class Patient {
 
   @Lob
   private String allergies;
+
+  private String profilePictureUrl;
 }

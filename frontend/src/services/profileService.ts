@@ -47,7 +47,6 @@ export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
   return data;
 };
 
-// ...
 export const getPatientById = async (id: number): Promise<PatientProfile> => {
   const { data } = await api.get(`/profile/patients/${id}`);
   return data;
@@ -56,4 +55,16 @@ export const getPatientById = async (id: number): Promise<PatientProfile> => {
 export const getDoctorById = async (id: number): Promise<DoctorProfile> => {
   const { data } = await api.get(`/profile/doctors/${id}`);
   return data;
+};
+
+export const updateMyPatientProfilePicture = async (
+  pictureUrl: string
+): Promise<void> => {
+  await api.put("/profile/patients/picture", { pictureUrl });
+};
+
+export const updateMyDoctorProfilePicture = async (
+  pictureUrl: string
+): Promise<void> => {
+  await api.put("/profile/doctors/picture", { pictureUrl });
 };

@@ -43,4 +43,6 @@ public class Doctor {
 
   @Lob
   private String biography;
+
+  private String profilePictureUrl;
 }

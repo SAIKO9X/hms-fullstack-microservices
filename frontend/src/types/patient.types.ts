@@ -32,4 +32,5 @@ export interface PatientProfile {
   emergencyContactPhone: string;
   allergies?: string[];
   chronicDiseases?: string[];
+  profilePictureUrl?: string;
 }

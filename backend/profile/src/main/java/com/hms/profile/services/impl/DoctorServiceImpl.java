@@ -87,4 +87,12 @@ public class DoctorServiceImpl implements DoctorService {
       .map(DoctorResponse::fromEntity)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil de médico não encontrado para o ID: " + id));
   }
+
+  @Override
+  public void updateProfilePicture(Long userId, String pictureUrl) {
+    Doctor doctor = doctorRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+    doctor.setProfilePictureUrl(pictureUrl);
+    doctorRepository.save(doctor);
+  }
 }

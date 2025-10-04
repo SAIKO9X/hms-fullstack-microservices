@@ -12,13 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppSelector } from "@/hooks/hooks";
+import { useProfile } from "@/hooks/profile-queries";
 import { ChevronDown, LogOut, Settings, User, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 
-// Aceita onLogout como prop
 export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   const { setTheme } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
+  const { profile } = useProfile();
 
   const roleDisplayMap = {
     DOCTOR: "Doutor",
@@ -27,6 +28,7 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const userRoleDisplay = user ? roleDisplayMap[user.role] : "Usuário";
+  const API_BASE_URL = "http://localhost:9000"; // URL do Gateway
 
   return (
     <DropdownMenu>
@@ -34,7 +36,11 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
         <div className="flex items-center gap-3 cursor-pointer focus-visible:outline-none hover:bg-accent rounded-lg p-2 transition-colors">
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src="https://github.com/SAIKO9X.png"
+              src={
+                profile?.profilePictureUrl
+                  ? `${API_BASE_URL}${profile.profilePictureUrl}`
+                  : undefined
+              }
               alt="Profile Image"
             />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
@@ -84,7 +90,6 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
           </DropdownMenuSub>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {/* Chama a função onLogout quando clicado */}
         <DropdownMenuItem
           onClick={onLogout}
           className="cursor-pointer text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20 focus:text-red-700 dark:focus:text-red-400"

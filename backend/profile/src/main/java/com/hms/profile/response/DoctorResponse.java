@@ -15,7 +15,8 @@ public record DoctorResponse(
   String phoneNumber,
   int yearsOfExperience,
   String qualifications,
-  String biography
+  String biography,
+  String profilePictureUrl
 ) {
   public static DoctorResponse fromEntity(Doctor doctor) {
     return new DoctorResponse(
@@ -29,7 +30,8 @@ public record DoctorResponse(
       doctor.getPhoneNumber(),
       doctor.getYearsOfExperience(),
       doctor.getQualifications(),
-      doctor.getBiography()
+      doctor.getBiography(),
+      doctor.getProfilePictureUrl()
     );
   }
 }

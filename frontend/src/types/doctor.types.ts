@@ -9,6 +9,7 @@ export interface DoctorProfile {
   qualifications?: string;
   biography?: string;
   dateOfBirth: Date;
+  profilePictureUrl?: string;
 }
 
 export interface DoctorDropdown {

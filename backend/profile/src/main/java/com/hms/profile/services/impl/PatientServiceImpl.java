@@ -97,4 +97,12 @@ public class PatientServiceImpl implements PatientService {
       .map(PatientResponse::fromEntity)
       .collect(Collectors.toList());
   }
+
+  @Override
+  public void updateProfilePicture(Long userId, String pictureUrl) {
+    Patient patient = patientRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+    patient.setProfilePictureUrl(pictureUrl);
+    patientRepository.save(patient);
+  }
 }

@@ -2,6 +2,7 @@ package com.hms.profile.controllers;
 
 import com.hms.profile.request.DoctorCreateRequest;
 import com.hms.profile.request.DoctorUpdateRequest;
+import com.hms.profile.request.ProfilePictureUpdateRequest;
 import com.hms.profile.response.DoctorDropdownResponse;
 import com.hms.profile.response.DoctorResponse;
 import com.hms.profile.services.DoctorService;
@@ -74,6 +75,15 @@ public class DoctorController {
   @PreAuthorize("hasRole('ADMIN')")
   public DoctorResponse getDoctorProfileById(@PathVariable Long id) {
     return doctorService.getDoctorProfileById(id);
+  }
+
+  @PutMapping("/picture")
+  @ResponseStatus(HttpStatus.OK)
+  public void updatePatientProfilePicture(
+    @RequestHeader("Authorization") String token,
+    @Valid @RequestBody ProfilePictureUpdateRequest request) {
+    Long userId = getUserIdFromToken(token);
+    doctorService.updateProfilePicture(userId, request.pictureUrl());
   }
 
   private Long getUserIdFromToken(String token) {

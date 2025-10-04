@@ -21,4 +21,6 @@ public interface DoctorService {
   List<DoctorResponse> findAllDoctors();
 
   DoctorResponse getDoctorProfileById(Long id);
+
+  void updateProfilePicture(Long userId, String pictureUrl);
 }

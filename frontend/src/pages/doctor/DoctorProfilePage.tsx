@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Edit } from "lucide-react";
 import type { DoctorProfile } from "@/types/doctor.types";
 import type { DoctorProfileFormData } from "@/lib/schemas/profile";
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileInfoTable } from "@/components/patient/ProfileInfoTable";
 import { EditDoctorProfileDialog } from "@/components/doctor/EditDoctorProfileDialog";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
-import { useProfile } from "@/hooks/profile-queries";
+import { useProfile, useUpdateProfilePicture } from "@/hooks/profile-queries";
+import { uploadFile } from "@/services/mediaService";
 
 export const DoctorProfilePage = () => {
   const {
@@ -22,27 +23,13 @@ export const DoctorProfilePage = () => {
     isUpdating,
   } = useProfile();
 
+  const updatePictureMutation = useUpdateProfilePicture();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [actionNotification, setActionNotification] = useState<{
     variant: "success" | "error";
     title: string;
   } | null>(null);
-
-  const handleSaveProfile = async (data: DoctorProfileFormData) => {
-    try {
-      await updateProfile(data);
-      setIsDialogOpen(false);
-      setActionNotification({
-        variant: "success",
-        title: "Perfil atualizado com sucesso!",
-      });
-    } catch (err: any) {
-      setActionNotification({
-        variant: "error",
-        title: err.message || "Não foi possível salvar as alterações.",
-      });
-    }
-  };
 
   // Verificar se o usuário é doutor
   if (user?.role !== "DOCTOR") {
@@ -129,6 +116,45 @@ export const DoctorProfilePage = () => {
     },
   ];
 
+  const handleSaveProfile = async (data: DoctorProfileFormData) => {
+    try {
+      await updateProfile(data);
+      setIsDialogOpen(false);
+      setActionNotification({
+        variant: "success",
+        title: "Perfil atualizado com sucesso!",
+      });
+    } catch (err: any) {
+      setActionNotification({
+        variant: "error",
+        title: err.message || "Não foi possível salvar as alterações.",
+      });
+    }
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const mediaResponse = await uploadFile(file);
+      await updatePictureMutation.mutateAsync(mediaResponse.url);
+      setActionNotification({
+        variant: "success",
+        title: "Foto de perfil atualizada com sucesso!",
+      });
+    } catch (err: any) {
+      setActionNotification({
+        variant: "error",
+        title: "Erro ao atualizar a foto",
+      });
+    }
+  };
+
+  const API_BASE_URL = "http://localhost:9000";
+
   return (
     <div className="container mx-auto p-4 space-y-8">
       {/* Aviso para perfil incompleto */}
@@ -153,18 +179,44 @@ export const DoctorProfilePage = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            <Avatar className="h-24 w-24">
-              <AvatarImage
-                src="https://github.com/SAIKO9X.png"
-                alt="Foto do Doutor"
+            {/* INÍCIO DA ALTERAÇÃO */}
+            <div className="relative group">
+              <Avatar className="h-24 w-24">
+                <AvatarImage
+                  src={
+                    doctorProfile?.profilePictureUrl
+                      ? `${API_BASE_URL}${doctorProfile.profilePictureUrl}`
+                      : undefined
+                  }
+                  alt="Foto do Doutor"
+                />
+                <AvatarFallback className="text-3xl">
+                  {user?.name?.charAt(0).toUpperCase() || "D"}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute bottom-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={updatePictureMutation.isPending}
+              >
+                <Edit className="h-3 w-3" />
+                <span className="sr-only">Editar foto</span>
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/png, image/jpeg, image/gif"
               />
-              <AvatarFallback className="text-3xl">
-                {user?.name?.charAt(0).toUpperCase() || "D"}
-              </AvatarFallback>
-            </Avatar>
+            </div>
+            {/* FIM DA ALTERAÇÃO */}
+
             <div className="flex-1 text-center sm:text-left">
               <CardTitle className="text-2xl">
-                {user?.name || "Dr. Nome não informado"}
+                Dr. {user?.name || "Nome não informado"}
               </CardTitle>
               <p className="text-muted-foreground">
                 {doctorProfile?.specialization ||

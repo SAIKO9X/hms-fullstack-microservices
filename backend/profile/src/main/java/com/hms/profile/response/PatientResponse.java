@@ -19,7 +19,8 @@ public record PatientResponse(
   String emergencyContactName,
   String emergencyContactPhone,
   String allergies,
-  String chronicDiseases
+  String chronicDiseases,
+  String profilePictureUrl
 ) {
   public static PatientResponse fromEntity(Patient patient) {
     return new PatientResponse(
@@ -35,7 +36,8 @@ public record PatientResponse(
       patient.getEmergencyContactName(),
       patient.getEmergencyContactPhone(),
       patient.getAllergies(),
-      patient.getChronicDiseases()
+      patient.getChronicDiseases(),
+      patient.getProfilePictureUrl()
     );
   }
 }

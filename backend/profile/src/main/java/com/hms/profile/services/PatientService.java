@@ -4,7 +4,6 @@ import com.hms.profile.request.PatientCreateRequest;
 import com.hms.profile.request.PatientUpdateRequest;
 import com.hms.profile.response.PatientDropdownResponse;
 import com.hms.profile.response.PatientResponse;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -22,6 +21,7 @@ public interface PatientService {
 
   List<PatientDropdownResponse> getPatientsForDropdown();
 
-  @Transactional(readOnly = true)
   List<PatientResponse> findAllPatients();
+
+  void updateProfilePicture(Long userId, String pictureUrl);
 }

@@ -16,6 +16,8 @@ import {
   getAllDoctors,
   getPatientById,
   getDoctorById,
+  updateMyPatientProfilePicture,
+  updateMyDoctorProfilePicture,
 } from "@/services/profileService";
 
 // Types
@@ -163,5 +165,28 @@ export const useDoctorById = (id: number) => {
     queryKey: ["doctor", id],
     queryFn: () => getDoctorById(id),
     enabled: !!id,
+  });
+};
+
+export const useUpdateProfilePicture = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAppSelector((state) => state.auth);
+
+  return useMutation({
+    mutationFn: async (pictureUrl: string) => {
+      if (!user) throw new Error("Utilizador não autenticado");
+
+      if (user.role === "PATIENT") {
+        return updateMyPatientProfilePicture(pictureUrl);
+      } else if (user.role === "DOCTOR") {
+        return updateMyDoctorProfilePicture(pictureUrl);
+      } else {
+        throw new Error("Role de utilizador não suportada");
+      }
+    },
+    onSuccess: () => {
+      // Invalida a query do perfil para forçar a atualização da imagem na UI
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    },
   });
 };
