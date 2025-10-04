@@ -40,7 +40,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   @Transactional
   public PharmacySaleResponse createSale(PharmacySaleRequest request) {
     // Validação para evitar vendas duplicadas para a mesma prescrição
-    if (saleRepository.existsByOriginalPrescriptionId(request.originalPrescriptionId())) {
+    if (request.originalPrescriptionId() != null && saleRepository.existsByOriginalPrescriptionId(request.originalPrescriptionId())) {
       throw new IllegalStateException("Já existe uma venda para esta prescrição.");
     }
 
@@ -49,7 +49,8 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     try {
       patient = profileFeignClient.getPatientProfileByUserId(request.patientId());
     } catch (Exception e) {
-      throw new NoSuchElementException("Perfil do paciente com ID " + request.patientId() + " não encontrado.");
+      System.err.println("Falha ao buscar perfil do paciente via Feign. Causa: " + e.getMessage());
+      throw new NoSuchElementException("Não foi possível obter os dados do paciente com ID " + request.patientId() + ". O serviço de perfis pode estar indisponível ou a requisição foi negada.");
     }
 
 
