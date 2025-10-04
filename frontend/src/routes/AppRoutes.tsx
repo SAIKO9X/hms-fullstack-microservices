@@ -17,10 +17,7 @@ import { AdminMedicinesPage } from "@/pages/admin/AdminMedicinePage";
 import { AdminInventoryPage } from "@/pages/admin/AdminInventoryPage";
 import { AdminSalesPage } from "@/pages/admin/AdminSalesPage";
 import { AdminSaleDetailPage } from "@/pages/admin/AdminSaleDetailPage";
-<<<<<<< HEAD
 import { AdminNewSalePage } from "@/pages/admin/AdminNewSalePage";
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 
 const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
@@ -69,10 +66,7 @@ export const AppRoutes = () => {
             <Route path="inventory" element={<AdminInventoryPage />} />
             <Route path="sales" element={<AdminSalesPage />} />
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
-<<<<<<< HEAD
             <Route path="new-sale" element={<AdminNewSalePage />} />
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
           </Route>
         </Route>
       </Route>

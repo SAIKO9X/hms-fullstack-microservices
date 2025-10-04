@@ -14,7 +14,6 @@ export type InventoryFormData = {
   expiryDate: Date;
 };
 
-<<<<<<< HEAD
 export type DirectSaleFormData = {
   patientId: number;
   items: {
@@ -23,8 +22,6 @@ export type DirectSaleFormData = {
   }[];
 };
 
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 // Buscar todos os medicamentos
 export const getAllMedicines = async (): Promise<Medicine[]> => {
   const { data } = await api.get("/pharmacy/medicines");
@@ -81,7 +78,6 @@ export const getAllSales = async (): Promise<PharmacySale[]> => {
   const { data } = await api.get("/pharmacy/sales");
   return data;
 };
-<<<<<<< HEAD
 
 // Função para criar uma venda direta
 export const createDirectSale = async (
@@ -92,5 +88,19 @@ export const createDirectSale = async (
   const { data } = await api.post("/pharmacy/sales/direct", requestData);
   return data;
 };
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
+
+// Criar venda a partir de uma prescrição
+export const createSaleFromPrescription = async (
+  prescriptionId: number
+): Promise<PharmacySale> => {
+  const { data } = await api.post(
+    "/pharmacy/sales/from-prescription",
+    prescriptionId,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return data;
+};

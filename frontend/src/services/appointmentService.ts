@@ -118,6 +118,14 @@ export const getPrescriptionByAppointmentId = async (
   }
 };
 
+// Buscar prescrições por ID de paciente
+export const getPrescriptionsByPatientId = async (
+  patientId: number
+): Promise<Prescription[]> => {
+  const { data } = await api.get(`/prescriptions/patient/${patientId}`);
+  return data;
+};
+
 // --- Funções de UPDATE ---
 export const updateAppointmentRecord = async ({
   id,

@@ -1,5 +1,4 @@
 import { useForm, useFieldArray } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { getAllMedicines } from "@/services/pharmacyService";
@@ -21,56 +20,75 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash, Plus } from "lucide-react";
+import { Trash, Plus, FileInput } from "lucide-react";
 import { useNavigate } from "react-router";
-
-// Schema de validação ajustado
-const saleFormSchema = z.object({
-  patientId: z.number().min(1, "Selecione um comprador"),
-  items: z
-    .array(
-      z.object({
-        medicineId: z.number().min(1, "Selecione um medicamento"),
-        quantity: z.number().min(1, "A quantidade deve ser no mínimo 1"),
-      })
-    )
-    .min(1, "Adicione pelo menos um medicamento à venda."),
-});
-
-type SaleFormData = z.infer<typeof saleFormSchema>;
+import { usePatientsDropdown } from "@/hooks/profile-queries";
+import { useState } from "react";
+import { ImportPrescriptionDialog } from "@/components/admin/sales/ImportPrescriptionDialog";
+import type { Prescription } from "@/types/record.types";
+import { saleFormSchema, type SaleFormData } from "@/lib/schemas/sale.schema";
 
 export const AdminNewSalePage = () => {
   const navigate = useNavigate();
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const { data: medicines = [] } = useQuery({
     queryKey: ["medicines"],
     queryFn: getAllMedicines,
   });
-  const createSaleMutation = useCreateDirectSale();
+  const { data: patients = [] } = usePatientsDropdown();
 
-  // Simulação de lista de pacientes
-  const patients = [
-    { id: 1, name: "João Silva" },
-    { id: 2, name: "Maria Oliveira" },
-  ];
+  const createSaleMutation = useCreateDirectSale();
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleFormSchema),
     defaultValues: {
-      patientId: 0,
+      patientId: undefined,
       items: [{ medicineId: 0, quantity: 1 }],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "items",
   });
 
+  const handleImportSuccess = (prescription: Prescription) => {
+    setIsImportOpen(false);
+
+    form.setValue("patientId", prescription.patientId);
+
+    // Mapeia os medicamentos da prescrição para os do estoque
+    const saleItems = prescription.medicines
+      .map((med) => {
+        const stockMedicine = medicines.find(
+          (stockMed) =>
+            stockMed.name.toLowerCase() === med.name.toLowerCase() &&
+            stockMed.dosage.toLowerCase() === med.dosage.toLowerCase()
+        );
+        return {
+          medicineId: stockMedicine?.id || 0, // 0 se não encontrar
+          quantity: 1, // Quantidade padrão, pode ser ajustada pelo usuário
+        };
+      })
+      .filter((item) => item.medicineId !== 0);
+
+    if (saleItems.length > 0) {
+      replace(saleItems);
+    } else {
+      console.warn(
+        "Nenhum medicamento da prescrição foi encontrado no estoque."
+      );
+    }
+  };
+
   const onSubmit = async (data: SaleFormData) => {
-    await createSaleMutation.mutateAsync(data, {
-      onSuccess: () => {
-        navigate("/admin/sales");
-      },
+    // Transforma o patientId para garantir que é número antes de enviar
+    const payload = {
+      ...data,
+      patientId: Number(data.patientId),
+    };
+    await createSaleMutation.mutateAsync(payload, {
+      onSuccess: () => navigate("/admin/sales"),
     });
   };
 
@@ -81,11 +99,21 @@ export const AdminNewSalePage = () => {
           onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-8 max-w-4xl mx-auto"
         >
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Nova Venda Direta</h1>
-            <p className="text-muted-foreground">
-              Registre uma venda no balcão para um paciente.
-            </p>
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold">Nova Venda Direta</h1>
+              <p className="text-muted-foreground">
+                Registre uma venda no balcão ou importe de uma prescrição.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsImportOpen(true)}
+            >
+              <FileInput className="mr-2 h-4 w-4" />
+              Importar Prescrição
+            </Button>
           </div>
 
           {/* Seção de Informações do Comprador */}
@@ -97,7 +125,7 @@ export const AdminNewSalePage = () => {
                 <FormLabel>Comprador (Paciente)</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
-                  value={field.value > 0 ? String(field.value) : ""}
+                  value={field.value ? String(field.value) : ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -106,7 +134,7 @@ export const AdminNewSalePage = () => {
                   </FormControl>
                   <SelectContent>
                     {patients.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
+                      <SelectItem key={p.userId} value={String(p.userId)}>
                         {p.name}
                       </SelectItem>
                     ))}
@@ -142,7 +170,7 @@ export const AdminNewSalePage = () => {
                           onValueChange={(value) =>
                             field.onChange(Number(value))
                           }
-                          value={field.value > 0 ? String(field.value) : ""}
+                          value={field.value ? String(field.value) : ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -222,6 +250,12 @@ export const AdminNewSalePage = () => {
           </div>
         </form>
       </Form>
+
+      <ImportPrescriptionDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 };

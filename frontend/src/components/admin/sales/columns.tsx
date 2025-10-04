@@ -1,13 +1,6 @@
-<<<<<<< HEAD
 import type { ColumnDef } from "@tanstack/react-table";
 import type { PharmacySale } from "@/types/medicine.types";
 import { ArrowUpDown } from "lucide-react";
-=======
-// Caminho: src/components/admin/sales/columns.tsx
-import type { ColumnDef } from "@tanstack/react-table";
-import type { PharmacySale } from "@/types/medicine.types";
-import { MoreHorizontal, ArrowUpDown } from "lucide-react";
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

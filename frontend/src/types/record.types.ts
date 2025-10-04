@@ -14,6 +14,7 @@ export interface AppointmentRecord {
 export interface Prescription {
   id: number;
   appointmentId: number;
+  patientId: number;
   notes?: string;
   medicines: Medicine[];
   createdAt: string;

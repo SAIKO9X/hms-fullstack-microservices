@@ -20,10 +20,7 @@ import {
   Pill,
   Archive,
   ShoppingCart,
-<<<<<<< HEAD
   Store,
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 } from "lucide-react";
 
 export const AdminSidebar = () => {
@@ -41,10 +38,7 @@ export const AdminSidebar = () => {
     { title: "Medicamentos", url: "/admin/medicines", icon: Pill },
     { title: "Inventário", url: "/admin/inventory", icon: Archive },
     { title: "Vendas", url: "/admin/sales", icon: ShoppingCart },
-<<<<<<< HEAD
     { title: "Vendas Direta", url: "/admin/new-sale", icon: Store },
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
   ];
 
   const systemItems = [

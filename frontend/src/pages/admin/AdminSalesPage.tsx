@@ -1,22 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useSales } from "@/hooks/pharmacy-queries";
-<<<<<<< HEAD
 import { DollarSign, Plus, ShoppingCart, Users } from "lucide-react";
-=======
-import { DollarSign, ShoppingCart, Users } from "lucide-react";
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { columns } from "@/components/admin/sales/columns";
 import { Skeleton } from "@/components/ui/skeleton";
-<<<<<<< HEAD
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router";
-=======
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
+import { Link, useNavigate } from "react-router";
+import { ImportPrescriptionDialog } from "@/components/admin/sales/ImportPrescriptionDialog";
 
 export const AdminSalesPage = () => {
+  const navigate = useNavigate();
   const { data: sales, isLoading } = useSales();
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const stats = useMemo(() => {
     if (!sales) return { totalRevenue: 0, totalSales: 0, uniqueCustomers: 0 };
@@ -27,9 +23,13 @@ export const AdminSalesPage = () => {
     };
   }, [sales]);
 
+  const handleImportSuccess = (saleId: number) => {
+    setIsImportOpen(false);
+    navigate(`/admin/sales/${saleId}`);
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-8">
-<<<<<<< HEAD
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold">Vendas da Farmácia</h1>
@@ -43,15 +43,6 @@ export const AdminSalesPage = () => {
             Nova Venda
           </Link>
         </Button>
-=======
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Vendas da Farmácia
-        </h1>
-        <p className="text-muted-foreground">
-          Acompanhe o histórico de vendas e o faturamento.
-        </p>
->>>>>>> 9e2650afa2559139940d97addf2b75fd4b67782a
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -112,6 +103,12 @@ export const AdminSalesPage = () => {
           <DataTable columns={columns} data={sales || []} />
         </CardContent>
       </Card>
+
+      <ImportPrescriptionDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onSuccess={handleImportSuccess}
+      />
     </div>
   );
 };

@@ -29,3 +29,10 @@ export const updateMyDoctorProfile = async (
   const { data } = await api.patch("/profile/doctors", profileData);
   return data;
 };
+
+export const getPatientsForDropdown = async (): Promise<
+  { userId: number; name: string }[]
+> => {
+  const { data } = await api.get("/profile/patients/dropdown");
+  return data;
+};
