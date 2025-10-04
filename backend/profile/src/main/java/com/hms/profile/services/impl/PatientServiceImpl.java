@@ -81,4 +81,9 @@ public class PatientServiceImpl implements PatientService {
   public boolean patientProfileExists(Long userId) {
     return patientRepository.existsByUserId(userId);
   }
+
+  @Override
+  public List<PatientDropdownResponse> getPatientsForDropdown() {
+    return patientRepository.findAllForDropdown();
+  }
 }

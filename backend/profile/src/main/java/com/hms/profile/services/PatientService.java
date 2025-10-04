@@ -15,4 +15,6 @@ public interface PatientService {
   PatientResponse updatePatientProfile(Long userId, PatientUpdateRequest request);
 
   boolean patientProfileExists(Long userId);
+
+  List<PatientDropdownResponse> getPatientsForDropdown();
 }

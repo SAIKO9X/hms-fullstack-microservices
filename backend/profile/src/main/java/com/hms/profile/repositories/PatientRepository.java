@@ -14,4 +14,7 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
   boolean existsByUserIdOrCpf(Long userId, String cpf);
 
   boolean existsByUserId(Long userId);
+
+  @Query("SELECT new com.hms.profile.response.PatientDropdownResponse(p.userId, p.name) FROM Patient p ORDER BY p.name ASC")
+  List<PatientDropdownResponse> findAllForDropdown();
 }

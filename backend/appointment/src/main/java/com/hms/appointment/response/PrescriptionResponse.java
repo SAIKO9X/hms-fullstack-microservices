@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public record PrescriptionResponse(
   Long id,
   Long appointmentId,
+  Long patientId,
   String notes,
   List<MedicineResponse> medicines,
   LocalDateTime createdAt
@@ -17,6 +18,7 @@ public record PrescriptionResponse(
     return new PrescriptionResponse(
       prescription.getId(),
       prescription.getAppointment().getId(),
+      prescription.getAppointment().getPatientId(),
       prescription.getNotes(),
       prescription.getMedicines().stream()
         .map(MedicineResponse::fromEntity)

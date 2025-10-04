@@ -52,6 +52,12 @@ public class PatientController {
     return patientService.getPatientProfileByUserId(userId);
   }
 
+  @GetMapping("/dropdown")
+  @ResponseStatus(HttpStatus.OK)
+  public List<PatientDropdownResponse> getPatientsForDropdown() {
+    return patientService.getPatientsForDropdown();
+  }
+
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
     return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));
