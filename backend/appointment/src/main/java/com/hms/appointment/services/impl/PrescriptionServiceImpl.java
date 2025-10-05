@@ -112,6 +112,14 @@ public class PrescriptionServiceImpl implements PrescriptionService {
       .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public PrescriptionResponse getLatestPrescriptionByPatientId(Long patientId) {
+    return prescriptionRepository.findFirstByAppointmentPatientIdOrderByCreatedAtDesc(patientId)
+      .map(PrescriptionResponse::fromEntity)
+      .orElse(null);
+  }
+
   private List<Medicine> mapToMedicineEntities(List<MedicineRequest> medicineRequests) {
     return medicineRequests.stream().map(dto -> {
       Medicine med = new Medicine();

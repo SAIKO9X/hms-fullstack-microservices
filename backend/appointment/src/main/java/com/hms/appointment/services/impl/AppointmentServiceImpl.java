@@ -9,10 +9,7 @@ import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.request.AppointmentCreateRequest;
-import com.hms.appointment.response.AppointmentDetailResponse;
-import com.hms.appointment.response.AppointmentResponse;
-import com.hms.appointment.response.DoctorProfileResponse;
-import com.hms.appointment.response.PatientProfileResponse;
+import com.hms.appointment.response.*;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -181,6 +178,27 @@ public class AppointmentServiceImpl implements AppointmentService {
       appointment.getReason(),
       appointment.getStatus()
     );
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public AppointmentResponse getNextAppointmentForPatient(Long patientId) {
+    return appointmentRepository
+      .findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
+        patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now())
+      .map(AppointmentResponse::fromEntity)
+      .orElse(null); // Retorna nulo se não houver próximas consultas
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public AppointmentStatsResponse getAppointmentStatsForPatient(Long patientId) {
+    List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
+    long total = appointments.size();
+    long scheduled = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED).count();
+    long completed = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
+    long canceled = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELED).count();
+    return new AppointmentStatsResponse(total, scheduled, completed, canceled);
   }
 
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {

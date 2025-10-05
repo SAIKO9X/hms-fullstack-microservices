@@ -17,4 +17,6 @@ public interface PrescriptionService {
   List<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId);
 
   PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId);
+
+  PrescriptionResponse getLatestPrescriptionByPatientId(Long patientId);
 }

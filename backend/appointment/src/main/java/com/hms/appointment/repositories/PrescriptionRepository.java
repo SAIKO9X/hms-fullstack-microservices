@@ -12,4 +12,6 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
 
   @Query("SELECT p FROM Prescription p WHERE p.appointment.patientId = :patientId")
   List<Prescription> findByAppointmentPatientId(Long patientId);
+
+  Optional<Prescription> findFirstByAppointmentPatientIdOrderByCreatedAtDesc(Long patientId);
 }

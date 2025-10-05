@@ -60,6 +60,13 @@ public class PrescriptionController {
     return prescriptionService.getPrescriptionForPharmacy(id);
   }
 
+  @GetMapping("/patient/latest")
+  @ResponseStatus(HttpStatus.OK)
+  public PrescriptionResponse getLatestPrescription(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    return prescriptionService.getLatestPrescriptionByPatientId(patientId);
+  }
+
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
     return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));

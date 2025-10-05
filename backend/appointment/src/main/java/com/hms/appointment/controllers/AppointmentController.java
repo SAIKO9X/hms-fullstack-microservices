@@ -4,6 +4,7 @@ import com.hms.appointment.request.AppointmentCreateRequest;
 import com.hms.appointment.request.AppointmentUpdateRequest;
 import com.hms.appointment.response.AppointmentDetailResponse;
 import com.hms.appointment.response.AppointmentResponse;
+import com.hms.appointment.response.AppointmentStatsResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
@@ -39,6 +40,20 @@ public class AppointmentController {
     return appointmentService.getAppointmentsForPatient(patientId);
   }
 
+  @GetMapping("/patient/next")
+  @ResponseStatus(HttpStatus.OK)
+  public AppointmentResponse getNextAppointment(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    return appointmentService.getNextAppointmentForPatient(patientId);
+  }
+
+  @GetMapping("/patient/stats")
+  @ResponseStatus(HttpStatus.OK)
+  public AppointmentStatsResponse getAppointmentStats(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    return appointmentService.getAppointmentStatsForPatient(patientId);
+  }
+
   // --- Endpoints para Doutores ---
   @GetMapping("/doctor")
   @ResponseStatus(HttpStatus.OK)
@@ -63,6 +78,7 @@ public class AppointmentController {
     Long doctorId = getUserIdFromToken(token);
     return appointmentService.completeAppointment(id, request.notes(), doctorId);
   }
+
 
   // --- Endpoints Comuns (Pacientes e Doutores) ---
   @GetMapping("/{id}")
