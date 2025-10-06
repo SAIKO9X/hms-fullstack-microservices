@@ -36,7 +36,7 @@ spring:
         - id: appointment-service-route
           uri: lb://appointment-service
           predicates:
-            - Path=/appointments/**, /records/**, /prescriptions/**, /health-metrics/**
+            - Path=/appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**
 
         # Rota para o Pharmacy-Service
         - id: pharmacy-service-route

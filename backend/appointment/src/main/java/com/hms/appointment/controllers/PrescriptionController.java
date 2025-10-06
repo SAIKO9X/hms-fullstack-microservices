@@ -9,6 +9,7 @@ import com.hms.appointment.services.PrescriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,6 +66,15 @@ public class PrescriptionController {
   public PrescriptionResponse getLatestPrescription(@RequestHeader("Authorization") String token) {
     Long patientId = getUserIdFromToken(token);
     return prescriptionService.getLatestPrescriptionByPatientId(patientId);
+  }
+
+  @GetMapping("/patient/my-history")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('PATIENT')")
+  public List<PrescriptionResponse> getMyPrescriptionHistory(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    // Reutiliza o método de serviço existente, passando o ID do próprio paciente
+    return prescriptionService.getPrescriptionsByPatientId(patientId, patientId);
   }
 
   private Long getUserIdFromToken(String token) {
