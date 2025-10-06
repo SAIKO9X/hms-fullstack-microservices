@@ -22,12 +22,13 @@ public class MedicalDocumentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR')") // Tanto paciente quanto médico podem adicionar documentos
+  @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR')")
   public MedicalDocumentResponse uploadDocument(
     @RequestHeader("Authorization") String token,
     @Valid @RequestBody MedicalDocumentCreateRequest request) {
-    Long userId = getUserIdFromToken(token);
-    return documentService.createDocument(userId, request);
+    Long uploaderId = getUserIdFromToken(token);
+    // Passa o token completo para o serviço poder extrair a role
+    return documentService.createDocument(uploaderId, token, request);
   }
 
   @GetMapping("/patient")

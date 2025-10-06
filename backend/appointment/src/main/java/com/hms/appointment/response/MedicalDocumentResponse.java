@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 public record MedicalDocumentResponse(
   Long id,
   Long patientId,
+  Long uploadedByUserId,
   Long appointmentId,
   String documentName,
   String documentType,
@@ -17,6 +18,7 @@ public record MedicalDocumentResponse(
     return new MedicalDocumentResponse(
       document.getId(),
       document.getPatientId(),
+      document.getUploadedByUserId(),
       document.getAppointmentId(),
       document.getDocumentName(),
       document.getDocumentType(),

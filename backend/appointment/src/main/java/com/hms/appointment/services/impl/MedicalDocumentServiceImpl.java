@@ -5,6 +5,7 @@ import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
 import com.hms.appointment.request.MedicalDocumentCreateRequest;
 import com.hms.appointment.response.MedicalDocumentResponse;
+import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,11 +18,20 @@ import java.util.stream.Collectors;
 public class MedicalDocumentServiceImpl implements MedicalDocumentService {
 
   private final MedicalDocumentRepository documentRepository;
+  private final JwtService jwtService;
 
   @Override
-  public MedicalDocumentResponse createDocument(Long patientId, MedicalDocumentCreateRequest request) {
+  public MedicalDocumentResponse createDocument(Long uploaderId, String token, MedicalDocumentCreateRequest request) {
+    String role = jwtService.extractClaim(token.substring(7), claims -> claims.get("role", String.class));
+
+    // Se quem envia é um paciente, ele só pode enviar para si mesmo.
+    if ("PATIENT".equals(role) && !uploaderId.equals(request.patientId())) {
+      throw new SecurityException("Acesso negado. Pacientes só podem enviar documentos para si mesmos.");
+    }
+
     MedicalDocument document = new MedicalDocument();
-    document.setPatientId(patientId);
+    document.setPatientId(request.patientId());
+    document.setUploadedByUserId(uploaderId);
     document.setAppointmentId(request.appointmentId());
     document.setDocumentName(request.documentName());
     document.setDocumentType(request.documentType());
@@ -30,6 +40,7 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     MedicalDocument savedDocument = documentRepository.save(document);
     return MedicalDocumentResponse.fromEntity(savedDocument);
   }
+
 
   @Override
   public List<MedicalDocumentResponse> getDocumentsByPatientId(Long patientId) {

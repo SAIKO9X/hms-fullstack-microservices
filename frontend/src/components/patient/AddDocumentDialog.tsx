@@ -38,18 +38,20 @@ import { format } from "date-fns";
 const DocumentSchema = z.object({
   documentName: z.string().min(3, "O nome do documento é obrigatório."),
   documentType: z.string().min(1, "Selecione um tipo de documento."),
-  appointmentId: z.coerce
-    .number()
-    .positive("Selecione uma consulta para associar."),
+  appointmentId: z.number().positive("Selecione uma consulta para associar."),
   file: z.instanceof(File, { message: "Por favor, selecione um ficheiro." }),
 });
+
 type DocumentFormData = z.infer<typeof DocumentSchema>;
 
 // Tipos de documento para o dropdown
 const documentTypes = [
-  { value: "EXAM_RESULT", label: "Resultado de Exame" },
-  { value: "PRESCRIPTION_SCAN", label: "Prescrição Digitalizada" },
-  { value: "MEDICAL_CERTIFICATE", label: "Atestado Médico" },
+  { value: "BLOOD_REPORT", label: "Resultado de Exame de Sangue" },
+  { value: "XRAY", label: "Raio-X" },
+  { value: "PRESCRIPTION", label: "Receita Médica" },
+  { value: "MRI", label: "Ressonância Magnética" },
+  { value: "CT_SCAN", label: "Tomografia" },
+  { value: "ULTRASOUND", label: "Ultrassom" },
   { value: "OTHER", label: "Outro" },
 ];
 
@@ -57,7 +59,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
-  initialAppointmentId?: number; // Para pré-selecionar a consulta
+  initialAppointmentId?: number;
   patientId: number;
 }
 
@@ -68,26 +70,29 @@ export const AddDocumentDialog = ({
   initialAppointmentId,
   patientId,
 }: Props) => {
-  const form = useForm<z.input<typeof DocumentSchema>>({
+  const form = useForm<DocumentFormData>({
     resolver: zodResolver(DocumentSchema),
     defaultValues: {
-      appointmentId: initialAppointmentId,
+      documentName: "",
+      documentType: "",
+      appointmentId: initialAppointmentId || undefined,
     },
   });
 
   const { data: appointments } = useAppointments();
   const createDocumentMutation = useCreateMedicalDocument();
+
   const patientAppointments = appointments?.filter(
     (app) => app.patientId === patientId
   );
 
   const onSubmit = async (data: DocumentFormData) => {
     try {
-      // 1. Upload do ficheiro para o media-service
       const mediaResponse = await uploadFile(data.file);
 
-      // 2. Envio dos metadados para o appointment-service
+      // Incluir o patientId na chamada
       await createDocumentMutation.mutateAsync({
+        patientId: patientId,
         appointmentId: data.appointmentId,
         documentName: data.documentName,
         documentType: data.documentType,
@@ -99,7 +104,6 @@ export const AddDocumentDialog = ({
       form.reset();
     } catch (error) {
       console.error("Erro ao enviar documento:", error);
-      // Aqui pode adicionar uma notificação de erro
     }
   };
 
@@ -109,7 +113,7 @@ export const AddDocumentDialog = ({
         <DialogHeader>
           <DialogTitle>Adicionar Novo Documento</DialogTitle>
           <DialogDescription>
-            Envie um documento para associar a uma das suas consultas.
+            Envie um documento para associar a uma das consultas.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -117,22 +121,26 @@ export const AddDocumentDialog = ({
             <FormField
               control={form.control}
               name="file"
-              render={({ field: { onChange, onBlur, name, ref } }) => (
+              render={({ field: { value, onChange, ...fieldProps } }) => (
                 <FormItem>
                   <FormLabel>Ficheiro</FormLabel>
                   <FormControl>
                     <Input
+                      {...fieldProps}
                       type="file"
-                      onBlur={onBlur}
-                      name={name}
-                      ref={ref}
-                      onChange={(e) => onChange(e.target.files?.[0])}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          onChange(file);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="documentName"
@@ -146,6 +154,7 @@ export const AddDocumentDialog = ({
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="documentType"
@@ -173,6 +182,7 @@ export const AddDocumentDialog = ({
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="appointmentId"
@@ -180,12 +190,8 @@ export const AddDocumentDialog = ({
                 <FormItem>
                   <FormLabel>Associar à Consulta</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    defaultValue={
-                      initialAppointmentId
-                        ? String(initialAppointmentId)
-                        : field.value
-                    }
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value ? String(field.value) : undefined}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -208,6 +214,7 @@ export const AddDocumentDialog = ({
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button
                 type="button"

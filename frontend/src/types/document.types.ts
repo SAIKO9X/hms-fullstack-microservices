@@ -9,6 +9,7 @@ export interface MedicalDocument {
 }
 
 export interface MedicalDocumentCreateRequest {
+  patientId: number;
   appointmentId: number;
   documentName: string;
   documentType: string;

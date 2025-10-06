@@ -20,6 +20,9 @@ public class MedicalDocument {
   @Column(nullable = false)
   private Long patientId;
 
+  @Column(nullable = false)
+  private Long uploadedByUserId;
+
   // Associa a uma consulta específica
   private Long appointmentId;
 
