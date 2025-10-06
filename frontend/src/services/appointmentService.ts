@@ -1,5 +1,6 @@
 import api from "@/lib/interceptor/AxiosInterceptor";
 import type { AppointmentFormData } from "@/lib/schemas/appointment";
+import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type {
   PrescriptionFormData,
   PrescriptionUpdateData,
@@ -8,8 +9,14 @@ import type {
   AppointmentRecordFormData,
   AppointmentRecordUpdateData,
 } from "@/lib/schemas/record";
-import type { Appointment } from "@/types/appointment.types";
+import type {
+  AdverseEffectReportCreateRequest,
+  Appointment,
+  AppointmentStats,
+} from "@/types/appointment.types";
 import type { DoctorDropdown } from "@/types/doctor.types";
+import type { MedicalDocument } from "@/types/document.types";
+import type { HealthMetric } from "@/types/health.types";
 import type { AppointmentRecord, Prescription } from "@/types/record.types";
 
 // Buscar minhas consultas como paciente
@@ -147,4 +154,70 @@ export const updatePrescription = async ({
 }): Promise<Prescription> => {
   const { data: responseData } = await api.put(`/prescriptions/${id}`, data);
   return responseData;
+};
+
+// Buscar a próxima consulta do paciente logado
+export const getNextAppointment = async (): Promise<Appointment | null> => {
+  try {
+    const { data } = await api.get("/appointments/patient/next");
+    return data;
+  } catch (error: any) {
+    if (error.response?.status === 404) return null;
+    throw error;
+  }
+};
+
+// Buscar prescrição mais recente do paciente logado
+export const getLatestPrescription = async (): Promise<Prescription | null> => {
+  try {
+    const { data } = await api.get("/prescriptions/patient/latest");
+    return data;
+  } catch (error: any) {
+    if (error.response?.status === 404) return null;
+    throw error;
+  }
+};
+
+// Buscar estatísticas de agendamentos do paciente logado
+export const getAppointmentStats = async (): Promise<AppointmentStats> => {
+  const { data } = await api.get("/appointments/patient/stats");
+  return data;
+};
+
+// Buscar a métrica de saúde mais recente do paciente logado
+export const getLatestHealthMetric = async (): Promise<HealthMetric | null> => {
+  try {
+    const { data } = await api.get("/health-metrics/latest");
+    return data;
+  } catch (error: any) {
+    if (error.response?.status === 404) return null;
+    throw error;
+  }
+};
+
+// Criar nova métrica de saúde
+export const createHealthMetric = async (
+  metricData: HealthMetricFormData
+): Promise<HealthMetric> => {
+  const { data } = await api.post("/health-metrics", metricData);
+  return data;
+};
+
+// Buscar histórico de prescrições do paciente logado
+export const getMyPrescriptionsHistory = async (): Promise<Prescription[]> => {
+  const { data } = await api.get("/prescriptions/patient/my-history");
+  return data;
+};
+
+// Reportar efeito adverso
+export const createAdverseEffectReport = async (
+  reportData: AdverseEffectReportCreateRequest
+): Promise<void> => {
+  await api.post("/adverse-effects", reportData);
+};
+
+// Buscar meus documentos médicos
+export const getMyDocuments = async (): Promise<MedicalDocument[]> => {
+  const { data } = await api.get("/documents/patient");
+  return data;
 };

@@ -21,8 +21,11 @@ import { AdminNewSalePage } from "@/pages/admin/AdminNewSalePage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 import { AdminPatientDetailPage } from "@/pages/admin/AdminPatientDetailPage";
 import { AdminDoctorDetailPage } from "@/pages/admin/AdminDoctorDetailPage";
+import { PatientDashboardPage } from "@/pages/patient/PatientDashboardPage";
+import { PatientAppointmentDetailPage } from "@/pages/patient/PatientAppointmentDetailPage";
+import { PatientPrescriptionsPage } from "@/pages/patient/PatientPrescriptionsPage";
+import { PatientDocumentsPage } from "@/components/patient/PatientDocumentsPage";
 
-const PatientHomePage = () => <h2>Bem-vindo, Paciente!</h2>;
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 
 export const AppRoutes = () => {
@@ -43,9 +46,18 @@ export const AppRoutes = () => {
         {/* Paciente */}
         <Route element={<RoleBasedGuard allowedRoles={["PATIENT"]} />}>
           <Route path="/patient/*" element={<PatientDashboard />}>
-            <Route path="dashboard" element={<PatientHomePage />} />
+            <Route path="dashboard" element={<PatientDashboardPage />} />
             <Route path="profile" element={<PatientProfilePage />} />
             <Route path="appointments" element={<PatientAppointmentsPage />} />
+            <Route
+              path="appointments/:id"
+              element={<PatientAppointmentDetailPage />}
+            />
+            <Route
+              path="prescriptions"
+              element={<PatientPrescriptionsPage />}
+            />
+            <Route path="documents" element={<PatientDocumentsPage />} />
           </Route>
         </Route>
 

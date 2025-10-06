@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/hooks/hooks";
 import type { AppointmentFormData } from "@/lib/schemas/appointment";
-import type { Appointment, AppointmentDetail } from "@/types/appointment.types";
+import type {
+  AdverseEffectReportCreateRequest,
+  Appointment,
+  AppointmentDetail,
+} from "@/types/appointment.types";
 import {
   getMyAppointments,
   getMyAppointmentsAsDoctor,
@@ -17,6 +21,14 @@ import {
   createPrescription,
   updateAppointmentRecord,
   updatePrescription,
+  getLatestHealthMetric,
+  createHealthMetric,
+  getAppointmentStats,
+  getLatestPrescription,
+  getNextAppointment,
+  getMyPrescriptionsHistory,
+  createAdverseEffectReport,
+  getMyDocuments,
 } from "@/services/appointmentService";
 import api from "@/lib/interceptor/AxiosInterceptor";
 import type {
@@ -28,6 +40,8 @@ import type {
   PrescriptionUpdateData,
 } from "@/lib/schemas/prescription";
 import { useMemo } from "react";
+import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
+import type { MedicalDocument } from "@/types/document.types";
 
 // Tipo estendido com informações do médico
 export interface AppointmentWithDoctor extends Appointment {
@@ -46,6 +60,15 @@ export const appointmentKeys = {
     [...appointmentKeys.all, "record", appointmentId] as const,
   prescription: (appointmentId: number) =>
     [...appointmentKeys.all, "prescription", appointmentId] as const,
+  // Chaves para o dashboard
+  next: () => [...appointmentKeys.all, "patient", "next"] as const,
+  latestPrescription: () =>
+    [...appointmentKeys.all, "patient", "latestPrescription"] as const,
+  stats: () => [...appointmentKeys.all, "patient", "stats"] as const,
+  latestHealthMetric: () => ["healthMetrics", "patient", "latest"] as const,
+  prescriptionsHistory: () =>
+    [...appointmentKeys.all, "patient", "prescriptionsHistory"] as const,
+  myDocuments: () => ["documents", "patient"] as const,
 };
 
 // Hook original para buscar consultas baseado na role do usuário
@@ -323,4 +346,120 @@ export const useUpdatePrescription = () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.doctor() });
     },
   });
+};
+
+// --- Hooks para o Dashboard do Paciente ---
+export const useNextAppointment = () => {
+  return useQuery({
+    queryKey: appointmentKeys.next(),
+    queryFn: getNextAppointment,
+  });
+};
+
+export const useLatestPrescription = () => {
+  return useQuery({
+    queryKey: appointmentKeys.latestPrescription(),
+    queryFn: getLatestPrescription,
+  });
+};
+
+export const useAppointmentStats = () => {
+  return useQuery({
+    queryKey: appointmentKeys.stats(),
+    queryFn: getAppointmentStats,
+  });
+};
+
+export const useLatestHealthMetric = () => {
+  return useQuery({
+    queryKey: appointmentKeys.latestHealthMetric(),
+    queryFn: getLatestHealthMetric,
+  });
+};
+
+export const useCreateHealthMetric = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: HealthMetricFormData) => createHealthMetric(data),
+    onSuccess: () => {
+      // Invalida a query de 'latest' para buscar o dado mais recente
+      queryClient.invalidateQueries({
+        queryKey: appointmentKeys.latestHealthMetric(),
+      });
+    },
+  });
+};
+
+export const useMyPrescriptionsHistory = () => {
+  return useQuery({
+    queryKey: appointmentKeys.prescriptionsHistory(),
+    queryFn: getMyPrescriptionsHistory,
+  });
+};
+
+export const useCreateAdverseEffectReport = () => {
+  return useMutation({
+    mutationFn: (data: AdverseEffectReportCreateRequest) =>
+      createAdverseEffectReport(data),
+    onSuccess: () => {
+      console.log("Relatório de efeito adverso enviado com sucesso!");
+    },
+  });
+};
+
+export const useMyDocuments = () => {
+  // A chamada real à API está comentada por agora
+  // return useQuery({
+  //     queryKey: appointmentKeys.myDocuments(),
+  //     queryFn: getMyDocuments,
+  // });
+
+  const mockDocuments: MedicalDocument[] = [
+    {
+      id: 1,
+      patientId: 1,
+      appointmentId: 101,
+      // Altere o nome para incluir a extensão .pdf
+      documentName: "Hemograma Completo.pdf",
+      documentType: "BLOOD_REPORT",
+      mediaUrl: "/media/1",
+      uploadedAt: "2025-10-01T10:00:00Z",
+    },
+    {
+      id: 2,
+      patientId: 1,
+      appointmentId: 102,
+      // Altere o nome para incluir a extensão .jpg
+      documentName: "Raio-X do Tórax.jpg",
+      documentType: "XRAY",
+      mediaUrl: "/media/2",
+      uploadedAt: "2025-09-25T14:30:00Z",
+    },
+    {
+      id: 3,
+      patientId: 1,
+      appointmentId: 101,
+      // Altere o nome para incluir a extensão .docx
+      documentName: "Atestado Médico.docx",
+      documentType: "DOCUMENT", // Tipo genérico
+      mediaUrl: "/media/3",
+      uploadedAt: "2025-10-01T11:00:00Z",
+    },
+    {
+      id: 4,
+      patientId: 1,
+      appointmentId: 103,
+      // Deixe um sem extensão para testar o ícone padrão
+      documentName: "Notas da Consulta",
+      documentType: "DEFAULT",
+      mediaUrl: "/media/4",
+      uploadedAt: "2025-08-15T09:00:00Z",
+    },
+  ];
+
+  return {
+    data: mockDocuments,
+    isLoading: false, // Simulamos que o carregamento terminou
+    isError: false,
+  };
 };

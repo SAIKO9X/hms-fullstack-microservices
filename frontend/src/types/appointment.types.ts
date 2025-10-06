@@ -51,3 +51,16 @@ export interface AppointmentUpdateRequest {
   appointmentDateTime?: string;
   notes?: string;
 }
+
+export interface AppointmentStats {
+  total: number;
+  scheduled: number;
+  completed: number;
+  canceled: number;
+}
+
+export interface AdverseEffectReportCreateRequest {
+  prescriptionId: number;
+  doctorId: number;
+  description: string;
+}
