@@ -1,7 +1,5 @@
-import {
-  useDeleteMedicalDocument,
-  useMyDocuments,
-} from "@/hooks/appointment-queries";
+import { useState } from "react"; // 1. Importar o useState
+import { useDeleteMedicalDocument } from "@/hooks/appointment-queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,20 +8,45 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router";
 import { getDocumentIcon } from "@/lib/documentIcons";
+import type { MedicalDocument } from "@/types/document.types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const API_BASE_URL = "http://localhost:9000";
 
-export const DocumentsCard = () => {
-  const { data: documents, isLoading } = useMyDocuments();
+interface DocumentsCardProps {
+  documents: MedicalDocument[];
+  isLoading: boolean;
+  showViewAllButton?: boolean;
+}
+
+export const DocumentsCard = ({
+  documents,
+  isLoading,
+  showViewAllButton = false,
+}: DocumentsCardProps) => {
   const deleteMutation = useDeleteMedicalDocument();
 
-  const handleDelete = () => {
-    if (
-      window.confirm(
-        `Tem a certeza que quer apagar o documento "${doc.documentName}"?`
-      )
-    ) {
-      deleteMutation.mutate(doc.id);
+  // Estado para controlar qual documento será excluído
+  const [docToDelete, setDocToDelete] = useState<MedicalDocument | null>(null);
+
+  const handleDeleteConfirm = () => {
+    if (docToDelete) {
+      deleteMutation.mutate(docToDelete.id, {
+        onSuccess: () => {
+          // Limpa o estado após a exclusão
+          setDocToDelete(null);
+        },
+      });
     }
   };
 
@@ -32,9 +55,11 @@ export const DocumentsCard = () => {
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Relatórios e Documentos</span>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/patient/documents">Ver Todos</Link>
-          </Button>
+          {showViewAllButton && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/patient/documents">Ver Todos</Link>
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -47,8 +72,7 @@ export const DocumentsCard = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Mostra apenas os 4 documentos mais recentes no dashboard */}
-            {documents.slice(0, 4).map((doc) => {
+            {documents.map((doc) => {
               const { icon: Icon, colorClass } = getDocumentIcon(
                 doc.documentName
               );
@@ -74,6 +98,7 @@ export const DocumentsCard = () => {
                       </span>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-2 ml-2">
                     <Button
                       variant="ghost"
@@ -90,16 +115,52 @@ export const DocumentsCard = () => {
                         <Download className="h-4 w-4" />
                       </a>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      title="Excluir documento"
-                      onClick={handleDelete} // Adicione o onClick
-                      disabled={deleteMutation.isPending} // Desative enquanto apaga
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Excluir documento"
+                          // Ao clicar, definimos qual documento está em risco
+                          onClick={() => setDocToDelete(doc)}
+                          disabled={
+                            deleteMutation.isPending &&
+                            docToDelete?.id === doc.id
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Você tem a certeza?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. O documento{" "}
+                            <span className="font-semibold">
+                              "{docToDelete?.documentName}"
+                            </span>{" "}
+                            será permanentemente apagado.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel
+                            onClick={() => setDocToDelete(null)}
+                          >
+                            Cancelar
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Apagar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               );

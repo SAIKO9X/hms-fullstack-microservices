@@ -39,33 +39,25 @@ export const PatientSidebar = () => {
       url: "/patient/profile",
       icon: UserPen,
     },
+  ];
+
+  const clinicalItems = [
     {
       title: "Consultas",
       url: "/patient/appointments",
       icon: Calendar,
     },
-    {
-      title: "Médicos",
-      url: "/patient/doctors",
-      icon: UserCheck,
-    },
-    {
-      title: "Prontuários",
-      url: "/patient/records",
-      icon: FileText,
-    },
-  ];
+    { url: "/patient/documents", title: "Documentos", icon: FileText },
 
-  const clinicalItems = [
-    {
-      title: "Diagnósticos",
-      url: "/patient/diagnostics",
-      icon: Stethoscope,
-    },
     {
       title: "Exames",
       url: "/patient/exams",
       icon: Clipboard,
+    },
+    {
+      title: "Diagnósticos",
+      url: "/patient/diagnostics",
+      icon: Stethoscope,
     },
     {
       title: "Emergência",

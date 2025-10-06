@@ -13,6 +13,7 @@ import {
   Calendar,
   Filter,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -25,6 +26,9 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DocumentsCard } from "./DocumentsCard";
+import { useAppSelector } from "@/hooks/hooks";
+import { AddDocumentDialog } from "./AddDocumentDialog";
+import { CustomNotification } from "../notifications/CustomNotification";
 
 // Mapeamento de tipos de documento para labels e cores
 const documentTypeConfig: Record<
@@ -69,9 +73,20 @@ const documentTypeConfig: Record<
 };
 
 export const PatientDocumentsPage = () => {
-  const { data: documents, isLoading } = useMyDocuments();
+  const {
+    data: documents,
+    isLoading,
+    refetch: refetchDocuments,
+  } = useMyDocuments();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("ALL");
+  const { user } = useAppSelector((state) => state.auth);
+  const [isAddDocOpen, setIsAddDocOpen] = useState(false);
+
+  const [notification, setNotification] = useState<{
+    message: string;
+    variant: "success" | "error";
+  } | null>(null);
 
   // Filtrar e ordenar documentos
   const filteredDocuments = useMemo(() => {
@@ -130,8 +145,26 @@ export const PatientDocumentsPage = () => {
     };
   }, [documents]);
 
+  const handleDocumentSuccess = () => {
+    setNotification({
+      message: "Documento enviado com sucesso!",
+      variant: "success",
+    });
+    refetchDocuments();
+  };
+
   return (
     <div className="container mx-auto py-8 space-y-6">
+      {notification && (
+        <CustomNotification
+          variant={notification.variant}
+          title={notification.message}
+          onDismiss={() => setNotification(null)}
+          autoHide
+          autoHideDelay={4000}
+        />
+      )}
+
       {/* Header */}
       <div className="space-y-4">
         <Button asChild variant="ghost" size="sm" className="gap-2">
@@ -141,16 +174,25 @@ export const PatientDocumentsPage = () => {
           </Link>
         </Button>
 
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-primary/10 rounded-lg">
-            <FileText className="h-8 w-8 text-primary" />
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <FileText className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Documentos Médicos</h1>
+              <p className="text-muted-foreground mt-1">
+                Todos os seus exames, relatórios e documentos em um só lugar
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Documentos Médicos</h1>
-            <p className="text-muted-foreground mt-1">
-              Todos os seus exames, relatórios e documentos em um só lugar
-            </p>
-          </div>
+          <Button
+            onClick={() => setIsAddDocOpen(true)}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Documento
+          </Button>
         </div>
       </div>
 
@@ -280,10 +322,22 @@ export const PatientDocumentsPage = () => {
               </p>
             </div>
           ) : (
-            <DocumentsCard />
+            <DocumentsCard
+              documents={filteredDocuments}
+              isLoading={isLoading}
+            />
           )}
         </CardContent>
       </Card>
+
+      {user && (
+        <AddDocumentDialog
+          open={isAddDocOpen}
+          onOpenChange={setIsAddDocOpen}
+          onSuccess={handleDocumentSuccess}
+          patientId={user.id}
+        />
+      )}
     </div>
   );
 };
