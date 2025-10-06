@@ -4,6 +4,7 @@ import com.hms.gateway.utilities.JwtUtil;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -26,9 +27,13 @@ public class TokenFilter extends AbstractGatewayFilterFactory<TokenFilter.Config
   @Override
   public GatewayFilter apply(Config config) {
     return ((exchange, chain) -> {
+      // Ignora requisições OPTIONS, que são usadas para pre-flight do CORS
+      if (exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
+        return chain.filter(exchange);
+      }
+
       // Verifica se a rota é pública (não precisa de token)
       if (validator.isSecured.test(exchange.getRequest())) {
-        // Se a rota não é pública, verifica se o cabeçalho de autorização existe
         if (!exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
           return onError(exchange);
         }
@@ -39,7 +44,6 @@ public class TokenFilter extends AbstractGatewayFilterFactory<TokenFilter.Config
         }
 
         try {
-          // Valida o token usando a classe utilitária
           jwtUtil.validateToken(authHeader);
         } catch (Exception e) {
           System.out.println("Token inválido... " + e.getMessage());
