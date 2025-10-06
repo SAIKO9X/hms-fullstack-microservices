@@ -1,4 +1,7 @@
-import { useMyDocuments } from "@/hooks/appointment-queries";
+import {
+  useDeleteMedicalDocument,
+  useMyDocuments,
+} from "@/hooks/appointment-queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +15,17 @@ const API_BASE_URL = "http://localhost:9000";
 
 export const DocumentsCard = () => {
   const { data: documents, isLoading } = useMyDocuments();
+  const deleteMutation = useDeleteMedicalDocument();
+
+  const handleDelete = () => {
+    if (
+      window.confirm(
+        `Tem a certeza que quer apagar o documento "${doc.documentName}"?`
+      )
+    ) {
+      deleteMutation.mutate(doc.id);
+    }
+  };
 
   return (
     <Card>
@@ -81,6 +95,8 @@ export const DocumentsCard = () => {
                       size="icon"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       title="Excluir documento"
+                      onClick={handleDelete} // Adicione o onClick
+                      disabled={deleteMutation.isPending} // Desative enquanto apaga
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

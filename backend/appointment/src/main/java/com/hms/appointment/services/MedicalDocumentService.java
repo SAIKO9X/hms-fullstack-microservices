@@ -9,4 +9,6 @@ public interface MedicalDocumentService {
   MedicalDocumentResponse createDocument(Long patientId, MedicalDocumentCreateRequest request);
 
   List<MedicalDocumentResponse> getDocumentsByPatientId(Long patientId);
+
+  void deleteDocument(Long documentId, Long patientId);
 }

@@ -7,3 +7,10 @@ export interface MedicalDocument {
   mediaUrl: string;
   uploadedAt: string; // ISO String
 }
+
+export interface MedicalDocumentCreateRequest {
+  appointmentId: number;
+  documentName: string;
+  documentType: string;
+  mediaUrl: string;
+}

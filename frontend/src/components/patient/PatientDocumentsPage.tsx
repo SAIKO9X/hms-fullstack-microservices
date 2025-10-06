@@ -4,13 +4,11 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft,
   FileText,
   File as FileIcon,
   Download,
-  Trash2,
   Search,
   Calendar,
   Filter,
@@ -26,11 +24,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { MedicalDocument } from "@/types/document.types";
-import { getDocumentIcon } from "@/lib/documentIcons";
 import { DocumentsCard } from "./DocumentsCard";
-
-const API_BASE_URL = "http://localhost:9000";
 
 // Mapeamento de tipos de documento para labels e cores
 const documentTypeConfig: Record<

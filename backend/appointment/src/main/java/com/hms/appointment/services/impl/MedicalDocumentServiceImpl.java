@@ -1,6 +1,7 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.entities.MedicalDocument;
+import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
 import com.hms.appointment.request.MedicalDocumentCreateRequest;
 import com.hms.appointment.response.MedicalDocumentResponse;
@@ -35,5 +36,20 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     return documentRepository.findByPatientIdOrderByUploadedAtDesc(patientId).stream()
       .map(MedicalDocumentResponse::fromEntity)
       .collect(Collectors.toList());
+  }
+
+  @Override
+  public void deleteDocument(Long documentId, Long patientId) {
+    MedicalDocument document = documentRepository.findById(documentId)
+      .orElseThrow(() -> new AppointmentNotFoundException("Documento com ID " + documentId + " não encontrado."));
+
+    // Só o próprio paciente pode apagar o seu documento
+    if (!document.getPatientId().equals(patientId)) {
+      throw new SecurityException("Acesso negado. Você não tem permissão para apagar este documento.");
+    }
+
+    documentRepository.delete(document);
+    // Lembrar depois: Isto apaga apenas o registo no appointment-service. O ficheiro no media-service continuaria a existir.
+    // Implementar depois uma comunicação com media-service para apagar o ficheiro também.
   }
 }

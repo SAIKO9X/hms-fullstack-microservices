@@ -46,6 +46,14 @@ public class MedicalDocumentController {
     return documentService.getDocumentsByPatientId(patientId);
   }
 
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  @PreAuthorize("hasRole('PATIENT')")
+  public void deleteDocument(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+    Long patientId = getUserIdFromToken(token);
+    documentService.deleteDocument(id, patientId);
+  }
+
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
     return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));

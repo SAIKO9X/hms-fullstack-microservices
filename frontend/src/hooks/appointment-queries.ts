@@ -29,6 +29,9 @@ import {
   getMyPrescriptionsHistory,
   createAdverseEffectReport,
   getMyDocuments,
+  getDocumentsByPatientId,
+  createMedicalDocument,
+  deleteMedicalDocument,
 } from "@/services/appointmentService";
 import api from "@/lib/interceptor/AxiosInterceptor";
 import type {
@@ -41,7 +44,7 @@ import type {
 } from "@/lib/schemas/prescription";
 import { useMemo } from "react";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
-import type { MedicalDocument } from "@/types/document.types";
+import type { MedicalDocumentCreateRequest } from "@/types/document.types";
 
 // Tipo estendido com informações do médico
 export interface AppointmentWithDoctor extends Appointment {
@@ -408,58 +411,43 @@ export const useCreateAdverseEffectReport = () => {
 };
 
 export const useMyDocuments = () => {
-  // A chamada real à API está comentada por agora
-  // return useQuery({
-  //     queryKey: appointmentKeys.myDocuments(),
-  //     queryFn: getMyDocuments,
-  // });
+  return useQuery({
+    queryKey: appointmentKeys.myDocuments(),
+    queryFn: getMyDocuments,
+  });
+};
 
-  const mockDocuments: MedicalDocument[] = [
-    {
-      id: 1,
-      patientId: 1,
-      appointmentId: 101,
-      // Altere o nome para incluir a extensão .pdf
-      documentName: "Hemograma Completo.pdf",
-      documentType: "BLOOD_REPORT",
-      mediaUrl: "/media/1",
-      uploadedAt: "2025-10-01T10:00:00Z",
-    },
-    {
-      id: 2,
-      patientId: 1,
-      appointmentId: 102,
-      // Altere o nome para incluir a extensão .jpg
-      documentName: "Raio-X do Tórax.jpg",
-      documentType: "XRAY",
-      mediaUrl: "/media/2",
-      uploadedAt: "2025-09-25T14:30:00Z",
-    },
-    {
-      id: 3,
-      patientId: 1,
-      appointmentId: 101,
-      // Altere o nome para incluir a extensão .docx
-      documentName: "Atestado Médico.docx",
-      documentType: "DOCUMENT", // Tipo genérico
-      mediaUrl: "/media/3",
-      uploadedAt: "2025-10-01T11:00:00Z",
-    },
-    {
-      id: 4,
-      patientId: 1,
-      appointmentId: 103,
-      // Deixe um sem extensão para testar o ícone padrão
-      documentName: "Notas da Consulta",
-      documentType: "DEFAULT",
-      mediaUrl: "/media/4",
-      uploadedAt: "2025-08-15T09:00:00Z",
-    },
-  ];
+export const useDocumentsByPatientId = (patientId: number) => {
+  return useQuery({
+    queryKey: [...appointmentKeys.myDocuments(), patientId],
+    queryFn: () => getDocumentsByPatientId(patientId),
+    enabled: !!patientId, // Só executa se o patientId for válido
+  });
+};
 
-  return {
-    data: mockDocuments,
-    isLoading: false, // Simulamos que o carregamento terminou
-    isError: false,
-  };
+export const useCreateMedicalDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: MedicalDocumentCreateRequest) =>
+      createMedicalDocument(data),
+    onSuccess: () => {
+      // Invalida a query de documentos para que a lista seja atualizada
+      queryClient.invalidateQueries({
+        queryKey: appointmentKeys.myDocuments(),
+      });
+    },
+  });
+};
+
+export const useDeleteMedicalDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteMedicalDocument(id),
+    onSuccess: () => {
+      // Invalida a query de documentos para atualizar a lista na UI
+      queryClient.invalidateQueries({
+        queryKey: appointmentKeys.myDocuments(),
+      });
+    },
+  });
 };

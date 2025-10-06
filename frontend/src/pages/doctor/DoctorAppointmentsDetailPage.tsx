@@ -5,6 +5,7 @@ import {
   useAppointmentRecord,
   usePrescription,
   useRescheduleAppointment,
+  useDocumentsByPatientId,
 } from "@/hooks/appointment-queries";
 import {
   Breadcrumb,
@@ -45,6 +46,7 @@ import {
 import { PrescriptionForm } from "@/components/doctor/PrescriptionForm";
 import { RescheduleDialog } from "@/components/doctor/RescheduleDialog";
 import type { AppointmentDetail } from "@/types/appointment.types";
+import { AddDocumentDialog } from "@/components/patient/AddDocumentDialog";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -70,6 +72,7 @@ const getStatusConfig = (status: string) => {
 export const DoctorAppointmentsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const appointmentId = Number(id);
+  const [isAddDocOpen, setIsAddDocOpen] = useState(false);
 
   const [notification, setNotification] = useState<{
     message: string;
@@ -155,6 +158,9 @@ export const DoctorAppointmentsDetailPage = () => {
     );
   }
 
+  const { data: documents, refetch: refetchDocuments } =
+    useDocumentsByPatientId(appointment?.patientId!);
+
   if (!appointment) {
     return (
       <div className="container mx-auto py-6">
@@ -177,6 +183,14 @@ export const DoctorAppointmentsDetailPage = () => {
       </div>
     );
   }
+
+  const handleDocumentSuccess = () => {
+    setNotification({
+      message: "Documento enviado com sucesso!",
+      type: "success",
+    });
+    refetchDocuments(); // Atualiza a lista de documentos
+  };
 
   const statusConfig = getStatusConfig(appointment.status);
   const StatusIcon = statusConfig.icon;
@@ -505,7 +519,32 @@ export const DoctorAppointmentsDetailPage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="documents" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Documentos do Paciente</span>
+                <Button onClick={() => setIsAddDocOpen(true)}>
+                  Adicionar Documento
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Aqui pode listar os documentos. Por agora, uma mensagem. */}
+              <p>A lista de documentos aparecerá aqui.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <AddDocumentDialog
+        open={isAddDocOpen}
+        onOpenChange={setIsAddDocOpen}
+        onSuccess={handleDocumentSuccess}
+        initialAppointmentId={appointmentId}
+        patientId={appointment.patientId}
+      />
 
       {/* Reschedule Dialog */}
       {appointment && (

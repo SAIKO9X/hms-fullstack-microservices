@@ -15,7 +15,10 @@ import type {
   AppointmentStats,
 } from "@/types/appointment.types";
 import type { DoctorDropdown } from "@/types/doctor.types";
-import type { MedicalDocument } from "@/types/document.types";
+import type {
+  MedicalDocument,
+  MedicalDocumentCreateRequest,
+} from "@/types/document.types";
 import type { HealthMetric } from "@/types/health.types";
 import type { AppointmentRecord, Prescription } from "@/types/record.types";
 
@@ -220,4 +223,25 @@ export const createAdverseEffectReport = async (
 export const getMyDocuments = async (): Promise<MedicalDocument[]> => {
   const { data } = await api.get("/documents/patient");
   return data;
+};
+
+// Buscar documentos médicos por ID do paciente (para médicos)
+export const getDocumentsByPatientId = async (
+  patientId: number
+): Promise<MedicalDocument[]> => {
+  const { data } = await api.get(`/documents/patient/${patientId}`);
+  return data;
+};
+
+// Criar novo documento médico
+export const createMedicalDocument = async (
+  documentData: MedicalDocumentCreateRequest
+): Promise<MedicalDocument> => {
+  const { data } = await api.post("/documents", documentData);
+  return data;
+};
+
+// Apagar documento médico
+export const deleteMedicalDocument = async (id: number): Promise<void> => {
+  await api.delete(`/documents/${id}`);
 };
