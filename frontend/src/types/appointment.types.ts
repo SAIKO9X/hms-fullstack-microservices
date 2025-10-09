@@ -5,6 +5,16 @@ export type AppointmentStatus =
   | "CANCELED" // Cancelada
   | "NO_SHOW"; // Não compareceu
 
+export interface DoctorDashboardStats {
+  appointmentsTodayCount: number;
+  completedThisWeekCount: number;
+  statusDistribution: {
+    SCHEDULED: number;
+    COMPLETED: number;
+    CANCELED: number;
+  };
+}
+
 // Interface principal da consulta (baseada na resposta do backend)
 export interface Appointment {
   id: number;
@@ -63,4 +73,19 @@ export interface AdverseEffectReportCreateRequest {
   prescriptionId: number;
   doctorId: number;
   description: string;
+}
+
+export interface PatientGroup {
+  groupName: string;
+  patientCount: number;
+}
+
+export interface AdverseEffectReport {
+  id: number;
+  patientId: number;
+  doctorId: number;
+  prescriptionId: number;
+  description: string;
+  status: "REPORTED" | "REVIEWED";
+  reportedAt: string;
 }

@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router";
 import { useState } from "react";
 import {
-  useAppointmentsWithPatientDetails,
+  useDoctorAppointmentDetails,
   useAppointmentRecord,
   usePrescription,
   useRescheduleAppointment,
@@ -86,12 +86,14 @@ export const DoctorAppointmentsDetailPage = () => {
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
 
   const { data: appointments, isLoading: isLoadingAppointments } =
-    useAppointmentsWithPatientDetails();
+    useDoctorAppointmentDetails();
+
   const {
     data: record,
     isLoading: isLoadingRecord,
     refetch: refetchRecord,
   } = useAppointmentRecord(appointmentId);
+
   const {
     data: prescription,
     isLoading: isLoadingPrescription,
@@ -103,6 +105,12 @@ export const DoctorAppointmentsDetailPage = () => {
   const appointment = appointments?.find(
     (app: AppointmentDetail) => app.id === appointmentId
   );
+
+  const { refetch: refetchDocuments } = useDocumentsByPatientId(
+    appointment?.patientId,
+    !!appointment
+  );
+
   const isLoading =
     isLoadingAppointments || isLoadingRecord || isLoadingPrescription;
 
@@ -157,9 +165,6 @@ export const DoctorAppointmentsDetailPage = () => {
       </div>
     );
   }
-
-  const { data: documents, refetch: refetchDocuments } =
-    useDocumentsByPatientId(appointment?.patientId!);
 
   if (!appointment) {
     return (

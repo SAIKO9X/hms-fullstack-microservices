@@ -25,6 +25,7 @@ import { PatientDashboardPage } from "@/pages/patient/PatientDashboardPage";
 import { PatientAppointmentDetailPage } from "@/pages/patient/PatientAppointmentDetailPage";
 import { PatientPrescriptionsPage } from "@/pages/patient/PatientPrescriptionsPage";
 import { PatientDocumentsPage } from "@/components/patient/PatientDocumentsPage";
+import { DoctorDashboardPage } from "@/pages/doctor/DoctorDashboardPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 
@@ -64,6 +65,7 @@ export const AppRoutes = () => {
         {/* Doutor */}
         <Route element={<RoleBasedGuard allowedRoles={["DOCTOR"]} />}>
           <Route path="/doctor/*" element={<DoctorDashboard />}>
+            <Route path="dashboard" element={<DoctorDashboardPage />} />
             <Route path="dashboard" element={<DoctorHomePage />} />
             <Route path="profile" element={<DoctorProfilePage />} />
             <Route path="appointments" element={<DoctorAppointmentsPage />} />

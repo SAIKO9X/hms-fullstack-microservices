@@ -10,9 +10,12 @@ import type {
   AppointmentRecordUpdateData,
 } from "@/lib/schemas/record";
 import type {
+  AdverseEffectReport,
   AdverseEffectReportCreateRequest,
   Appointment,
   AppointmentStats,
+  DoctorDashboardStats,
+  PatientGroup,
 } from "@/types/appointment.types";
 import type { DoctorDropdown } from "@/types/doctor.types";
 import type {
@@ -244,4 +247,31 @@ export const createMedicalDocument = async (
 // Apagar documento médico
 export const deleteMedicalDocument = async (id: number): Promise<void> => {
   await api.delete(`/documents/${id}`);
+};
+
+// Obter estatísticas da dashboard do médico
+export const getDoctorDashboardStats =
+  async (): Promise<DoctorDashboardStats> => {
+    const { data } = await api.get("/appointments/doctor/dashboard-stats");
+    return data;
+  };
+
+// Obter contagem de pacientes únicos do médico
+export const getUniquePatientsCount = async (): Promise<number> => {
+  const { data } = await api.get("/appointments/doctor/patients-count");
+  return data;
+};
+
+// Obter grupos de pacientes do médico
+export const getDoctorPatientGroups = async (): Promise<PatientGroup[]> => {
+  const { data } = await api.get("/appointments/doctor/patient-groups");
+  return data;
+};
+
+// Buscar relatórios de efeitos adversos para o médico logado
+export const getAdverseEffectReports = async (): Promise<
+  AdverseEffectReport[]
+> => {
+  const { data } = await api.get("/adverse-effects/doctor");
+  return data;
 };

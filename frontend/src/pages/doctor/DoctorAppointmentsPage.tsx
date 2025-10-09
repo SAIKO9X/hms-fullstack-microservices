@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  useAppointmentsWithPatientDetails,
+  useDoctorAppointmentDetails,
   useCancelAppointment,
   useCompleteAppointment,
 } from "@/hooks/appointment-queries";
@@ -26,7 +26,7 @@ export const DoctorAppointmentsPage = () => {
     isLoading,
     isError,
     error,
-  } = useAppointmentsWithPatientDetails();
+  } = useDoctorAppointmentDetails();
   const completeAppointmentMutation = useCompleteAppointment();
   const cancelAppointmentMutation = useCancelAppointment();
 

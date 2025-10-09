@@ -32,6 +32,10 @@ import {
   getDocumentsByPatientId,
   createMedicalDocument,
   deleteMedicalDocument,
+  getDoctorDashboardStats,
+  getUniquePatientsCount,
+  getDoctorPatientGroups,
+  getAdverseEffectReports,
 } from "@/services/appointmentService";
 import api from "@/lib/interceptor/AxiosInterceptor";
 import type {
@@ -74,7 +78,6 @@ export const appointmentKeys = {
   myDocuments: () => ["documents", "patient"] as const,
 };
 
-// Hook original para buscar consultas baseado na role do usuário
 export const useAppointments = () => {
   const { user } = useAppSelector((state) => state.auth);
 
@@ -103,18 +106,26 @@ export const useAppointments = () => {
   });
 };
 
-export const useAppointmentsWithPatientDetails = () => {
+export const useDoctorAppointmentDetails = (
+  dateFilter?: "today" | "week" | "month"
+) => {
   return useQuery({
-    queryKey: appointmentKeys.doctor(),
+    queryKey: [
+      ...appointmentKeys.doctor(),
+      "details",
+      { date: dateFilter || "all" },
+    ],
     queryFn: async (): Promise<AppointmentDetail[]> => {
-      const { data } = await api.get("/appointments/doctor/details");
+      const endpoint = dateFilter
+        ? `/appointments/doctor/details?date=${dateFilter}`
+        : "/appointments/doctor/details";
+      const { data } = await api.get(endpoint);
       return data;
     },
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    staleTime: 1 * 60 * 1000,
   });
 };
 
-// Hook para buscar consultas com nome do doutor
 export const useAppointmentsWithDoctorNames = () => {
   const { user } = useAppSelector((state) => state.auth);
 
@@ -172,7 +183,6 @@ export const useAppointmentsWithDoctorNames = () => {
   };
 };
 
-// Hook para buscar uma consulta específica
 export const useAppointmentById = (id: number) => {
   return useQuery({
     queryKey: appointmentKeys.detail(id),
@@ -182,7 +192,6 @@ export const useAppointmentById = (id: number) => {
   });
 };
 
-// Hook para criar consulta
 export const useCreateAppointment = () => {
   const queryClient = useQueryClient();
 
@@ -204,7 +213,6 @@ export const useCreateAppointment = () => {
   });
 };
 
-// Hook para cancelar consulta
 export const useCancelAppointment = () => {
   const queryClient = useQueryClient();
 
@@ -222,7 +230,6 @@ export const useCancelAppointment = () => {
   });
 };
 
-// Hook para remarcar consulta
 export const useRescheduleAppointment = () => {
   const queryClient = useQueryClient();
 
@@ -241,7 +248,6 @@ export const useRescheduleAppointment = () => {
   });
 };
 
-// Hook para completar consulta (médicos)
 export const useCompleteAppointment = () => {
   const queryClient = useQueryClient();
 
@@ -260,7 +266,6 @@ export const useCompleteAppointment = () => {
   });
 };
 
-// Hook para buscar médicos para dropdown
 export const useDoctorsDropdown = () => {
   return useQuery({
     queryKey: appointmentKeys.doctors,
@@ -417,11 +422,15 @@ export const useMyDocuments = () => {
   });
 };
 
-export const useDocumentsByPatientId = (patientId: number) => {
+export const useDocumentsByPatientId = (
+  patientId?: number,
+  enabled: boolean = true
+) => {
   return useQuery({
     queryKey: [...appointmentKeys.myDocuments(), patientId],
-    queryFn: () => getDocumentsByPatientId(patientId),
-    enabled: !!patientId, // Só executa se o patientId for válido
+    queryFn: () => getDocumentsByPatientId(patientId!),
+    // A query só será executada se 'enabled' for true (ou seja, se o appointment já foi encontrado)
+    enabled: !!patientId && enabled,
   });
 };
 
@@ -449,5 +458,35 @@ export const useDeleteMedicalDocument = () => {
         queryKey: appointmentKeys.myDocuments(),
       });
     },
+  });
+};
+
+export const useDoctorDashboardStats = () => {
+  return useQuery({
+    queryKey: ["doctorDashboardStats"],
+    queryFn: getDoctorDashboardStats,
+    retry: 1, // Tentar apenas 1 vez em caso de erro
+  });
+};
+
+export const useUniquePatientsCount = () => {
+  return useQuery({
+    queryKey: ["doctorUniquePatients"],
+    queryFn: getUniquePatientsCount,
+    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
+  });
+};
+
+export const useDoctorPatientGroups = () => {
+  return useQuery({
+    queryKey: ["doctorPatientGroups"],
+    queryFn: getDoctorPatientGroups,
+  });
+};
+
+export const useAdverseEffectReports = () => {
+  return useQuery({
+    queryKey: ["adverseEffectReports"],
+    queryFn: getAdverseEffectReports,
   });
 };
