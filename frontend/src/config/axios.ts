@@ -1,8 +1,8 @@
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import type { AppStore } from "@/store";
-import { logout } from "@/slices/authSlice";
+import { logout } from "@/store/slices/authSlice";
 import type { InternalAxiosRequestConfig } from "axios";
+import type { AppStore } from "@/store/store";
 
 const api = axios.create({
   baseURL: "http://localhost:9000",
