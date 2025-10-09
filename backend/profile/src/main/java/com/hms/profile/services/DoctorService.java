@@ -4,6 +4,7 @@ import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
+import com.hms.profile.dto.response.DoctorStatusResponse;
 
 import java.util.List;
 
@@ -23,6 +24,8 @@ public interface DoctorService {
   DoctorResponse getDoctorProfileById(Long id);
 
   void updateProfilePicture(Long userId, String pictureUrl);
+
+  List<DoctorStatusResponse> getDoctorsWithStatus();
 
   long countAllDoctors();
 }

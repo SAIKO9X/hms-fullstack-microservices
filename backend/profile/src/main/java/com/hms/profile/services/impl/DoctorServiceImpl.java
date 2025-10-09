@@ -1,9 +1,11 @@
 package com.hms.profile.services.impl;
 
+import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
+import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.entities.Doctor;
 import com.hms.profile.exceptions.ProfileAlreadyExistsException;
 import com.hms.profile.exceptions.ProfileNotFoundException;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class DoctorServiceImpl implements DoctorService {
 
   private final DoctorRepository doctorRepository;
+  private final AppointmentFeignClient appointmentFeignClient;
 
   @Override
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
@@ -94,6 +97,21 @@ public class DoctorServiceImpl implements DoctorService {
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     doctor.setProfilePictureUrl(pictureUrl);
     doctorRepository.save(doctor);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<DoctorStatusResponse> getDoctorsWithStatus() {
+    List<Doctor> doctors = doctorRepository.findAll();
+    List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
+
+    return doctors.stream().map(doctor -> new DoctorStatusResponse(
+      doctor.getId(),
+      doctor.getName(),
+      doctor.getSpecialization(),
+      activeDoctorIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
+      doctor.getProfilePictureUrl()
+    )).collect(Collectors.toList());
   }
 
   @Override

@@ -34,5 +34,7 @@ public interface AppointmentService {
 
   List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId);
 
+  List<DailyActivityDto> getDailyActivityStats();
+
   long countAllAppointmentsForToday();
 }

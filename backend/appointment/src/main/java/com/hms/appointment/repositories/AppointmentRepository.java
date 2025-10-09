@@ -49,6 +49,15 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     "WHERE a.doctorId = :doctorId AND LOWER(ar.diagnosis) LIKE %:keyword%")
   List<Long> findDistinctPatientIdsByDoctorAndDiagnosisKeyword(@Param("doctorId") Long doctorId, @Param("keyword") String keyword);
 
+  // Consulta para contar consultas a partir de uma data específica, agrupadas por dia
+  @Query("SELECT FUNCTION('DATE', a.appointmentDateTime), COUNT(a) FROM Appointment a WHERE a.appointmentDateTime >= :startDate GROUP BY FUNCTION('DATE', a.appointmentDateTime)")
+  List<Object[]> countAppointmentsFromDateGroupedByDay(@Param("startDate") LocalDateTime startDate);
+
+  // Consulta para encontrar a data da primeira consulta de cada paciente a partir de uma data específica
+  @Query("SELECT p.patientId, MIN(FUNCTION('DATE', p.appointmentDateTime)) FROM Appointment p WHERE p.appointmentDateTime >= :startDate GROUP BY p.patientId")
+  List<Object[]> findFirstAppointmentDateForPatients(@Param("startDate") LocalDateTime startDate);
+
+  List<Appointment> findByAppointmentDateTimeBetween(LocalDateTime start, LocalDateTime end);
 
   List<Appointment> findByDoctorIdAndAppointmentDateTimeBetween(Long doctorId, LocalDateTime startOfDay, LocalDateTime endOfDay);
 }

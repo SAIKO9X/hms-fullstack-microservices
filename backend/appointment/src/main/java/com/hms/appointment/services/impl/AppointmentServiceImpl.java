@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -285,6 +286,38 @@ public class AppointmentServiceImpl implements AppointmentService {
       })
       .filter(group -> group.patientCount() > 0)
       .sorted((a, b) -> Long.compare(b.patientCount(), a.patientCount()))
+      .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<DailyActivityDto> getDailyActivityStats() {
+    LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+
+    // Contar consultas por dia
+    List<Object[]> appointmentCounts = appointmentRepository.countAppointmentsFromDateGroupedByDay(thirtyDaysAgo);
+    Map<LocalDate, Long> appointmentsByDay = appointmentCounts.stream()
+      .collect(Collectors.toMap(
+        row -> ((java.sql.Date) row[0]).toLocalDate(),
+        row -> (Long) row[1]
+      ));
+
+    // Contar novos pacientes por dia (primeira consulta nos últimos 30 dias)
+    List<Object[]> firstAppointments = appointmentRepository.findFirstAppointmentDateForPatients(thirtyDaysAgo);
+    Map<LocalDate, Long> newPatientsByDay = firstAppointments.stream()
+      .collect(Collectors.groupingBy(
+        row -> ((java.sql.Date) row[1]).toLocalDate(),
+        Collectors.counting()
+      ));
+
+    // Gerar a lista de DTOs para os últimos 30 dias
+    return IntStream.range(0, 30)
+      .mapToObj(i -> LocalDate.now().minusDays(i))
+      .map(date -> new DailyActivityDto(
+        date,
+        newPatientsByDay.getOrDefault(date, 0L),
+        appointmentsByDay.getOrDefault(date, 0L)
+      ))
+      .sorted(Comparator.comparing(DailyActivityDto::date))
       .collect(Collectors.toList());
   }
 

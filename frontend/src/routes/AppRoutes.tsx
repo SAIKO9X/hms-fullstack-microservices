@@ -26,6 +26,7 @@ import { PatientAppointmentDetailPage } from "@/features/patient/pages/PatientAp
 import { PatientPrescriptionsPage } from "@/features/patient/pages/PatientPrescriptionsPage";
 import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage";
 import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
+import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 
@@ -79,6 +80,7 @@ export const AppRoutes = () => {
         {/* Admin */}
         <Route element={<RoleBasedGuard allowedRoles={["ADMIN"]} />}>
           <Route path="/admin/*" element={<AdminDashboard />}>
+            <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="medicines" element={<AdminMedicinesPage />} />
             <Route path="inventory" element={<AdminInventoryPage />} />
             <Route path="sales" element={<AdminSalesPage />} />
