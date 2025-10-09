@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAppSelector } from "@/hooks/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { Heart, Activity, Users, Calendar, Shield, Clock } from "lucide-react";
 import { useNavigate } from "react-router";
 

@@ -11,8 +11,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAppSelector } from "@/hooks/hooks";
-import { useProfile } from "@/hooks/profile-queries";
+import { useAppSelector } from "@/store/hooks";
+import { useProfile } from "@/services/queries/profile-queries";
 import { ChevronDown, LogOut, Settings, User, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 

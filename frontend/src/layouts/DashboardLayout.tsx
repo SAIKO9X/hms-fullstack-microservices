@@ -1,8 +1,8 @@
 import { Navigate } from "react-router";
-import { PatientDashboard } from "./PatientDashboard";
-import { DoctorDashboard } from "./DoctorDashboard";
-import { useAppSelector } from "@/hooks/hooks";
-import { AdminDashboard } from "./AdminDashboard";
+import { PatientDashboard } from "../features/patient/layouts/PatientLayout";
+import { DoctorDashboard } from "../features/doctor/layouts/DoctorLayout";
+import { useAppSelector } from "@/store/hooks";
+import { AdminDashboard } from "../features/admin/layouts/AdminLayout";
 
 export const DashboardLayout = () => {
   const { user } = useAppSelector((state) => state.auth);
