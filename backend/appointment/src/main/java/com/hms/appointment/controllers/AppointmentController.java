@@ -2,14 +2,14 @@ package com.hms.appointment.controllers;
 
 import com.hms.appointment.request.AppointmentCreateRequest;
 import com.hms.appointment.request.AppointmentUpdateRequest;
-import com.hms.appointment.response.AppointmentDetailResponse;
-import com.hms.appointment.response.AppointmentResponse;
-import com.hms.appointment.response.AppointmentStatsResponse;
+import com.hms.appointment.response.*;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -64,9 +64,12 @@ public class AppointmentController {
 
   @GetMapping("/doctor/details")
   @ResponseStatus(HttpStatus.OK)
-  public List<AppointmentDetailResponse> getMyAppointmentsAsDoctorWithPatientDetails(@RequestHeader("Authorization") String token) {
+  public List<AppointmentDetailResponse> getAppointmentDetails(
+    @RequestHeader("Authorization") String token,
+    @RequestParam(name = "date", required = false) String dateFilter
+  ) {
     Long doctorId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentDetailsForDoctor(doctorId);
+    return appointmentService.getAppointmentDetailsForDoctor(doctorId, dateFilter);
   }
 
   @PatchMapping("/{id}/complete")
@@ -79,6 +82,29 @@ public class AppointmentController {
     return appointmentService.completeAppointment(id, request.notes(), doctorId);
   }
 
+  @GetMapping("/doctor/dashboard-stats")
+  @PreAuthorize("hasRole('DOCTOR')")
+  public ResponseEntity<DoctorDashboardStatsResponse> getDoctorDashboardStats(@RequestHeader("Authorization") String token) {
+    Long doctorId = getUserIdFromToken(token);
+    DoctorDashboardStatsResponse stats = appointmentService.getDoctorDashboardStats(doctorId);
+    return ResponseEntity.ok(stats);
+  }
+
+  @GetMapping("/doctor/patients-count")
+  @PreAuthorize("hasRole('DOCTOR')")
+  public ResponseEntity<Long> getUniquePatientsCount(@RequestHeader("Authorization") String token) {
+    Long doctorId = getUserIdFromToken(token);
+    long count = appointmentService.countUniquePatientsForDoctor(doctorId);
+    return ResponseEntity.ok(count);
+  }
+
+  @GetMapping("/doctor/patient-groups")
+  @PreAuthorize("hasRole('DOCTOR')")
+  public ResponseEntity<List<PatientGroupResponse>> getPatientGroups(@RequestHeader("Authorization") String token) {
+    Long doctorId = getUserIdFromToken(token);
+    List<PatientGroupResponse> groups = appointmentService.getPatientGroupsForDoctor(doctorId);
+    return ResponseEntity.ok(groups);
+  }
 
   // --- Endpoints Comuns (Pacientes e Doutores) ---
   @GetMapping("/{id}")

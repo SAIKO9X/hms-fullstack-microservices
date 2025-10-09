@@ -1,9 +1,7 @@
 package com.hms.appointment.services;
 
 import com.hms.appointment.request.AppointmentCreateRequest;
-import com.hms.appointment.response.AppointmentDetailResponse;
-import com.hms.appointment.response.AppointmentResponse;
-import com.hms.appointment.response.AppointmentStatsResponse;
+import com.hms.appointment.response.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,7 +16,7 @@ public interface AppointmentService {
 
   List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId);
 
-  List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId);
+  List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId, String dateFilter);
 
   AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterId);
 
@@ -29,4 +27,10 @@ public interface AppointmentService {
   AppointmentResponse getNextAppointmentForPatient(Long patientId);
 
   AppointmentStatsResponse getAppointmentStatsForPatient(Long patientId);
+
+  DoctorDashboardStatsResponse getDoctorDashboardStats(Long doctorId);
+
+  long countUniquePatientsForDoctor(Long doctorId);
+
+  List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId);
 }

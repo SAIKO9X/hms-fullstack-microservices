@@ -15,9 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.temporal.TemporalAdjusters;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,8 +83,33 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId) {
-    List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
+  public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId, String dateFilter) {
+    List<Appointment> appointments;
+    LocalDateTime start;
+    LocalDateTime end;
+
+    if ("today".equalsIgnoreCase(dateFilter)) {
+      start = LocalDate.now().atStartOfDay();
+      end = LocalDate.now().atTime(23, 59, 59);
+      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
+    } else if ("week".equalsIgnoreCase(dateFilter)) {
+      // Lógica para a semana
+      start = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
+      end = LocalDate.now().with(DayOfWeek.SUNDAY).atTime(23, 59, 59);
+      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
+    } else if ("month".equalsIgnoreCase(dateFilter)) {
+      // Lógica para o mês
+      start = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+      end = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth()).atTime(23, 59, 59);
+      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
+    } else {
+      appointments = appointmentRepository.findByDoctorId(doctorId);
+    }
+
+    if (appointments.isEmpty()) {
+      return new ArrayList<>();
+    }
+
     DoctorProfileResponse doctor = profileFeignClient.getDoctorProfile(doctorId);
 
     List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
@@ -199,6 +226,66 @@ public class AppointmentServiceImpl implements AppointmentService {
     long completed = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
     long canceled = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELED).count();
     return new AppointmentStatsResponse(total, scheduled, completed, canceled);
+  }
+
+  @Override
+  public DoctorDashboardStatsResponse getDoctorDashboardStats(Long doctorId) {
+    // Contar consultas de hoje
+    long appointmentsToday = appointmentRepository.countAppointmentsForToday(doctorId);
+
+    // Contar concluídas na semana
+    LocalDateTime startOfWeek = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
+    long completedThisWeek = appointmentRepository.countCompletedAppointmentsSince(doctorId, startOfWeek);
+
+    // Obter distribuição por status
+    Map<AppointmentStatus, Long> statusDistribution = appointmentRepository.countAppointmentsByStatus(doctorId)
+      .stream()
+      .collect(Collectors.toMap(
+        row -> (AppointmentStatus) row[0],
+        row -> (Long) row[1]
+      ));
+
+    // Adiciona status que não têm consultas com contagem zero
+    Arrays.stream(AppointmentStatus.values())
+      .forEach(status -> statusDistribution.putIfAbsent(status, 0L));
+
+
+    return new DoctorDashboardStatsResponse(appointmentsToday, completedThisWeek, statusDistribution);
+  }
+
+  @Override
+  public long countUniquePatientsForDoctor(Long doctorId) {
+    return appointmentRepository.countDistinctPatientsByDoctorId(doctorId);
+  }
+
+  @Override
+  public List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId) {
+    Map<String, List<String>> conditionVariations = Map.of(
+      "Diabéticos", List.of("diabetes", "diabético", "glicemia"),
+      "Hipertensos", List.of("hipertensão", "pressão alta", "has"),
+      "Asmáticos", List.of("asma", "bronquite"),
+      "Cardíacos", List.of("cardíaco", "cardiopatia", "infarto"),
+      "Colesterol", List.of("colesterol", "dislipidemia", "ldl")
+    );
+
+    return conditionVariations.entrySet().stream()
+      .map(entry -> {
+        String groupName = entry.getKey();
+        List<String> keywords = entry.getValue();
+
+        // Set para garantir que cada paciente seja contado apenas uma vez
+        Set<Long> uniquePatientIds = new HashSet<>();
+        for (String keyword : keywords) {
+          uniquePatientIds.addAll(
+            appointmentRepository.findDistinctPatientIdsByDoctorAndDiagnosisKeyword(doctorId, keyword)
+          );
+        }
+
+        return new PatientGroupResponse(groupName, uniquePatientIds.size());
+      })
+      .filter(group -> group.patientCount() > 0)
+      .sorted((a, b) -> Long.compare(b.patientCount(), a.patientCount()))
+      .collect(Collectors.toList());
   }
 
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
