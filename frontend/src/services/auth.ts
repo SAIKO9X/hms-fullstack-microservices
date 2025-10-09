@@ -1,4 +1,4 @@
-import api from "@/lib/interceptor/AxiosInterceptor";
+import api from "@/config/axios";
 import type { LoginData, RegisterData } from "@/lib/schemas/auth";
 import type { AuthResponse } from "@/types/auth.types";
 

@@ -1,5 +1,5 @@
-import { loginUser, logout } from "@/slices/authSlice";
-import { useAppDispatch, useAppSelector } from "./hooks";
+import { loginUser, logout } from "@/store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import type { LoginData } from "@/lib/schemas/auth";
 
 export const useAuth = () => {

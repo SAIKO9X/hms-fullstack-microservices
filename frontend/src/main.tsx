@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { ThemeProvider } from "./providers/ThemeProvider.tsx";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setupResponseInterceptor } from "./lib/interceptor/AxiosInterceptor.ts";
+import { setupResponseInterceptor } from "./config/axios.ts";
 
 const queryClient = new QueryClient({
   defaultOptions: {

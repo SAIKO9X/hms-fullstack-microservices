@@ -1,4 +1,4 @@
-import { useAppSelector } from "@/hooks/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { Navigate, Outlet } from "react-router";
 
 export const PublicRoute = () => {

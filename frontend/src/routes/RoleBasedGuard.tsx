@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router";
-import { useAppSelector } from "@/hooks/hooks";
+import { useAppSelector } from "@/store/hooks";
 import type { UserRole } from "@/types/auth.types";
 
 interface RoleBasedGuardProps {

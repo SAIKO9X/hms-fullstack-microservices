@@ -1,4 +1,4 @@
-import api from "@/lib/interceptor/AxiosInterceptor";
+import api from "@/config/axios";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type {
   PrescriptionFormData,

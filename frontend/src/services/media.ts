@@ -1,4 +1,4 @@
-import api from "@/lib/interceptor/AxiosInterceptor";
+import api from "@/config/axios";
 
 // DTO que o media-service retorna
 interface MediaFileDto {
