@@ -3,7 +3,7 @@ import type { LoginData } from "@/lib/schemas/auth";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { AuthResponse, UserResponse } from "@/types/auth.types";
-import { loginUser as loginUserService } from "@/services/authService";
+import { loginUser as loginUserService } from "@/services/auth";
 
 // Define a "forma" do estado de autenticação
 interface AuthState {

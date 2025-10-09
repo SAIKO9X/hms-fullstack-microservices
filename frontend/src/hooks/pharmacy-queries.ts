@@ -11,7 +11,7 @@ import {
   type DirectSaleFormData,
   type InventoryFormData,
   type MedicineFormData,
-} from "@/services/pharmacyService";
+} from "@/services/pharmacy";
 import type { Medicine } from "@/types/medicine.types";
 
 // Hook para adicionar um novo medicamento

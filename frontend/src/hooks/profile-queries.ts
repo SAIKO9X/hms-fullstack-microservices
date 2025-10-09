@@ -18,7 +18,7 @@ import {
   getDoctorById,
   updateMyPatientProfilePicture,
   updateMyDoctorProfilePicture,
-} from "@/services/profileService";
+} from "@/services/profile";
 
 // Types
 type Profile = PatientProfile | DoctorProfile;

@@ -10,7 +10,7 @@ import type { PatientProfileFormData } from "@/lib/schemas/profile";
 import { EditProfileDialog } from "@/components/patient/EditProfileDialog";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { useProfile, useUpdateProfilePicture } from "@/hooks/profile-queries";
-import { uploadFile } from "@/services/mediaService";
+import { uploadFile } from "@/services/media";
 
 export const PatientProfilePage = () => {
   const {
@@ -195,14 +195,14 @@ export const PatientProfilePage = () => {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <div className="relative group">
               <Avatar className="h-24 w-24">
-                  <AvatarImage
-                    src={
-                      patientProfile?.profilePictureUrl
-                        ? `${API_BASE_URL}${patientProfile.profilePictureUrl}`
-                        : undefined
-                    }
-                    alt="Foto do perfil"
-                  />
+                <AvatarImage
+                  src={
+                    patientProfile?.profilePictureUrl
+                      ? `${API_BASE_URL}${patientProfile.profilePictureUrl}`
+                      : undefined
+                  }
+                  alt="Foto do perfil"
+                />
                 <AvatarFallback className="text-3xl">
                   {user?.name?.charAt(0).toUpperCase() || "P"}
                 </AvatarFallback>

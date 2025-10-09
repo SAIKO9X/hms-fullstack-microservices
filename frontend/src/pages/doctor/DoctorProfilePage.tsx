@@ -9,7 +9,7 @@ import { ProfileInfoTable } from "@/components/patient/ProfileInfoTable";
 import { EditDoctorProfileDialog } from "@/components/doctor/EditDoctorProfileDialog";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { useProfile, useUpdateProfilePicture } from "@/hooks/profile-queries";
-import { uploadFile } from "@/services/mediaService";
+import { uploadFile } from "@/services/media";
 
 export const DoctorProfilePage = () => {
   const {

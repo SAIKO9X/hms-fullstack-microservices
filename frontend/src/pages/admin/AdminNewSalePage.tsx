@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Trash, Plus, FileInput } from "lucide-react";
-import { getAllMedicines } from "@/services/pharmacyService";
+import { getAllMedicines } from "@/services/pharmacy";
 import { useCreateDirectSale } from "@/hooks/pharmacy-queries";
 import { usePatientsDropdown } from "@/hooks/profile-queries";
 import { Button } from "@/components/ui/button";

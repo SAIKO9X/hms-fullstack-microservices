@@ -1,5 +1,4 @@
 import api from "@/lib/interceptor/AxiosInterceptor";
-import type { AppointmentFormData } from "@/lib/schemas/appointment";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type {
   PrescriptionFormData,
@@ -13,9 +12,6 @@ import type {
   AdverseEffectReport,
   AdverseEffectReportCreateRequest,
   Appointment,
-  AppointmentStats,
-  DoctorDashboardStats,
-  PatientGroup,
 } from "@/types/appointment.types";
 import type { DoctorDropdown } from "@/types/doctor.types";
 import type {
@@ -25,29 +21,11 @@ import type {
 import type { HealthMetric } from "@/types/health.types";
 import type { AppointmentRecord, Prescription } from "@/types/record.types";
 
-// Buscar minhas consultas como paciente
-export const getMyAppointments = async (): Promise<Appointment[]> => {
-  const { data } = await api.get("/appointments/patient");
-  return data;
-};
-
-// Buscar minhas consultas como médico
-export const getMyAppointmentsAsDoctor = async (): Promise<Appointment[]> => {
-  const { data } = await api.get("/appointments/doctor");
-  return data;
-};
+// === ROTAS COMPARTILHADAS (acessíveis por pacientes e médicos) ===
 
 // Buscar uma consulta específica por ID
 export const getAppointmentById = async (id: number): Promise<Appointment> => {
   const { data } = await api.get(`/appointments/${id}`);
-  return data;
-};
-
-// Criar nova consulta
-export const createAppointment = async (
-  appointmentData: AppointmentFormData
-): Promise<Appointment> => {
-  const { data } = await api.post("/appointments", appointmentData);
   return data;
 };
 
@@ -68,24 +46,13 @@ export const rescheduleAppointment = async (
   return data;
 };
 
-// Completar consulta (para médicos)
-export const completeAppointment = async (
-  id: number,
-  notes?: string
-): Promise<Appointment> => {
-  const { data } = await api.patch(`/appointments/${id}/complete`, {
-    notes: notes || "",
-  });
-  return data;
-};
-
 // Buscar médicos para dropdown
 export const getDoctorsForDropdown = async (): Promise<DoctorDropdown[]> => {
   const { data } = await api.get("/profile/doctors/dropdown");
   return data;
 };
 
-// --- Funções para AppointmentRecord ---
+// === APPOINTMENT RECORDS ===
 export const createAppointmentRecord = async (
   data: AppointmentRecordFormData
 ): Promise<AppointmentRecord> => {
@@ -101,13 +68,24 @@ export const getAppointmentRecordByAppointmentId = async (
     return data;
   } catch (error: any) {
     if (error.response?.status === 404) {
-      return null; // Retorna null se não encontrar, em vez de lançar um erro
+      return null;
     }
     throw error;
   }
 };
 
-// --- Funções para Prescription ---
+export const updateAppointmentRecord = async ({
+  id,
+  data,
+}: {
+  id: number;
+  data: AppointmentRecordUpdateData;
+}): Promise<AppointmentRecord> => {
+  const { data: responseData } = await api.put(`/records/${id}`, data);
+  return responseData;
+};
+
+// === PRESCRIPTIONS ===
 export const createPrescription = async (
   data: PrescriptionFormData
 ): Promise<Prescription> => {
@@ -131,24 +109,11 @@ export const getPrescriptionByAppointmentId = async (
   }
 };
 
-// Buscar prescrições por ID de paciente
 export const getPrescriptionsByPatientId = async (
   patientId: number
 ): Promise<Prescription[]> => {
   const { data } = await api.get(`/prescriptions/patient/${patientId}`);
   return data;
-};
-
-// --- Funções de UPDATE ---
-export const updateAppointmentRecord = async ({
-  id,
-  data,
-}: {
-  id: number;
-  data: AppointmentRecordUpdateData;
-}): Promise<AppointmentRecord> => {
-  const { data: responseData } = await api.put(`/records/${id}`, data);
-  return responseData;
 };
 
 export const updatePrescription = async ({
@@ -162,35 +127,7 @@ export const updatePrescription = async ({
   return responseData;
 };
 
-// Buscar a próxima consulta do paciente logado
-export const getNextAppointment = async (): Promise<Appointment | null> => {
-  try {
-    const { data } = await api.get("/appointments/patient/next");
-    return data;
-  } catch (error: any) {
-    if (error.response?.status === 404) return null;
-    throw error;
-  }
-};
-
-// Buscar prescrição mais recente do paciente logado
-export const getLatestPrescription = async (): Promise<Prescription | null> => {
-  try {
-    const { data } = await api.get("/prescriptions/patient/latest");
-    return data;
-  } catch (error: any) {
-    if (error.response?.status === 404) return null;
-    throw error;
-  }
-};
-
-// Buscar estatísticas de agendamentos do paciente logado
-export const getAppointmentStats = async (): Promise<AppointmentStats> => {
-  const { data } = await api.get("/appointments/patient/stats");
-  return data;
-};
-
-// Buscar a métrica de saúde mais recente do paciente logado
+// === HEALTH METRICS ===
 export const getLatestHealthMetric = async (): Promise<HealthMetric | null> => {
   try {
     const { data } = await api.get("/health-metrics/latest");
@@ -201,7 +138,6 @@ export const getLatestHealthMetric = async (): Promise<HealthMetric | null> => {
   }
 };
 
-// Criar nova métrica de saúde
 export const createHealthMetric = async (
   metricData: HealthMetricFormData
 ): Promise<HealthMetric> => {
@@ -209,26 +145,26 @@ export const createHealthMetric = async (
   return data;
 };
 
-// Buscar histórico de prescrições do paciente logado
-export const getMyPrescriptionsHistory = async (): Promise<Prescription[]> => {
-  const { data } = await api.get("/prescriptions/patient/my-history");
-  return data;
-};
-
-// Reportar efeito adverso
+// === ADVERSE EFFECTS ===
 export const createAdverseEffectReport = async (
   reportData: AdverseEffectReportCreateRequest
 ): Promise<void> => {
   await api.post("/adverse-effects", reportData);
 };
 
-// Buscar meus documentos médicos
+export const getAdverseEffectReports = async (): Promise<
+  AdverseEffectReport[]
+> => {
+  const { data } = await api.get("/adverse-effects/doctor");
+  return data;
+};
+
+// === MEDICAL DOCUMENTS ===
 export const getMyDocuments = async (): Promise<MedicalDocument[]> => {
   const { data } = await api.get("/documents/patient");
   return data;
 };
 
-// Buscar documentos médicos por ID do paciente (para médicos)
 export const getDocumentsByPatientId = async (
   patientId: number
 ): Promise<MedicalDocument[]> => {
@@ -236,7 +172,6 @@ export const getDocumentsByPatientId = async (
   return data;
 };
 
-// Criar novo documento médico
 export const createMedicalDocument = async (
   documentData: MedicalDocumentCreateRequest
 ): Promise<MedicalDocument> => {
@@ -244,34 +179,6 @@ export const createMedicalDocument = async (
   return data;
 };
 
-// Apagar documento médico
 export const deleteMedicalDocument = async (id: number): Promise<void> => {
   await api.delete(`/documents/${id}`);
-};
-
-// Obter estatísticas da dashboard do médico
-export const getDoctorDashboardStats =
-  async (): Promise<DoctorDashboardStats> => {
-    const { data } = await api.get("/appointments/doctor/dashboard-stats");
-    return data;
-  };
-
-// Obter contagem de pacientes únicos do médico
-export const getUniquePatientsCount = async (): Promise<number> => {
-  const { data } = await api.get("/appointments/doctor/patients-count");
-  return data;
-};
-
-// Obter grupos de pacientes do médico
-export const getDoctorPatientGroups = async (): Promise<PatientGroup[]> => {
-  const { data } = await api.get("/appointments/doctor/patient-groups");
-  return data;
-};
-
-// Buscar relatórios de efeitos adversos para o médico logado
-export const getAdverseEffectReports = async (): Promise<
-  AdverseEffectReport[]
-> => {
-  const { data } = await api.get("/adverse-effects/doctor");
-  return data;
 };

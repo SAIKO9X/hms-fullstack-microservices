@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Plus, Search, Filter, Package, Check } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacyService";
+import { getAllMedicines } from "@/services/pharmacy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";

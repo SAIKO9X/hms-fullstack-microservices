@@ -19,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Eye, EyeOff, Mail, Lock, User, CreditCard } from "lucide-react";
 import { CustomNotification } from "../notifications/CustomNotification";
 import { RegisterFormSchema } from "@/lib/schemas/auth";
-import { registerUser } from "@/services/authService";
+import { registerUser } from "@/services/auth";
 import { maskCPF } from "@/lib/masks";
 
 interface RegisterFormProps {

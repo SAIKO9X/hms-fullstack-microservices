@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getPrescriptionsByPatientId } from "@/services/appointmentService";
+import { getPrescriptionsByPatientId } from "@/services/appointment";
 import type { Prescription } from "@/types/record.types";
 import {
   Dialog,

@@ -27,7 +27,7 @@ import type { Prescription } from "@/types/record.types";
 import { useEffect } from "react";
 // NOVAS IMPORTAÇÕES
 import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacyService";
+import { getAllMedicines } from "@/services/pharmacy";
 import { Combobox } from "@/components/ui/combobox";
 
 interface PrescriptionFormProps {

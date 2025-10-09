@@ -5,7 +5,7 @@ import {
   useAppointments,
   useCreateMedicalDocument,
 } from "@/hooks/appointment-queries";
-import { uploadFile } from "@/services/mediaService";
+import { uploadFile } from "@/services/media";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

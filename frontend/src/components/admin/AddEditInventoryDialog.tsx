@@ -10,7 +10,7 @@ import {
   useUpdateInventoryItem,
 } from "@/hooks/pharmacy-queries";
 import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacyService";
+import { getAllMedicines } from "@/services/pharmacy";
 import type { MedicineInventory } from "@/types/medicine.types";
 import {
   Dialog,
