@@ -20,4 +20,6 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
   @Query("SELECT new com.hms.profile.dto.response.PatientDropdownResponse(p.userId, p.name) FROM Patient p")
   List<PatientDropdownResponse> findAllForDropdown();
+
+  long count();
 }

@@ -23,4 +23,6 @@ public interface DoctorService {
   DoctorResponse getDoctorProfileById(Long id);
 
   void updateProfilePicture(Long userId, String pictureUrl);
+
+  long countAllDoctors();
 }

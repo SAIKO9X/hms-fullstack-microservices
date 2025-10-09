@@ -1,13 +1,13 @@
 package com.hms.profile.services.impl;
 
-import com.hms.profile.entities.Patient;
-import com.hms.profile.exceptions.ProfileAlreadyExistsException;
-import com.hms.profile.exceptions.ProfileNotFoundException;
-import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;
+import com.hms.profile.entities.Patient;
+import com.hms.profile.exceptions.ProfileAlreadyExistsException;
+import com.hms.profile.exceptions.ProfileNotFoundException;
+import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -104,5 +104,10 @@ public class PatientServiceImpl implements PatientService {
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     patient.setProfilePictureUrl(pictureUrl);
     patientRepository.save(patient);
+  }
+
+  @Override
+  public long countAllPatients() {
+    return patientRepository.count();
   }
 }

@@ -1,6 +1,7 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.enums.AppointmentStatus;
@@ -9,7 +10,6 @@ import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
-import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -286,6 +286,11 @@ public class AppointmentServiceImpl implements AppointmentService {
       .filter(group -> group.patientCount() > 0)
       .sorted((a, b) -> Long.compare(b.patientCount(), a.patientCount()))
       .collect(Collectors.toList());
+  }
+
+  @Override
+  public long countAllAppointmentsForToday() {
+    return appointmentRepository.countAllAppointmentsForToday();
   }
 
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {

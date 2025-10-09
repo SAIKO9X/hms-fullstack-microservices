@@ -24,4 +24,6 @@ public interface PatientService {
   List<PatientResponse> findAllPatients();
 
   void updateProfilePicture(Long userId, String pictureUrl);
+
+  long countAllPatients();
 }

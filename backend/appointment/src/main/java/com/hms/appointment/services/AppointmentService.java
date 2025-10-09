@@ -33,4 +33,6 @@ public interface AppointmentService {
   long countUniquePatientsForDoctor(Long doctorId);
 
   List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId);
+
+  long countAllAppointmentsForToday();
 }

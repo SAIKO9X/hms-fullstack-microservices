@@ -1,13 +1,13 @@
 package com.hms.profile.services.impl;
 
-import com.hms.profile.entities.Doctor;
-import com.hms.profile.exceptions.ProfileAlreadyExistsException;
-import com.hms.profile.exceptions.ProfileNotFoundException;
-import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
+import com.hms.profile.entities.Doctor;
+import com.hms.profile.exceptions.ProfileAlreadyExistsException;
+import com.hms.profile.exceptions.ProfileNotFoundException;
+import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.DoctorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -94,5 +94,10 @@ public class DoctorServiceImpl implements DoctorService {
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     doctor.setProfilePictureUrl(pictureUrl);
     doctorRepository.save(doctor);
+  }
+
+  @Override
+  public long countAllDoctors() {
+    return doctorRepository.count();
   }
 }
