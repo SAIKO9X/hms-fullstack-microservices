@@ -1,7 +1,7 @@
 package com.hms.profile.repositories;
 
-import com.hms.profile.entities.Doctor;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
+import com.hms.profile.entities.Doctor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -15,6 +15,6 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
   boolean existsByUserId(Long userId);
 
-  @Query("SELECT new com.hms.profile.response.DoctorDropdownResponse(d.userId, d.name) FROM Doctor d")
+  @Query("SELECT new com.hms.profile.dto.response.DoctorDropdownResponse(d.userId, d.name) FROM Doctor d")
   List<DoctorDropdownResponse> findAllForDropdown();
 }
