@@ -1,7 +1,7 @@
 package com.hms.pharmacy.controllers;
 
-import com.hms.pharmacy.request.MedicineRequest;
-import com.hms.pharmacy.response.MedicineResponse;
+import com.hms.pharmacy.dto.request.MedicineRequest;
+import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.services.MedicineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

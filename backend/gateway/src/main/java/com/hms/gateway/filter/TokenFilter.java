@@ -1,6 +1,6 @@
 package com.hms.gateway.filter;
 
-import com.hms.gateway.utilities.JwtUtil;
+import com.hms.gateway.util.JwtUtil;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpHeaders;

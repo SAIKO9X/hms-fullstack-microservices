@@ -1,4 +1,4 @@
-package com.hms.user.response;
+package com.hms.user.dto.response;
 
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;

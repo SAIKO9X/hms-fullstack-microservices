@@ -1,8 +1,8 @@
 package com.hms.appointment.controllers;
 
-import com.hms.appointment.request.AppointmentRecordCreateRequest;
-import com.hms.appointment.request.AppointmentRecordUpdateRequest;
-import com.hms.appointment.response.AppointmentRecordResponse;
+import com.hms.appointment.dto.request.AppointmentRecordCreateRequest;
+import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
+import com.hms.appointment.dto.response.AppointmentRecordResponse;
 import com.hms.appointment.services.AppointmentRecordService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;

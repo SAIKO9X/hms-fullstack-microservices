@@ -1,4 +1,4 @@
-package com.hms.appointment.utility;
+package com.hms.appointment.util;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

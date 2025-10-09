@@ -1,4 +1,4 @@
-package com.hms.user.utilities;
+package com.hms.user.util;
 
 import java.time.LocalDateTime;
 

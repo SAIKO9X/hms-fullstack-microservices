@@ -1,4 +1,4 @@
-package com.hms.pharmacy.request;
+package com.hms.pharmacy.dto.request;
 
 public record PrescriptionItemReceiveRequest(
   String medicineName,

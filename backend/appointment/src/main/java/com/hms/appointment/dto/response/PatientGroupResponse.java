@@ -1,4 +1,4 @@
-package com.hms.appointment.response;
+package com.hms.appointment.dto.response;
 
 public record PatientGroupResponse(
   String groupName,

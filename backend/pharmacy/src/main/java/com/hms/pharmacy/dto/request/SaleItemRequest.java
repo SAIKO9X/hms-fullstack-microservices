@@ -1,4 +1,4 @@
-package com.hms.pharmacy.request;
+package com.hms.pharmacy.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

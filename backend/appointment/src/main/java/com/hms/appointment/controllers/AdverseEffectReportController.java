@@ -1,7 +1,7 @@
 package com.hms.appointment.controllers;
 
-import com.hms.appointment.request.AdverseEffectReportCreateRequest;
-import com.hms.appointment.response.AdverseEffectReportResponse;
+import com.hms.appointment.dto.request.AdverseEffectReportCreateRequest;
+import com.hms.appointment.dto.response.AdverseEffectReportResponse;
 import com.hms.appointment.services.AdverseEffectReportService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;

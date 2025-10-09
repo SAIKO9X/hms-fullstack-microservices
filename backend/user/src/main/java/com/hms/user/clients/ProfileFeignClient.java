@@ -1,7 +1,7 @@
 package com.hms.user.clients;
 
-import com.hms.user.request.DoctorCreateRequest;
-import com.hms.user.request.PatientCreateRequest;
+import com.hms.user.dto.request.DoctorCreateRequest;
+import com.hms.user.dto.request.PatientCreateRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

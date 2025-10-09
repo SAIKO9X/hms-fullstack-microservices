@@ -1,9 +1,9 @@
 package com.hms.user.services;
 
-import com.hms.user.request.LoginRequest;
-import com.hms.user.request.UserRequest;
-import com.hms.user.response.AuthResponse;
-import com.hms.user.response.UserResponse;
+import com.hms.user.dto.request.LoginRequest;
+import com.hms.user.dto.request.UserRequest;
+import com.hms.user.dto.response.AuthResponse;
+import com.hms.user.dto.response.UserResponse;
 
 public interface UserService {
 

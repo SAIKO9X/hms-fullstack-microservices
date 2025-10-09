@@ -1,7 +1,7 @@
 package com.hms.user.controllers;
 
-import com.hms.user.request.LoginRequest;
-import com.hms.user.response.AuthResponse;
+import com.hms.user.dto.request.LoginRequest;
+import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

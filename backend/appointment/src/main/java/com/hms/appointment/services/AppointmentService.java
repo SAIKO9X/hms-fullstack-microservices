@@ -1,7 +1,7 @@
 package com.hms.appointment.services;
 
-import com.hms.appointment.request.AppointmentCreateRequest;
-import com.hms.appointment.response.*;
+import com.hms.appointment.dto.request.AppointmentCreateRequest;
+import com.hms.appointment.dto.response.*;
 
 import java.time.LocalDateTime;
 import java.util.List;

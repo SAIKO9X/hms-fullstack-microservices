@@ -1,4 +1,4 @@
-package com.hms.pharmacy.request;
+package com.hms.pharmacy.dto.request;
 
 import com.hms.pharmacy.enums.MedicineCategory;
 import com.hms.pharmacy.enums.MedicineType;

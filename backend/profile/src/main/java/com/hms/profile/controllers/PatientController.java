@@ -1,10 +1,10 @@
 package com.hms.profile.controllers;
 
-import com.hms.profile.request.PatientCreateRequest;
-import com.hms.profile.request.PatientUpdateRequest;
-import com.hms.profile.request.ProfilePictureUpdateRequest;
-import com.hms.profile.response.PatientDropdownResponse;
-import com.hms.profile.response.PatientResponse;
+import com.hms.profile.dto.request.PatientCreateRequest;
+import com.hms.profile.dto.request.PatientUpdateRequest;
+import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
+import com.hms.profile.dto.response.PatientDropdownResponse;
+import com.hms.profile.dto.response.PatientResponse;
 import com.hms.profile.services.JwtService;
 import com.hms.profile.services.PatientService;
 import jakarta.validation.Valid;

@@ -1,4 +1,4 @@
-package com.hms.user.utilities;
+package com.hms.user.util;
 
 import com.hms.user.exceptions.UserAlreadyExistsException;
 import com.hms.user.exceptions.UserNotFoundException;

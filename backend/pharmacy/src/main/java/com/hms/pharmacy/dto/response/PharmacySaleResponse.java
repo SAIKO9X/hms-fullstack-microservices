@@ -1,4 +1,4 @@
-package com.hms.pharmacy.response;
+package com.hms.pharmacy.dto.response;
 
 import com.hms.pharmacy.entities.PharmacySale;
 

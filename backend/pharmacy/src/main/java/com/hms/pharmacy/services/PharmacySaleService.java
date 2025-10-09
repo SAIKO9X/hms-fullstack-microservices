@@ -1,9 +1,9 @@
 package com.hms.pharmacy.services;
 
-import com.hms.pharmacy.request.DirectSaleRequest;
-import com.hms.pharmacy.request.PharmacySaleRequest;
-import com.hms.pharmacy.request.PrescriptionReceiveRequest;
-import com.hms.pharmacy.response.PharmacySaleResponse;
+import com.hms.pharmacy.dto.request.DirectSaleRequest;
+import com.hms.pharmacy.dto.request.PharmacySaleRequest;
+import com.hms.pharmacy.dto.request.PrescriptionReceiveRequest;
+import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 
 import java.util.List;
 

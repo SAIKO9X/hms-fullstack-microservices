@@ -1,10 +1,10 @@
 package com.hms.profile.controllers;
 
-import com.hms.profile.request.DoctorCreateRequest;
-import com.hms.profile.request.DoctorUpdateRequest;
-import com.hms.profile.request.ProfilePictureUpdateRequest;
-import com.hms.profile.response.DoctorDropdownResponse;
-import com.hms.profile.response.DoctorResponse;
+import com.hms.profile.dto.request.DoctorCreateRequest;
+import com.hms.profile.dto.request.DoctorUpdateRequest;
+import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
+import com.hms.profile.dto.response.DoctorDropdownResponse;
+import com.hms.profile.dto.response.DoctorResponse;
 import com.hms.profile.services.DoctorService;
 import com.hms.profile.services.JwtService;
 import jakarta.validation.Valid;

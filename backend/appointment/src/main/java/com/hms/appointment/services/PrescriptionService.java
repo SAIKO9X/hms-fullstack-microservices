@@ -1,9 +1,9 @@
 package com.hms.appointment.services;
 
-import com.hms.appointment.request.PrescriptionCreateRequest;
-import com.hms.appointment.request.PrescriptionUpdateRequest;
-import com.hms.appointment.response.PrescriptionForPharmacyResponse;
-import com.hms.appointment.response.PrescriptionResponse;
+import com.hms.appointment.dto.request.PrescriptionCreateRequest;
+import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
+import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
+import com.hms.appointment.dto.response.PrescriptionResponse;
 
 import java.util.List;
 

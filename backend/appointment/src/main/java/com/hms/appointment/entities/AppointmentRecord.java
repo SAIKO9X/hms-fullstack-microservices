@@ -1,6 +1,6 @@
 package com.hms.appointment.entities;
 
-import com.hms.appointment.utility.StringListConverter;
+import com.hms.appointment.util.StringListConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

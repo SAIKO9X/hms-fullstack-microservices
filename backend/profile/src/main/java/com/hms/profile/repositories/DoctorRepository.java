@@ -1,7 +1,7 @@
 package com.hms.profile.repositories;
 
 import com.hms.profile.entities.Doctor;
-import com.hms.profile.response.DoctorDropdownResponse;
+import com.hms.profile.dto.response.DoctorDropdownResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

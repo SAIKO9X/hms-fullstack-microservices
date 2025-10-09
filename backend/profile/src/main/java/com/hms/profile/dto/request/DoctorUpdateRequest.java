@@ -1,4 +1,4 @@
-package com.hms.profile.request;
+package com.hms.profile.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

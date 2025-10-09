@@ -1,7 +1,7 @@
 package com.hms.appointment.services;
 
-import com.hms.appointment.request.MedicalDocumentCreateRequest;
-import com.hms.appointment.response.MedicalDocumentResponse;
+import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
+import com.hms.appointment.dto.response.MedicalDocumentResponse;
 
 import java.util.List;
 

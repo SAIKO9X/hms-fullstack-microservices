@@ -1,4 +1,4 @@
-package com.hms.appointment.response;
+package com.hms.appointment.dto.response;
 
 public record DoctorProfileResponse(Long userId, String name, String specialization) {
 }

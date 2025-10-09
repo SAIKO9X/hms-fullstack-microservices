@@ -1,6 +1,7 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
@@ -8,8 +9,7 @@ import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
-import com.hms.appointment.request.AppointmentCreateRequest;
-import com.hms.appointment.response.*;
+import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

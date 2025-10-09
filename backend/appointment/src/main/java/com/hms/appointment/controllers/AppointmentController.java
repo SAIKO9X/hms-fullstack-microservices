@@ -1,7 +1,7 @@
 package com.hms.appointment.controllers;
 
-import com.hms.appointment.request.AppointmentUpdateRequest;
-import com.hms.appointment.response.AppointmentResponse;
+import com.hms.appointment.dto.request.AppointmentUpdateRequest;
+import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import lombok.RequiredArgsConstructor;

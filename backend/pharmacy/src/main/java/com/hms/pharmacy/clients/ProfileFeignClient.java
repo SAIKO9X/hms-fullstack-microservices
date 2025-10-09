@@ -1,6 +1,6 @@
 package com.hms.pharmacy.clients;
 
-import com.hms.pharmacy.response.PatientProfileResponse;
+import com.hms.pharmacy.dto.response.PatientProfileResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

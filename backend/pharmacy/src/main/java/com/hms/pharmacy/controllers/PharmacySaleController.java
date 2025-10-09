@@ -1,8 +1,8 @@
 package com.hms.pharmacy.controllers;
 
-import com.hms.pharmacy.request.DirectSaleRequest;
-import com.hms.pharmacy.request.PharmacySaleRequest;
-import com.hms.pharmacy.response.PharmacySaleResponse;
+import com.hms.pharmacy.dto.request.DirectSaleRequest;
+import com.hms.pharmacy.dto.request.PharmacySaleRequest;
+import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.services.PharmacySaleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

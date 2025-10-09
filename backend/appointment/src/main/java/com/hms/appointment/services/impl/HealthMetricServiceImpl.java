@@ -2,8 +2,8 @@ package com.hms.appointment.services.impl;
 
 import com.hms.appointment.entities.HealthMetric;
 import com.hms.appointment.repositories.HealthMetricRepository;
-import com.hms.appointment.request.HealthMetricCreateRequest;
-import com.hms.appointment.response.HealthMetricResponse;
+import com.hms.appointment.dto.request.HealthMetricCreateRequest;
+import com.hms.appointment.dto.response.HealthMetricResponse;
 import com.hms.appointment.services.HealthMetricService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

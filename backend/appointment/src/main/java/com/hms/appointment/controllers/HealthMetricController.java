@@ -1,7 +1,7 @@
 package com.hms.appointment.controllers;
 
-import com.hms.appointment.request.HealthMetricCreateRequest;
-import com.hms.appointment.response.HealthMetricResponse;
+import com.hms.appointment.dto.request.HealthMetricCreateRequest;
+import com.hms.appointment.dto.response.HealthMetricResponse;
 import com.hms.appointment.services.HealthMetricService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;

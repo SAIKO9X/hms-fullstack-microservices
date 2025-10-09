@@ -1,4 +1,4 @@
-package com.hms.gateway.utilities;
+package com.hms.gateway.util;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;

@@ -1,7 +1,7 @@
 package com.hms.appointment.controllers;
 
-import com.hms.appointment.request.MedicalDocumentCreateRequest;
-import com.hms.appointment.response.MedicalDocumentResponse;
+import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
+import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import jakarta.validation.Valid;

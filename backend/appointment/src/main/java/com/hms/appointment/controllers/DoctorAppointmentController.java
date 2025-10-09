@@ -1,11 +1,11 @@
 package com.hms.appointment.controllers;
 
 
-import com.hms.appointment.request.AppointmentUpdateRequest;
-import com.hms.appointment.response.AppointmentDetailResponse;
-import com.hms.appointment.response.AppointmentResponse;
-import com.hms.appointment.response.DoctorDashboardStatsResponse;
-import com.hms.appointment.response.PatientGroupResponse;
+import com.hms.appointment.dto.request.AppointmentUpdateRequest;
+import com.hms.appointment.dto.response.AppointmentDetailResponse;
+import com.hms.appointment.dto.response.AppointmentResponse;
+import com.hms.appointment.dto.response.DoctorDashboardStatsResponse;
+import com.hms.appointment.dto.response.PatientGroupResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import lombok.RequiredArgsConstructor;

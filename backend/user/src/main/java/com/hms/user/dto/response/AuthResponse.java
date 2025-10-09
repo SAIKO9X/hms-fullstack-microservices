@@ -1,4 +1,4 @@
-package com.hms.user.response;
+package com.hms.user.dto.response;
 
 public record AuthResponse(
   String token,

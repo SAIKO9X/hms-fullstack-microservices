@@ -1,4 +1,4 @@
-package com.hms.profile.request;
+package com.hms.profile.dto.request;
 
 import com.hms.profile.enums.BloodGroup;
 import com.hms.profile.enums.Gender;

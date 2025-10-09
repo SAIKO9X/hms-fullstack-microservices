@@ -1,4 +1,4 @@
-package com.hms.appointment.response;
+package com.hms.appointment.dto.response;
 
 import com.hms.appointment.entities.Prescription;
 import java.time.LocalDateTime;

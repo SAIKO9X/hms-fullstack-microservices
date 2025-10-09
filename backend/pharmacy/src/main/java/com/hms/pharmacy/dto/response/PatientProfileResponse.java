@@ -1,4 +1,4 @@
-package com.hms.pharmacy.response;
+package com.hms.pharmacy.dto.response;
 
 // Este DTO representa a resposta esperada do profile-service
 public record PatientProfileResponse(

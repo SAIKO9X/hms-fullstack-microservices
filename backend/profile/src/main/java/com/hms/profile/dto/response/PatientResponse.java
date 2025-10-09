@@ -1,4 +1,4 @@
-package com.hms.profile.response;
+package com.hms.profile.dto.response;
 
 import com.hms.profile.entities.Patient;
 import com.hms.profile.enums.BloodGroup;

@@ -1,4 +1,4 @@
-package com.hms.appointment.request;
+package com.hms.appointment.dto.request;
 
 import com.hms.appointment.enums.AppointmentStatus;
 import java.time.LocalDateTime;

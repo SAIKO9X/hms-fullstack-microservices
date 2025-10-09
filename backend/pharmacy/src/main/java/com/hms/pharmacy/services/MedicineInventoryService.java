@@ -1,7 +1,7 @@
 package com.hms.pharmacy.services;
 
-import com.hms.pharmacy.request.MedicineInventoryRequest;
-import com.hms.pharmacy.response.MedicineInventoryResponse;
+import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
+import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 
 import java.util.List;
 
