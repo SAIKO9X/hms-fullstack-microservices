@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Combobox } from "../ui/combobox";
+import { Combobox } from "@/components/ui/combobox";
 
 interface CreateAppointmentDialogProps {
   open: boolean;

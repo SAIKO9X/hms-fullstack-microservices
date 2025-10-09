@@ -25,10 +25,10 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DocumentsCard } from "./DocumentsCard";
 import { useAppSelector } from "@/store/hooks";
-import { AddDocumentDialog } from "./AddDocumentDialog";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
+import { DocumentsCard } from "../components/DocumentsCard";
+import { AddDocumentDialog } from "../components/AddDocumentDialog";
 
 // Mapeamento de tipos de documento para labels e cores
 const documentTypeConfig: Record<

@@ -24,8 +24,8 @@ import { AdminDoctorDetailPage } from "@/features/admin/pages/AdminDoctorDetailP
 import { PatientDashboardPage } from "@/features/patient/pages/PatientDashboardPage";
 import { PatientAppointmentDetailPage } from "@/features/patient/pages/PatientAppointmentDetailPage";
 import { PatientPrescriptionsPage } from "@/features/patient/pages/PatientPrescriptionsPage";
-import { PatientDocumentsPage } from "@/features/patient/components/PatientDocumentsPage";
 import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage";
+import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 

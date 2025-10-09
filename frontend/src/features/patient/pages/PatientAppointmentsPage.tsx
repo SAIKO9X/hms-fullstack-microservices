@@ -5,12 +5,12 @@ import {
   useCancelAppointment,
   useCreateAppointment,
 } from "@/services/queries/appointment-queries";
-import { CreateAppointmentDialog } from "@/components/appointment/CreateAppointmentDialog";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { columns } from "@/features/patient/components/appointmentsColumns";
 import type { AppointmentFormData } from "@/lib/schemas/appointment";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
+import { CreateAppointmentDialog } from "../components/CreateAppointmentDialog";
 
 export const PatientAppointmentsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,7 +125,9 @@ export const PatientAppointmentsPage = () => {
               Erro ao carregar consultas
             </div>
             <p className="text-muted-foreground">
-              {error?.message || "Ocorreu um erro inesperado"}
+              {error instanceof Error
+                ? error.message
+                : "Ocorreu um erro inesperado"}
             </p>
             <Button variant="outline" onClick={() => window.location.reload()}>
               Tentar novamente
