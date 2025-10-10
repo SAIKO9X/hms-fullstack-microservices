@@ -36,5 +36,7 @@ public interface AppointmentService {
 
   List<DailyActivityDto> getDailyActivityStats();
 
+  List<AppointmentResponse> getAppointmentsByPatientId(Long patientId);
+
   long countAllAppointmentsForToday();
 }

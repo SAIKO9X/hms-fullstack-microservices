@@ -326,6 +326,15 @@ public class AppointmentServiceImpl implements AppointmentService {
     return appointmentRepository.countAllAppointmentsForToday();
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
+    return appointmentRepository.findByPatientIdAndAppointmentDateTimeBefore(patientId, LocalDateTime.now())
+      .stream()
+      .map(AppointmentResponse::fromEntity)
+      .collect(Collectors.toList());
+  }
+
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
     return appointmentRepository.findById(appointmentId)
       .orElseThrow(() -> new AppointmentNotFoundException("Agendamento com ID " + appointmentId + " não encontrado."));

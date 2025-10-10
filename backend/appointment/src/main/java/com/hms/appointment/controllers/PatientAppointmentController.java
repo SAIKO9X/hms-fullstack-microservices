@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('PATIENT')")
 @RequestMapping("/patient/appointments")
 public class PatientAppointmentController {
 
@@ -26,7 +25,8 @@ public class PatientAppointmentController {
   @ResponseStatus(HttpStatus.CREATED)
   public AppointmentResponse scheduleAppointment(
     @RequestHeader("Authorization") String token,
-    @Valid @RequestBody AppointmentCreateRequest request) {
+    @Valid @RequestBody AppointmentCreateRequest request
+  ) {
     Long patientId = getUserIdFromToken(token);
     return appointmentService.createAppointment(patientId, request);
   }
@@ -50,6 +50,13 @@ public class PatientAppointmentController {
   public AppointmentStatsResponse getAppointmentStats(@RequestHeader("Authorization") String token) {
     Long patientId = getUserIdFromToken(token);
     return appointmentService.getAppointmentStatsForPatient(patientId);
+  }
+
+  @GetMapping("/history/{patientId}")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("isAuthenticated()")
+  public List<AppointmentResponse> getAppointmentHistoryForPatient(@PathVariable Long patientId) {
+    return appointmentService.getAppointmentsByPatientId(patientId);
   }
 
   private Long getUserIdFromToken(String token) {

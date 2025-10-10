@@ -26,6 +26,9 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         // Permite todos os pedidos OPTIONS
         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers("/patient/**").hasRole("PATIENT")
+        .requestMatchers("/doctor/**").hasRole("DOCTOR")
+        .requestMatchers("/admin/**").hasRole("ADMIN")
         .requestMatchers("/appointments/**", "/records/**", "/prescriptions/**", "/health-metrics/**", "/documents/**", "/adverse-effects/**").authenticated()
         .anyRequest().authenticated()
       )
