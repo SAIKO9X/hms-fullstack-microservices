@@ -19,6 +19,7 @@ import {
   updateMyPatientProfilePicture,
   updateMyDoctorProfilePicture,
 } from "@/services/profile";
+import { getMedicalHistory } from "../patient";
 
 // Types
 type Profile = PatientProfile | DoctorProfile;
@@ -31,7 +32,6 @@ export const profileKeys = {
   doctor: () => [...profileKeys.all, "doctor"] as const,
 };
 
-// Hook para buscar perfil baseado na role do usuário
 export const useProfileQuery = () => {
   const { user } = useAppSelector((state) => state.auth);
 
@@ -59,7 +59,6 @@ export const useProfileQuery = () => {
   });
 };
 
-// Hook para atualizar perfil
 export const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
   const { user } = useAppSelector((state) => state.auth);
@@ -91,7 +90,6 @@ export const useUpdateProfileMutation = () => {
   });
 };
 
-// Hook personalizado que combina query e mutation
 export const useProfile = () => {
   const { user } = useAppSelector((state) => state.auth);
   const profileQuery = useProfileQuery();
@@ -188,5 +186,19 @@ export const useUpdateProfilePicture = () => {
       // Invalida a query do perfil para forçar a atualização da imagem na UI
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
+  });
+};
+
+export const useMedicalHistory = (patientId: number | undefined) => {
+  return useQuery({
+    queryKey: ["medicalHistory", patientId],
+    queryFn: () => {
+      if (!patientId) {
+        return Promise.reject(new Error("Patient ID is not provided"));
+      }
+      return getMedicalHistory(patientId);
+    },
+    enabled: !!patientId, // A query só será executada se o patientId existir
+    staleTime: 1000 * 60 * 5,
   });
 };

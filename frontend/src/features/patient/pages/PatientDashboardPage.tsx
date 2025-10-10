@@ -24,6 +24,7 @@ import { useState } from "react";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { ReportAdverseEffectDialog } from "@/features/patient/components/ReportAdverseEffectDialog";
 import { DocumentsCard } from "@/features/patient/components/DocumentsCard";
+import { QuickActions } from "../components/QuickActions";
 
 export const PatientDashboardPage = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -46,6 +47,8 @@ export const PatientDashboardPage = () => {
 
       <WelcomeHeader name={user?.name} />
 
+      <QuickActions />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <NextAppointmentCard />
@@ -59,7 +62,7 @@ export const PatientDashboardPage = () => {
         </div>
       </div>
 
-      <DocumentsCard />
+      <DocumentsCard documents={[]} isLoading={false} />
 
       <ReportAdverseEffectDialog
         open={isReportDialogOpen}

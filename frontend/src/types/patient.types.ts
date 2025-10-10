@@ -34,3 +34,15 @@ export interface PatientProfile {
   chronicDiseases?: string[];
   profilePictureUrl?: string;
 }
+
+export interface AppointmentHistory {
+  id: number;
+  appointmentDateTime: string;
+  reason: string;
+  status: string;
+  doctorName: string;
+}
+
+export interface MedicalHistory {
+  appointments: AppointmentHistory[];
+}

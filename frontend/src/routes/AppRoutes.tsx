@@ -27,6 +27,7 @@ import { PatientPrescriptionsPage } from "@/features/patient/pages/PatientPrescr
 import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage";
 import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
+import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedicalHistoryPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 
@@ -60,6 +61,10 @@ export const AppRoutes = () => {
               element={<PatientPrescriptionsPage />}
             />
             <Route path="documents" element={<PatientDocumentsPage />} />
+            <Route
+              path="medical-history"
+              element={<PatientMedicalHistoryPage />}
+            />
           </Route>
         </Route>
 
