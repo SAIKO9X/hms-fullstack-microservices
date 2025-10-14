@@ -10,6 +10,7 @@ export interface DoctorProfile {
   biography?: string;
   dateOfBirth: Date;
   profilePictureUrl?: string;
+  active: boolean;
 }
 
 export interface DoctorDropdown {

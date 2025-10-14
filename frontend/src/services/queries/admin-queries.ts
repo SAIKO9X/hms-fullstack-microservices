@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/config/axios";
 import type {
   AdminDashboardStats,
   DailyActivity,
   DoctorStatus,
 } from "@/types/admin.types";
+import { adminCreateUser, updateUserStatus } from "../admin";
+import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
 
 export const useAdminProfileCounts = () => {
   return useQuery<AdminDashboardStats>({
@@ -28,7 +30,6 @@ export const useAppointmentsTodayCount = () => {
   });
 };
 
-// Hook para buscar os dados de atividade diária
 export const useDailyActivity = () => {
   return useQuery<DailyActivity[]>({
     queryKey: ["dailyActivity"],
@@ -40,7 +41,6 @@ export const useDailyActivity = () => {
   });
 };
 
-// Hook para buscar o status dos médicos
 export const useDoctorsStatus = () => {
   return useQuery<DoctorStatus[]>({
     queryKey: ["doctorsStatus"],
@@ -50,5 +50,39 @@ export const useDoctorsStatus = () => {
     },
     staleTime: 1 * 60 * 1000,
     refetchInterval: 1 * 60 * 1000,
+  });
+};
+
+export const useUpdateUserStatusMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateUserStatus,
+    onSuccess: () => {
+      // Quando a mutação for bem-sucedida, os dados de pacientes e médicos estão desatualizados.
+      // Invalidamos as queries para forçar o React Query a buscar os dados mais recentes.
+      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
+      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar o status do utilizador:", error);
+    },
+  });
+};
+
+export const useAdminCreateUserMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userData: AdminCreateUserFormData) =>
+      adminCreateUser(userData),
+    onSuccess: () => {
+      // Invalida as listas de pacientes e médicos para forçar a atualização da tabela.
+      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
+      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao criar utilizador:", error);
+    },
   });
 };

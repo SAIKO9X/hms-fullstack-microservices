@@ -33,6 +33,7 @@ export interface PatientProfile {
   allergies?: string[];
   chronicDiseases?: string[];
   profilePictureUrl?: string;
+  active: boolean;
 }
 
 export interface AppointmentHistory {

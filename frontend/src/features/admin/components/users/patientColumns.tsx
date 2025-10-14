@@ -14,8 +14,22 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { PatientProfile } from "@/types/patient.types";
 import type { DoctorProfile } from "@/types/doctor.types";
+import { useUpdateUserStatusMutation } from "@/services/queries/admin-queries";
 
-// Colunas para Pacientes
+const StatusBadge = ({ isActive }: { isActive: boolean }) => {
+  return (
+    <Badge
+      variant={isActive ? "secondary" : "destructive"}
+      className={
+        isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+      }
+    >
+      {isActive ? "Ativo" : "Inativo"}
+    </Badge>
+  );
+};
+
+// --- Colunas para Pacientes ---
 export const patientColumns: ColumnDef<PatientProfile>[] = [
   {
     accessorKey: "name",
@@ -100,9 +114,22 @@ export const patientColumns: ColumnDef<PatientProfile>[] = [
     },
   },
   {
+    accessorKey: "active",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge isActive={row.getValue("active")} />,
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const patient = row.original;
+
+      const { mutate: updateUserStatus, isPending } =
+        useUpdateUserStatusMutation();
+
+      const handleToggleStatus = () => {
+        updateUserStatus({ userId: patient.id, active: !patient.active });
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -123,9 +150,22 @@ export const patientColumns: ColumnDef<PatientProfile>[] = [
             >
               Histórico Médico
             </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem onClick={() => console.log("Editar", patient.id)}>
               Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={handleToggleStatus}
+              disabled={isPending} // Desativa o botão durante o carregamento
+              className="text-destructive"
+            >
+              {isPending
+                ? "A atualizar..."
+                : patient.active
+                ? "Desativar"
+                : "Ativar"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -134,7 +174,7 @@ export const patientColumns: ColumnDef<PatientProfile>[] = [
   },
 ];
 
-// Colunas para Médicos
+// --- Colunas para Médicos ---
 export const doctorColumns: ColumnDef<DoctorProfile>[] = [
   {
     accessorKey: "name",
@@ -217,9 +257,21 @@ export const doctorColumns: ColumnDef<DoctorProfile>[] = [
     },
   },
   {
+    accessorKey: "active",
+    header: "Status",
+    cell: ({ row }) => <StatusBadge isActive={row.getValue("active")} />,
+  },
+  {
     id: "actions",
     cell: ({ row }) => {
       const doctor = row.original;
+      const { mutate: updateUserStatus, isPending } =
+        useUpdateUserStatusMutation();
+
+      const handleToggleStatus = () => {
+        updateUserStatus({ userId: doctor.id, active: !doctor.active });
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -241,6 +293,17 @@ export const doctorColumns: ColumnDef<DoctorProfile>[] = [
               Ver Agenda
             </DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleToggleStatus}
+              disabled={isPending}
+              className="text-destructive"
+            >
+              {isPending
+                ? "A atualizar..."
+                : doctor.active
+                ? "Desativar"
+                : "Ativar"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => console.log("Editar", doctor.id)}>
               Editar
             </DropdownMenuItem>
