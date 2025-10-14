@@ -1,5 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-import type { LoginData } from "@/lib/schemas/auth";
+import type { LoginData } from "@/lib/schemas/auth.schema";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { AuthResponse, UserResponse } from "@/types/auth.types";

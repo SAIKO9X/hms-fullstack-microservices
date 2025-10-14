@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Edit } from "lucide-react";
 import type { DoctorProfile } from "@/types/doctor.types";
-import type { DoctorProfileFormData } from "@/lib/schemas/profile";
+import type { DoctorProfileFormData } from "@/lib/schemas/profile.schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,7 +1,7 @@
 import { useAppSelector } from "@/store/hooks";
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AppointmentFormData } from "@/lib/schemas/appointment";
+import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import type {
   AdverseEffectReportCreateRequest,
   Appointment,
@@ -9,11 +9,11 @@ import type {
 import type {
   AppointmentRecordFormData,
   AppointmentRecordUpdateData,
-} from "@/lib/schemas/record";
+} from "@/lib/schemas/record.schema";
 import type {
   PrescriptionFormData,
   PrescriptionUpdateData,
-} from "@/lib/schemas/prescription";
+} from "@/lib/schemas/prescription.schema";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type { MedicalDocumentCreateRequest } from "@/types/document.types";
 import { PatientService, DoctorService, AppointmentService } from "@/services";

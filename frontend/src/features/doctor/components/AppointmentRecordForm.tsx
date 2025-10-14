@@ -6,7 +6,7 @@ import {
   AppointmentRecordUpdateSchema,
   type AppointmentRecordFormData,
   type AppointmentRecordUpdateData,
-} from "@/lib/schemas/record";
+} from "@/lib/schemas/record.schema";
 import {
   useCreateAppointmentRecord,
   useUpdateAppointmentRecord,

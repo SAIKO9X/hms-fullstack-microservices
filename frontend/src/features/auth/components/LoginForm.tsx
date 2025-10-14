@@ -12,7 +12,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LoginSchema } from "@/lib/schemas/auth";
+import { LoginSchema } from "@/lib/schemas/auth.schema";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import type { NotificationState } from "@/features/auth/pages/AuthPage";

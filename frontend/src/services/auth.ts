@@ -1,5 +1,5 @@
 import api from "@/config/axios";
-import type { LoginData, RegisterData } from "@/lib/schemas/auth";
+import type { LoginData, RegisterData } from "@/lib/schemas/auth.schema";
 import type { AuthResponse } from "@/types/auth.types";
 
 // Registra um novo usuário.

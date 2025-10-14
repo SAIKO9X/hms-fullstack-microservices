@@ -2,7 +2,7 @@ import api from "@/config/axios";
 import type {
   PatientProfileFormData,
   DoctorProfileFormData,
-} from "@/lib/schemas/profile";
+} from "@/lib/schemas/profile.schema";
 import type { DoctorProfile } from "@/types/doctor.types";
 import type { PatientProfile } from "@/types/patient.types";
 

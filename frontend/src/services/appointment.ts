@@ -3,11 +3,11 @@ import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type {
   PrescriptionFormData,
   PrescriptionUpdateData,
-} from "@/lib/schemas/prescription";
+} from "@/lib/schemas/prescription.schema";
 import type {
   AppointmentRecordFormData,
   AppointmentRecordUpdateData,
-} from "@/lib/schemas/record";
+} from "@/lib/schemas/record.schema";
 import type {
   AdverseEffectReport,
   AdverseEffectReportCreateRequest,

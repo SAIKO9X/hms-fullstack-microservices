@@ -8,7 +8,7 @@ import {
   AppointmentFormSchema,
   type AppointmentFormInput,
   type AppointmentFormData,
-} from "@/lib/schemas/appointment";
+} from "@/lib/schemas/appointment.schema";
 import { useDoctorsDropdown } from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
 import { Button } from "@/components/ui/button";

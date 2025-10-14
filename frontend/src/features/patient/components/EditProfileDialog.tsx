@@ -40,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   PatientProfileSchema,
   type PatientProfileFormData,
-} from "@/lib/schemas/profile";
+} from "@/lib/schemas/profile.schema";
 import { maskCPF, maskPhone } from "@/utils/masks";
 import { BadgeInput } from "../../../components/ui/badge-input";
 

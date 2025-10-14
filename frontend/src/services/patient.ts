@@ -1,5 +1,5 @@
 import api from "@/config/axios";
-import type { AppointmentFormData } from "@/lib/schemas/appointment";
+import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import type { Appointment, AppointmentStats } from "@/types/appointment.types";
 import type { MedicalHistory } from "@/types/patient.types";
 import type { Prescription } from "@/types/record.types";

@@ -5,7 +5,7 @@ import type { DoctorProfile } from "@/types/doctor.types";
 import type {
   PatientProfileFormData,
   DoctorProfileFormData,
-} from "@/lib/schemas/profile";
+} from "@/lib/schemas/profile.schema";
 import {
   getMyPatientProfile,
   getMyDoctorProfile,

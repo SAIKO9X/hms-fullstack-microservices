@@ -8,7 +8,7 @@ import {
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { columns } from "@/features/patient/components/appointmentsColumns";
-import type { AppointmentFormData } from "@/lib/schemas/appointment";
+import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { CreateAppointmentDialog } from "../components/CreateAppointmentDialog";
 
