@@ -1,17 +1,14 @@
 package com.hms.user.services.impl;
 
 import com.hms.user.clients.ProfileFeignClient;
+import com.hms.user.dto.request.*;
+import com.hms.user.dto.response.AuthResponse;
+import com.hms.user.dto.response.UserResponse;
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;
 import com.hms.user.exceptions.UserAlreadyExistsException;
 import com.hms.user.exceptions.UserNotFoundException;
 import com.hms.user.repositories.UserRepository;
-import com.hms.user.dto.request.DoctorCreateRequest;
-import com.hms.user.dto.request.LoginRequest;
-import com.hms.user.dto.request.PatientCreateRequest;
-import com.hms.user.dto.request.UserRequest;
-import com.hms.user.dto.response.AuthResponse;
-import com.hms.user.dto.response.UserResponse;
 import com.hms.user.services.JwtService;
 import com.hms.user.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -121,5 +118,49 @@ public class UserServiceImpl implements UserService {
     var expirationTime = jwtService.getExpirationTime();
 
     return AuthResponse.create(jwtToken, UserResponse.fromEntity(user), expirationTime);
+  }
+
+  @Override
+  @Transactional
+  public void updateUserStatus(Long id, boolean active) {
+    User userToUpdate = userRepository.findById(id)
+      .orElseThrow(() -> new UserNotFoundException("Utilizador com ID " + id + " não encontrado."));
+    userToUpdate.setActive(active);
+    userRepository.save(userToUpdate);
+  }
+
+  @Override
+  @Transactional
+  public UserResponse adminCreateUser(AdminCreateUserRequest request) {
+    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+      throw new UserAlreadyExistsException("O email " + request.getEmail() + " já está em uso.");
+    }
+
+    // Criação do Utilizador
+    User newUser = new User();
+    newUser.setName(request.getName());
+    newUser.setEmail(request.getEmail());
+    newUser.setPassword(encoder.encode(request.getPassword()));
+    newUser.setRole(request.getRole());
+    newUser.setActive(true);
+
+    User savedUser = userRepository.save(newUser);
+
+    // Criação do Perfil
+    try {
+      if (request.getRole() == UserRole.PATIENT) {
+        profileFeignClient.createPatientProfile(
+          new PatientCreateRequest(savedUser.getId(), request.getCpf(), savedUser.getName())
+        );
+      } else if (request.getRole() == UserRole.DOCTOR) {
+        profileFeignClient.createDoctorProfile(
+          new DoctorCreateRequest(savedUser.getId(), request.getCrmNumber(), savedUser.getName())
+        );
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("Falha na comunicação com o serviço de perfil. O utilizador não foi criado. Causa: " + e.getMessage(), e);
+    }
+
+    return UserResponse.fromEntity(savedUser);
   }
 }

@@ -18,6 +18,7 @@ import {
   patientColumns,
 } from "@/features/admin/components/users/patientColumns";
 import { useNavigate } from "react-router";
+import { CreateUserDialog } from "../components/users/CreateUserDialog";
 
 const PatientCard = ({ patient }: { patient: PatientProfile }) => {
   const navigate = useNavigate();
@@ -128,7 +129,8 @@ export const AdminUsersPage = () => {
   const { data: patients, isLoading: isLoadingPatients } = useAllPatients();
   const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
 
-  // Filtragem melhorada e memoizada
+  const [isCreateUserOpen, setCreateUserOpen] = useState(false);
+
   const filteredPatients = useMemo(() => {
     if (!patients) return [];
     const searchTerm = searchPatients.toLowerCase();
@@ -151,8 +153,6 @@ export const AdminUsersPage = () => {
   }, [doctors, searchDoctors]);
 
   return (
-    // O seu JSX está ótimo! Não precisa de alterações.
-    // Apenas colei-o aqui para referência completa.
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
@@ -240,6 +240,11 @@ export const AdminUsersPage = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      <CreateUserDialog
+        isOpen={isCreateUserOpen}
+        onOpenChange={setCreateUserOpen}
+      />
     </div>
   );
 };

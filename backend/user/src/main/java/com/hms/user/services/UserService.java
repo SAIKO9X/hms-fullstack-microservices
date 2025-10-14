@@ -1,5 +1,6 @@
 package com.hms.user.services;
 
+import com.hms.user.dto.request.AdminCreateUserRequest;
 import com.hms.user.dto.request.LoginRequest;
 import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.response.AuthResponse;
@@ -16,4 +17,8 @@ public interface UserService {
   UserResponse updateUser(Long id, UserRequest request);
 
   AuthResponse login(LoginRequest request);
+
+  void updateUserStatus(Long id, boolean active);
+
+  UserResponse adminCreateUser(AdminCreateUserRequest request);
 }
