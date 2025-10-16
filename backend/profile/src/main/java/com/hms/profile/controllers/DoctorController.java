@@ -88,10 +88,13 @@ public class DoctorController {
     doctorService.updateProfilePicture(userId, request.pictureUrl());
   }
 
-  @PutMapping("/admin/update/{id}")
+  @PutMapping("/admin/update/{userId}")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<Void> adminUpdateDoctor(@PathVariable Long id, @RequestBody AdminDoctorUpdateRequest updateRequest) {
-    doctorService.adminUpdateDoctor(id, updateRequest);
+  public ResponseEntity<Void> adminUpdateDoctor(
+    @PathVariable("userId") Long userId,
+    @RequestBody AdminDoctorUpdateRequest updateRequest
+  ) {
+    doctorService.adminUpdateDoctor(userId, updateRequest);
     return ResponseEntity.ok().build();
   }
 
