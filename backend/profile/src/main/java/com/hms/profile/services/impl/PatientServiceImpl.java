@@ -109,23 +109,40 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   @Transactional
-  public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest updateRequest) {
+  public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest request) {
     Patient patient = patientRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado com o ID de utilizador: " + userId));
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado para o ID de usuário: " + userId));
 
-    if (updateRequest.name() != null) patient.setName(updateRequest.name());
-    if (updateRequest.cpf() != null) patient.setCpf(updateRequest.cpf());
-    if (updateRequest.phoneNumber() != null) patient.setPhoneNumber(updateRequest.phoneNumber());
-    if (updateRequest.address() != null) patient.setAddress(updateRequest.address());
-    if (updateRequest.emergencyContactName() != null)
-      patient.setEmergencyContactName(updateRequest.emergencyContactName());
-    if (updateRequest.emergencyContactPhone() != null)
-      patient.setEmergencyContactPhone(updateRequest.emergencyContactPhone());
-    if (updateRequest.bloodGroup() != null) patient.setBloodGroup(updateRequest.bloodGroup());
-    if (updateRequest.gender() != null) patient.setGender(updateRequest.gender());
-    if (updateRequest.dateOfBirth() != null) patient.setDateOfBirth(updateRequest.dateOfBirth());
-    if (updateRequest.chronicDiseases() != null) patient.setChronicDiseases(updateRequest.chronicDiseases());
-    if (updateRequest.allergies() != null) patient.setAllergies(updateRequest.allergies());
+    if (request.name() != null && !request.name().isBlank()) {
+      patient.setName(request.name());
+    }
+    if (request.cpf() != null) {
+      patient.setCpf(request.cpf());
+    }
+    if (request.phoneNumber() != null) {
+      patient.setPhoneNumber(request.phoneNumber());
+    }
+    if (request.address() != null) {
+      patient.setAddress(request.address());
+    }
+    if (request.emergencyContactName() != null) {
+      patient.setEmergencyContactName(request.emergencyContactName());
+    }
+    if (request.emergencyContactPhone() != null) {
+      patient.setEmergencyContactPhone(request.emergencyContactPhone());
+    }
+    if (request.bloodGroup() != null) {
+      patient.setBloodGroup(request.bloodGroup());
+    }
+    if (request.gender() != null) {
+      patient.setGender(request.gender());
+    }
+    if (request.chronicDiseases() != null) {
+      patient.setChronicDiseases(request.chronicDiseases());
+    }
+    if (request.allergies() != null) {
+      patient.setAllergies(request.allergies());
+    }
 
     patientRepository.save(patient);
   }

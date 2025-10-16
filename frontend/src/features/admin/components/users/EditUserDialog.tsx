@@ -91,22 +91,9 @@ export const EditUserDialog = ({
   const onSubmit = (data: EditUserFormData) => {
     if (!user) return;
 
-    // Filtra apenas os campos que foram alterados para não enviar dados nulos desnecessariamente
-    const changedData = Object.fromEntries(
-      Object.entries(data).filter(
-        ([_key, value]) => value !== "" && value !== null && value !== undefined
-      )
-    );
-
-    // Se nenhum dado foi alterado, não faz nada.
-    if (Object.keys(changedData).length === 0) {
-      onOpenChange(false); // Apenas fecha o diálogo
-      return;
-    }
-
     const payload = {
-      userId: user.id,
-      ...changedData,
+      userId: user.userId,
+      ...data,
     };
 
     updateUser(payload, {

@@ -117,33 +117,30 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional
-  public void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest updateRequest) {
+  public void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest request) {
     Doctor doctor = doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil do médico não encontrado com o ID de utilizador: " + userId));
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil do médico não encontrado para o ID de usuário: " + userId));
 
-    if (updateRequest.name() != null && !updateRequest.name().isBlank()) {
-      doctor.setName(updateRequest.name());
+    if (request.name() != null && !request.name().isBlank()) {
+      doctor.setName(request.name());
     }
-    if (updateRequest.crmNumber() != null && !updateRequest.crmNumber().isBlank()) {
-      doctor.setCrmNumber(updateRequest.crmNumber());
+    if (request.crmNumber() != null) {
+      doctor.setCrmNumber(request.crmNumber());
     }
-    if (updateRequest.specialization() != null && !updateRequest.specialization().isBlank()) {
-      doctor.setSpecialization(updateRequest.specialization());
+    if (request.specialization() != null) {
+      doctor.setSpecialization(request.specialization());
     }
-    if (updateRequest.department() != null && !updateRequest.department().isBlank()) {
-      doctor.setDepartment(updateRequest.department());
+    if (request.department() != null) {
+      doctor.setDepartment(request.department());
     }
-    if (updateRequest.phoneNumber() != null && !updateRequest.phoneNumber().isBlank()) {
-      doctor.setPhoneNumber(updateRequest.phoneNumber());
+    if (request.phoneNumber() != null) {
+      doctor.setPhoneNumber(request.phoneNumber());
     }
-    if (updateRequest.qualifications() != null && !updateRequest.qualifications().isBlank()) {
-      doctor.setQualifications(updateRequest.qualifications());
+    if (request.biography() != null) {
+      doctor.setBiography(request.biography());
     }
-    if (updateRequest.biography() != null && !updateRequest.biography().isBlank()) {
-      doctor.setBiography(updateRequest.biography());
-    }
-    if (updateRequest.dateOfBirth() != null) {
-      doctor.setDateOfBirth(updateRequest.dateOfBirth());
+    if (request.qualifications() != null) {
+      doctor.setQualifications(request.qualifications());
     }
 
     doctorRepository.save(doctor);

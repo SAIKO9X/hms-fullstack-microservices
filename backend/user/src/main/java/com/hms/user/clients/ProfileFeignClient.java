@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+
 @FeignClient(name = "profile-service", path = "/profile")
 public interface ProfileFeignClient {
 
@@ -19,9 +20,9 @@ public interface ProfileFeignClient {
   @PostMapping("/doctors")
   void createDoctorProfile(@RequestBody DoctorCreateRequest request);
 
-  @PutMapping("/patients/admin/update/{id}")
-  void adminUpdatePatient(@PathVariable("id") Long id, @RequestBody AdminPatientUpdateRequest request);
+  @PutMapping("/patients/admin/update/{userId}")
+  void adminUpdatePatient(@PathVariable("userId") Long userId, @RequestBody AdminPatientUpdateRequest request);
 
-  @PutMapping("/doctors/admin/update/{id}")
-  void adminUpdateDoctor(@PathVariable("id") Long id, @RequestBody AdminDoctorUpdateRequest request);
+  @PutMapping("/doctors/admin/update/{userId}")
+  void adminUpdateDoctor(@PathVariable("userId") Long userId, @RequestBody AdminDoctorUpdateRequest request);
 }

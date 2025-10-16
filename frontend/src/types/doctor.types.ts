@@ -1,5 +1,6 @@
 export interface DoctorProfile {
   id: number;
+  userId: number;
   name: string;
   crmNumber: string;
   specialization: string;

@@ -18,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -164,19 +166,37 @@ public class UserServiceImpl implements UserService {
     return UserResponse.fromEntity(savedUser);
   }
 
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<UserResponse> findAllUsers() {
+    return userRepository.findAll().stream()
+      .map(UserResponse::fromEntity)
+      .collect(Collectors.toList());
+  }
+
   @Override
   @Transactional
   public void adminUpdateUser(Long userId, AdminUpdateUserRequest request) {
     User user = userRepository.findById(userId)
       .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o ID: " + userId));
 
-    // Atualiza os dados na entidade User
-    if (request.email() != null) {
+    // Validação de e-mail
+    if (request.email() != null && !request.email().isBlank()) {
+      Optional<User> userWithNewEmail = userRepository.findByEmail(request.email());
+      if (userWithNewEmail.isPresent() && !userWithNewEmail.get().getId().equals(userId)) {
+        throw new UserAlreadyExistsException("O e-mail '" + request.email() + "' já está em uso por outro utilizador.");
+      }
       user.setEmail(request.email());
     }
+
+    if (request.name() != null && !request.name().isBlank()) {
+      user.setName(request.name());
+    }
+
     userRepository.save(user);
 
-    // Chama o profile-service com o DTO completo
+    // Chama o profile-service
     if (user.getRole() == UserRole.PATIENT) {
       AdminPatientUpdateRequest patientRequest = new AdminPatientUpdateRequest(
         request.name(),

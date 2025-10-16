@@ -21,6 +21,7 @@ export type Gender = keyof typeof Gender;
 
 export interface PatientProfile {
   id: number;
+  userId: number;
   name: string;
   cpf: string;
   dateOfBirth: Date;
