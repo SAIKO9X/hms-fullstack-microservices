@@ -28,7 +28,7 @@ public interface DoctorService {
 
   List<DoctorStatusResponse> getDoctorsWithStatus();
 
-  void adminUpdateDoctor(Long id, AdminDoctorUpdateRequest updateRequest);
+  void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest updateRequest);
 
   long countAllDoctors();
 }

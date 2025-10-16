@@ -26,7 +26,7 @@ public interface PatientService {
 
   void updateProfilePicture(Long userId, String pictureUrl);
 
-  void adminUpdatePatient(Long id, AdminPatientUpdateRequest updateRequest);
+  void adminUpdatePatient(Long userId, AdminPatientUpdateRequest updateRequest);
 
   long countAllPatients();
 }

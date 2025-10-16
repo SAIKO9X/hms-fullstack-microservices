@@ -29,7 +29,8 @@ public record UserRequest(
       this.name,
       this.email,
       this.password,
-      this.role
+      this.role,
+      true
     );
   }
 }

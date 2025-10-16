@@ -108,11 +108,11 @@ public class PatientServiceImpl implements PatientService {
   }
 
   @Override
-  public void adminUpdatePatient(Long id, AdminPatientUpdateRequest updateRequest) {
-    Patient patient = patientRepository.findById(id)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado com o ID: " + id));
+  @Transactional
+  public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest updateRequest) {
+    Patient patient = patientRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado com o ID de utilizador: " + userId));
 
-    // Atualiza os campos se eles não forem nulos
     if (updateRequest.name() != null) patient.setName(updateRequest.name());
     if (updateRequest.cpf() != null) patient.setCpf(updateRequest.cpf());
     if (updateRequest.phoneNumber() != null) patient.setPhoneNumber(updateRequest.phoneNumber());
