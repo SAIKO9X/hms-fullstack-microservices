@@ -5,7 +5,7 @@ import type {
   DailyActivity,
   DoctorStatus,
 } from "@/types/admin.types";
-import { adminCreateUser, updateUserStatus } from "../admin";
+import { adminCreateUser, adminUpdateUser, updateUserStatus } from "../admin";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
 
 export const useAdminProfileCounts = () => {
@@ -83,6 +83,21 @@ export const useAdminCreateUserMutation = () => {
     },
     onError: (error) => {
       console.error("Erro ao criar utilizador:", error);
+    },
+  });
+};
+
+export const useAdminUpdateUserMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: adminUpdateUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
+      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar utilizador:", error);
     },
   });
 };

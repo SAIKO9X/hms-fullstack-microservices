@@ -1,12 +1,14 @@
 package com.hms.user.controllers;
 
 import com.hms.user.dto.request.AdminCreateUserRequest;
+import com.hms.user.dto.request.AdminUpdateUserRequest;
 import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.response.UserResponse;
 import com.hms.user.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -51,5 +53,12 @@ public class UserController {
   @PreAuthorize("hasRole('ADMIN')")
   public UserResponse adminCreateUser(@RequestBody AdminCreateUserRequest request) {
     return userService.adminCreateUser(request);
+  }
+
+  @PutMapping("/admin/update/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> adminUpdateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
+    userService.adminUpdateUser(id, request);
+    return ResponseEntity.ok().build();
   }
 }

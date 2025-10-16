@@ -16,9 +16,10 @@ import type { DoctorProfile } from "@/types/doctor.types";
 import {
   doctorColumns,
   patientColumns,
-} from "@/features/admin/components/users/patientColumns";
+} from "@/features/admin/components/users/userColumns";
 import { useNavigate } from "react-router";
 import { CreateUserDialog } from "../components/users/CreateUserDialog";
+import { EditUserDialog } from "../components/users/EditUserDialog";
 
 const PatientCard = ({ patient }: { patient: PatientProfile }) => {
   const navigate = useNavigate();
@@ -125,6 +126,25 @@ export const AdminUsersPage = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [searchPatients, setSearchPatients] = useState("");
   const [searchDoctors, setSearchDoctors] = useState("");
+  const [isEditUserOpen, setEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<
+    PatientProfile | DoctorProfile | null
+  >(null);
+  const [editingUserType, setEditingUserType] = useState<"patient" | "doctor">(
+    "patient"
+  );
+
+  const handleEditPatient = (patient: PatientProfile) => {
+    setEditingUser(patient);
+    setEditingUserType("patient");
+    setEditUserOpen(true);
+  };
+
+  const handleEditDoctor = (doctor: DoctorProfile) => {
+    setEditingUser(doctor);
+    setEditingUserType("doctor");
+    setEditUserOpen(true);
+  };
 
   const { data: patients, isLoading: isLoadingPatients } = useAllPatients();
   const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
@@ -210,7 +230,10 @@ export const AdminUsersPage = () => {
               ))}
             </div>
           ) : (
-            <DataTable columns={patientColumns} data={filteredPatients || []} />
+            <DataTable
+              columns={patientColumns({ onEdit: handleEditPatient })}
+              data={filteredPatients || []}
+            />
           )}
         </TabsContent>
         <TabsContent value="doctors" className="space-y-4">
@@ -236,14 +259,23 @@ export const AdminUsersPage = () => {
               ))}
             </div>
           ) : (
-            <DataTable columns={doctorColumns} data={filteredDoctors || []} />
+            <DataTable
+              columns={doctorColumns({ onEdit: handleEditDoctor })}
+              data={filteredDoctors || []}
+            />
           )}
         </TabsContent>
       </Tabs>
-
       <CreateUserDialog
         isOpen={isCreateUserOpen}
         onOpenChange={setCreateUserOpen}
+      />
+
+      <EditUserDialog
+        isOpen={isEditUserOpen}
+        onOpenChange={setEditUserOpen}
+        user={editingUser}
+        userType={editingUserType}
       />
     </div>
   );

@@ -163,4 +163,46 @@ public class UserServiceImpl implements UserService {
 
     return UserResponse.fromEntity(savedUser);
   }
+
+  @Override
+  @Transactional
+  public void adminUpdateUser(Long userId, AdminUpdateUserRequest request) {
+    User user = userRepository.findById(userId)
+      .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o ID: " + userId));
+
+    // Atualiza os dados na entidade User
+    if (request.email() != null) {
+      user.setEmail(request.email());
+    }
+    userRepository.save(user);
+
+    // Chama o profile-service com o DTO completo
+    if (user.getRole() == UserRole.PATIENT) {
+      AdminPatientUpdateRequest patientRequest = new AdminPatientUpdateRequest(
+        request.name(),
+        request.cpf(),
+        request.phoneNumber(),
+        request.address(),
+        request.emergencyContactName(),
+        request.emergencyContactPhone(),
+        request.bloodGroup(),
+        request.gender(),
+        request.chronicDiseases(),
+        request.allergies()
+      );
+      profileFeignClient.adminUpdatePatient(user.getId(), patientRequest);
+
+    } else if (user.getRole() == UserRole.DOCTOR) {
+      AdminDoctorUpdateRequest doctorRequest = new AdminDoctorUpdateRequest(
+        request.name(),
+        request.crmNumber(),
+        request.specialization(),
+        request.department(),
+        request.phoneNumber(),
+        request.biography(),
+        request.qualifications()
+      );
+      profileFeignClient.adminUpdateDoctor(user.getId(), doctorRequest);
+    }
+  }
 }

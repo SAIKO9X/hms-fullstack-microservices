@@ -29,8 +29,14 @@ const StatusBadge = ({ isActive }: { isActive: boolean }) => {
   );
 };
 
+interface PatientColumnsOptions {
+  onEdit: (patient: PatientProfile) => void;
+}
+
 // --- Colunas para Pacientes ---
-export const patientColumns: ColumnDef<PatientProfile>[] = [
+export const patientColumns = ({
+  onEdit,
+}: PatientColumnsOptions): ColumnDef<PatientProfile>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -153,7 +159,7 @@ export const patientColumns: ColumnDef<PatientProfile>[] = [
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={() => console.log("Editar", patient.id)}>
+            <DropdownMenuItem onClick={() => onEdit(row.original)}>
               Editar
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -175,7 +181,13 @@ export const patientColumns: ColumnDef<PatientProfile>[] = [
 ];
 
 // --- Colunas para Médicos ---
-export const doctorColumns: ColumnDef<DoctorProfile>[] = [
+interface DoctorColumnsOptions {
+  onEdit: (doctor: DoctorProfile) => void;
+}
+
+export const doctorColumns = ({
+  onEdit,
+}: DoctorColumnsOptions): ColumnDef<DoctorProfile>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -304,7 +316,7 @@ export const doctorColumns: ColumnDef<DoctorProfile>[] = [
                 ? "Desativar"
                 : "Ativar"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => console.log("Editar", doctor.id)}>
+            <DropdownMenuItem onClick={() => onEdit(doctor)}>
               Editar
             </DropdownMenuItem>
           </DropdownMenuContent>

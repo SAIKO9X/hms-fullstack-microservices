@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
@@ -10,6 +11,7 @@ import com.hms.profile.services.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -90,6 +92,13 @@ public class PatientController {
     @Valid @RequestBody ProfilePictureUpdateRequest request) {
     Long userId = getUserIdFromToken(token);
     patientService.updateProfilePicture(userId, request.pictureUrl());
+  }
+
+  @PutMapping("/admin/update/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> adminUpdatePatient(@PathVariable Long id, @RequestBody AdminPatientUpdateRequest updateRequest) {
+    patientService.adminUpdatePatient(id, updateRequest);
+    return ResponseEntity.ok().build();
   }
 
   private Long getUserIdFromToken(String token) {

@@ -1,5 +1,3 @@
-// frontend/src/lib/schemas/admin.ts
-
 import { z } from "zod";
 import { UserRole } from "@/types/auth.types";
 

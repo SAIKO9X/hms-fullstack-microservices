@@ -1,16 +1,17 @@
 package com.hms.profile.controllers;
 
+import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
-import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.services.DoctorService;
 import com.hms.profile.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -85,6 +86,13 @@ public class DoctorController {
     @Valid @RequestBody ProfilePictureUpdateRequest request) {
     Long userId = getUserIdFromToken(token);
     doctorService.updateProfilePicture(userId, request.pictureUrl());
+  }
+
+  @PutMapping("/admin/update/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> adminUpdateDoctor(@PathVariable Long id, @RequestBody AdminDoctorUpdateRequest updateRequest) {
+    doctorService.adminUpdateDoctor(id, updateRequest);
+    return ResponseEntity.ok().build();
   }
 
   private Long getUserIdFromToken(String token) {

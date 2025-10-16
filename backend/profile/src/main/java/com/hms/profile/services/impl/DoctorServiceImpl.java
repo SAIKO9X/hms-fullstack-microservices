@@ -1,6 +1,7 @@
 package com.hms.profile.services.impl;
 
 import com.hms.profile.clients.AppointmentFeignClient;
+import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
@@ -112,6 +113,24 @@ public class DoctorServiceImpl implements DoctorService {
       activeDoctorIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
       doctor.getProfilePictureUrl()
     )).collect(Collectors.toList());
+  }
+
+  @Override
+  public void adminUpdateDoctor(Long id, AdminDoctorUpdateRequest updateRequest) {
+    Doctor doctor = doctorRepository.findById(id)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil do médico não encontrado com o ID: " + id));
+
+    // Atualiza os campos permitidos
+    doctor.setName(updateRequest.name());
+    doctor.setCrmNumber(updateRequest.crmNumber());
+    doctor.setSpecialization(updateRequest.specialization());
+    doctor.setDepartment(updateRequest.department());
+    doctor.setPhoneNumber(updateRequest.phoneNumber());
+    doctor.setBiography(updateRequest.biography());
+    doctor.setQualifications(updateRequest.qualifications());
+    doctor.setDateOfBirth(updateRequest.dateOfBirth());
+
+    doctorRepository.save(doctor);
   }
 
   @Override

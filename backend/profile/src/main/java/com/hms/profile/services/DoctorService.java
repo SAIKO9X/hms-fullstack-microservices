@@ -1,5 +1,6 @@
 package com.hms.profile.services;
 
+import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
@@ -26,6 +27,8 @@ public interface DoctorService {
   void updateProfilePicture(Long userId, String pictureUrl);
 
   List<DoctorStatusResponse> getDoctorsWithStatus();
+
+  void adminUpdateDoctor(Long id, AdminDoctorUpdateRequest updateRequest);
 
   long countAllDoctors();
 }

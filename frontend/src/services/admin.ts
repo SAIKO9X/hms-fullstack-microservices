@@ -20,3 +20,11 @@ export const adminCreateUser = async (
 ): Promise<void> => {
   await api.post("/users/admin/create", userData);
 };
+
+// Atualiza os dados de um utilizador (paciente ou médico) como administrador.
+export const adminUpdateUser = async (
+  userData: any // Podes criar um tipo mais específico para isto
+): Promise<void> => {
+  const { userId, ...payload } = userData;
+  await api.put(`/users/admin/update/${userId}`, payload);
+};

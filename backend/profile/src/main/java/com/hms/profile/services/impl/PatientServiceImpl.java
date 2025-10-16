@@ -1,5 +1,6 @@
 package com.hms.profile.services.impl;
 
+import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
@@ -103,6 +104,29 @@ public class PatientServiceImpl implements PatientService {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     patient.setProfilePictureUrl(pictureUrl);
+    patientRepository.save(patient);
+  }
+
+  @Override
+  public void adminUpdatePatient(Long id, AdminPatientUpdateRequest updateRequest) {
+    Patient patient = patientRepository.findById(id)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado com o ID: " + id));
+
+    // Atualiza os campos se eles não forem nulos
+    if (updateRequest.name() != null) patient.setName(updateRequest.name());
+    if (updateRequest.cpf() != null) patient.setCpf(updateRequest.cpf());
+    if (updateRequest.phoneNumber() != null) patient.setPhoneNumber(updateRequest.phoneNumber());
+    if (updateRequest.address() != null) patient.setAddress(updateRequest.address());
+    if (updateRequest.emergencyContactName() != null)
+      patient.setEmergencyContactName(updateRequest.emergencyContactName());
+    if (updateRequest.emergencyContactPhone() != null)
+      patient.setEmergencyContactPhone(updateRequest.emergencyContactPhone());
+    if (updateRequest.bloodGroup() != null) patient.setBloodGroup(updateRequest.bloodGroup());
+    if (updateRequest.gender() != null) patient.setGender(updateRequest.gender());
+    if (updateRequest.dateOfBirth() != null) patient.setDateOfBirth(updateRequest.dateOfBirth());
+    if (updateRequest.chronicDiseases() != null) patient.setChronicDiseases(updateRequest.chronicDiseases());
+    if (updateRequest.allergies() != null) patient.setAllergies(updateRequest.allergies());
+
     patientRepository.save(patient);
   }
 

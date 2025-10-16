@@ -1,5 +1,6 @@
 package com.hms.profile.services;
 
+import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
@@ -24,6 +25,8 @@ public interface PatientService {
   List<PatientResponse> findAllPatients();
 
   void updateProfilePicture(Long userId, String pictureUrl);
+
+  void adminUpdatePatient(Long id, AdminPatientUpdateRequest updateRequest);
 
   long countAllPatients();
 }
