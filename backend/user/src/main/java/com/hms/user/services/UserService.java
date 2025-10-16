@@ -7,6 +7,8 @@ import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.dto.response.UserResponse;
 
+import java.util.List;
+
 public interface UserService {
 
   UserResponse createUser(UserRequest request);
@@ -22,6 +24,8 @@ public interface UserService {
   void updateUserStatus(Long id, boolean active);
 
   UserResponse adminCreateUser(AdminCreateUserRequest request);
+
+  List<UserResponse> findAllUsers();
 
   void adminUpdateUser(Long userId, AdminUpdateUserRequest request);
 }

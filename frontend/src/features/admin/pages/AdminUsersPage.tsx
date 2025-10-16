@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router";
 import { CreateUserDialog } from "../components/users/CreateUserDialog";
 import { EditUserDialog } from "../components/users/EditUserDialog";
+import { useAllUsers } from "@/services/queries/admin-queries";
 
 const PatientCard = ({ patient }: { patient: PatientProfile }) => {
   const navigate = useNavigate();
@@ -148,29 +149,48 @@ export const AdminUsersPage = () => {
 
   const { data: patients, isLoading: isLoadingPatients } = useAllPatients();
   const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
+  const { data: users, isLoading: isLoadingUsers } = useAllUsers();
+
+  const patientsWithEmail = useMemo(() => {
+    if (!patients || !users) return [];
+    return patients.map((patient) => {
+      const user = users.find((u) => u.id === patient.userId);
+      return { ...patient, email: user?.email || "N/A" };
+    });
+  }, [patients, users]);
+
+  const doctorsWithEmail = useMemo(() => {
+    if (!doctors || !users) return [];
+    return doctors.map((doctor) => {
+      const user = users.find((u) => u.id === doctor.userId);
+      return { ...doctor, email: user?.email || "N/A" };
+    });
+  }, [doctors, users]);
 
   const [isCreateUserOpen, setCreateUserOpen] = useState(false);
 
   const filteredPatients = useMemo(() => {
-    if (!patients) return [];
+    if (!patientsWithEmail) return [];
     const searchTerm = searchPatients.toLowerCase();
-    return patients.filter(
+    return patientsWithEmail.filter(
       (patient) =>
         patient.name?.toLowerCase().includes(searchTerm) ||
+        patient.email?.toLowerCase().includes(searchTerm) ||
         patient.cpf?.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, ""))
     );
-  }, [patients, searchPatients]);
+  }, [patientsWithEmail, searchPatients]);
 
   const filteredDoctors = useMemo(() => {
-    if (!doctors) return [];
+    if (!doctorsWithEmail) return [];
     const searchTerm = searchDoctors.toLowerCase();
-    return doctors.filter(
+    return doctorsWithEmail.filter(
       (doctor) =>
         doctor.name?.toLowerCase().includes(searchTerm) ||
+        doctor.email?.toLowerCase().includes(searchTerm) ||
         doctor.crmNumber?.toLowerCase().includes(searchTerm) ||
         doctor.specialization?.toLowerCase().includes(searchTerm)
     );
-  }, [doctors, searchDoctors]);
+  }, [doctorsWithEmail, searchDoctors]);
 
   return (
     <div className="container mx-auto py-8 space-y-6">

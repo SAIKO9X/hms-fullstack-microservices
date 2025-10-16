@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Validated
@@ -60,5 +61,12 @@ public class UserController {
   public ResponseEntity<Void> adminUpdateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
     userService.adminUpdateUser(id, request);
     return ResponseEntity.ok().build();
+  }
+
+  @GetMapping("/all")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('ADMIN')")
+  public List<UserResponse> getAllUsers() {
+    return userService.findAllUsers();
   }
 }

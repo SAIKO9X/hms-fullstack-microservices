@@ -59,6 +59,17 @@ export const patientColumns = ({
     ),
   },
   {
+    accessorKey: "email",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Email <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+  },
+  {
     accessorKey: "cpf",
     header: "CPF",
   },
@@ -133,7 +144,7 @@ export const patientColumns = ({
         useUpdateUserStatusMutation();
 
       const handleToggleStatus = () => {
-        updateUserStatus({ userId: patient.id, active: !patient.active });
+        updateUserStatus({ userId: patient.userId, active: !patient.active });
       };
 
       return (
@@ -210,6 +221,17 @@ export const doctorColumns = ({
     ),
   },
   {
+    accessorKey: "email",
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Email <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+  },
+  {
     accessorKey: "crmNumber",
     header: "CRM",
   },
@@ -281,7 +303,7 @@ export const doctorColumns = ({
         useUpdateUserStatusMutation();
 
       const handleToggleStatus = () => {
-        updateUserStatus({ userId: doctor.id, active: !doctor.active });
+        updateUserStatus({ userId: doctor.userId, active: !doctor.active });
       };
 
       return (

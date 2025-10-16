@@ -7,6 +7,7 @@ import type {
 } from "@/types/admin.types";
 import { adminCreateUser, adminUpdateUser, updateUserStatus } from "../admin";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
+import type { UserResponse } from "@/types/auth.types";
 
 export const useAdminProfileCounts = () => {
   return useQuery<AdminDashboardStats>({
@@ -99,5 +100,16 @@ export const useAdminUpdateUserMutation = () => {
     onError: (error) => {
       console.error("Erro ao atualizar utilizador:", error);
     },
+  });
+};
+
+export const useAllUsers = () => {
+  return useQuery<UserResponse[]>({
+    queryKey: ["allUsers"],
+    queryFn: async () => {
+      const { data } = await api.get("/users/all");
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 };
