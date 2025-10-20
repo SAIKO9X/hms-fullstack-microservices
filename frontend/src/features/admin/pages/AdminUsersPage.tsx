@@ -21,10 +21,14 @@ import { useNavigate } from "react-router";
 import { CreateUserDialog } from "../components/users/CreateUserDialog";
 import { EditUserDialog } from "../components/users/EditUserDialog";
 import { useAllUsers } from "@/services/queries/admin-queries";
+import {
+  isValidNotification,
+  type ActionNotification,
+} from "@/types/notification.types";
+import { CustomNotification } from "@/components/notifications/CustomNotification";
 
 const PatientCard = ({ patient }: { patient: PatientProfile }) => {
   const navigate = useNavigate();
-
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -73,10 +77,8 @@ const PatientCard = ({ patient }: { patient: PatientProfile }) => {
   );
 };
 
-// Componente de Card para Médicos (com melhorias de nulidade)
 const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
   const navigate = useNavigate();
-
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -123,25 +125,31 @@ const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
   );
 };
 
+type PatientWithDetails = PatientProfile & { email?: string; active?: boolean };
+type DoctorWithDetails = DoctorProfile & { email?: string; active?: boolean };
+
 export const AdminUsersPage = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [searchPatients, setSearchPatients] = useState("");
   const [searchDoctors, setSearchDoctors] = useState("");
   const [isEditUserOpen, setEditUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<
-    PatientProfile | DoctorProfile | null
+    PatientWithDetails | DoctorWithDetails | null
   >(null);
   const [editingUserType, setEditingUserType] = useState<"patient" | "doctor">(
     "patient"
   );
+  const [notification, setNotification] = useState<ActionNotification | null>(
+    null
+  );
 
-  const handleEditPatient = (patient: PatientProfile) => {
+  const handleEditPatient = (patient: PatientWithDetails) => {
     setEditingUser(patient);
     setEditingUserType("patient");
     setEditUserOpen(true);
   };
 
-  const handleEditDoctor = (doctor: DoctorProfile) => {
+  const handleEditDoctor = (doctor: DoctorWithDetails) => {
     setEditingUser(doctor);
     setEditingUserType("doctor");
     setEditUserOpen(true);
@@ -151,49 +159,70 @@ export const AdminUsersPage = () => {
   const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
   const { data: users, isLoading: isLoadingUsers } = useAllUsers();
 
-  const patientsWithEmail = useMemo(() => {
+  const patientsWithDetails = useMemo(() => {
     if (!patients || !users) return [];
     return patients.map((patient) => {
       const user = users.find((u) => u.id === patient.userId);
-      return { ...patient, email: user?.email || "N/A" };
+      return {
+        ...patient,
+        email: user?.email || "N/A",
+        active: user?.active ?? false,
+      };
     });
   }, [patients, users]);
 
-  const doctorsWithEmail = useMemo(() => {
+  const doctorsWithDetails = useMemo(() => {
     if (!doctors || !users) return [];
     return doctors.map((doctor) => {
       const user = users.find((u) => u.id === doctor.userId);
-      return { ...doctor, email: user?.email || "N/A" };
+      return {
+        ...doctor,
+        email: user?.email || "N/A",
+        active: user?.active ?? false,
+      };
     });
   }, [doctors, users]);
 
   const [isCreateUserOpen, setCreateUserOpen] = useState(false);
 
   const filteredPatients = useMemo(() => {
-    if (!patientsWithEmail) return [];
+    if (!patientsWithDetails) return [];
     const searchTerm = searchPatients.toLowerCase();
-    return patientsWithEmail.filter(
+    return patientsWithDetails.filter(
       (patient) =>
         patient.name?.toLowerCase().includes(searchTerm) ||
         patient.email?.toLowerCase().includes(searchTerm) ||
         patient.cpf?.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, ""))
     );
-  }, [patientsWithEmail, searchPatients]);
+  }, [patientsWithDetails, searchPatients]);
 
   const filteredDoctors = useMemo(() => {
-    if (!doctorsWithEmail) return [];
+    if (!doctorsWithDetails) return [];
     const searchTerm = searchDoctors.toLowerCase();
-    return doctorsWithEmail.filter(
+    return doctorsWithDetails.filter(
       (doctor) =>
         doctor.name?.toLowerCase().includes(searchTerm) ||
         doctor.email?.toLowerCase().includes(searchTerm) ||
         doctor.crmNumber?.toLowerCase().includes(searchTerm) ||
         doctor.specialization?.toLowerCase().includes(searchTerm)
     );
-  }, [doctorsWithEmail, searchDoctors]);
+  }, [doctorsWithDetails, searchDoctors]);
 
   return (
     <div className="container mx-auto py-8 space-y-6">
+      <div className="fixed top-24 right-4 z-50 w-full max-w-sm">
+        {isValidNotification(notification) && (
+          <CustomNotification
+            key={Date.now()}
+            variant={notification.variant}
+            title={notification.title}
+            description={notification.description}
+            onDismiss={() => setNotification(null)}
+            autoHide
+            autoHideDelay={5000}
+          />
+        )}
+      </div>
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Gestão de Utilizadores</h1>
@@ -239,7 +268,7 @@ export const AdminUsersPage = () => {
               />
             </div>
           </div>
-          {isLoadingPatients ? (
+          {isLoadingPatients || isLoadingUsers ? (
             <div className="text-center py-10 text-muted-foreground">
               Carregando pacientes...
             </div>
@@ -251,7 +280,10 @@ export const AdminUsersPage = () => {
             </div>
           ) : (
             <DataTable
-              columns={patientColumns({ onEdit: handleEditPatient })}
+              columns={patientColumns({
+                onEdit: handleEditPatient,
+                setNotification: setNotification,
+              })}
               data={filteredPatients || []}
             />
           )}
@@ -268,7 +300,7 @@ export const AdminUsersPage = () => {
               />
             </div>
           </div>
-          {isLoadingDoctors ? (
+          {isLoadingDoctors || isLoadingUsers ? (
             <div className="text-center py-10 text-muted-foreground">
               Carregando médicos...
             </div>
@@ -280,7 +312,10 @@ export const AdminUsersPage = () => {
             </div>
           ) : (
             <DataTable
-              columns={doctorColumns({ onEdit: handleEditDoctor })}
+              columns={doctorColumns({
+                onEdit: handleEditDoctor,
+                setNotification: setNotification,
+              })}
               data={filteredDoctors || []}
             />
           )}
@@ -289,6 +324,7 @@ export const AdminUsersPage = () => {
       <CreateUserDialog
         isOpen={isCreateUserOpen}
         onOpenChange={setCreateUserOpen}
+        setNotification={setNotification}
       />
 
       <EditUserDialog
@@ -296,6 +332,7 @@ export const AdminUsersPage = () => {
         onOpenChange={setEditUserOpen}
         user={editingUser}
         userType={editingUserType}
+        setNotification={setNotification}
       />
     </div>
   );
