@@ -10,6 +10,7 @@ public record AdminDoctorUpdateRequest(
   String phoneNumber,
   String biography,
   String qualifications,
-  LocalDate dateOfBirth
+  LocalDate dateOfBirth,
+  Integer yearsOfExperience
 ) {
 }

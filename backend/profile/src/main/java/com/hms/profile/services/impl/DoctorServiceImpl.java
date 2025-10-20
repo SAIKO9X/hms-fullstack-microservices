@@ -142,6 +142,12 @@ public class DoctorServiceImpl implements DoctorService {
     if (request.qualifications() != null) {
       doctor.setQualifications(request.qualifications());
     }
+    if (request.dateOfBirth() != null) {
+      doctor.setDateOfBirth(request.dateOfBirth());
+    }
+    if (request.yearsOfExperience() != null) {
+      doctor.setYearsOfExperience(request.yearsOfExperience());
+    }
 
     doctorRepository.save(doctor);
   }

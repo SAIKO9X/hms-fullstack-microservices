@@ -1,5 +1,7 @@
 package com.hms.user.dto.request;
 
+import java.time.LocalDate;
+
 public record AdminDoctorUpdateRequest(
   String name,
   String crmNumber,
@@ -7,6 +9,8 @@ public record AdminDoctorUpdateRequest(
   String department,
   String phoneNumber,
   String biography,
-  String qualifications
+  String qualifications,
+  LocalDate dateOfBirth,
+  Integer yearsOfExperience
 ) {
 }

@@ -207,6 +207,7 @@ public class UserServiceImpl implements UserService {
         request.emergencyContactPhone(),
         request.bloodGroup(),
         request.gender(),
+        request.dateOfBirth(),
         request.chronicDiseases(),
         request.allergies()
       );
@@ -220,7 +221,9 @@ public class UserServiceImpl implements UserService {
         request.department(),
         request.phoneNumber(),
         request.biography(),
-        request.qualifications()
+        request.qualifications(),
+        request.dateOfBirth(),
+        request.yearsOfExperience()
       );
       profileFeignClient.adminUpdateDoctor(user.getId(), doctorRequest);
     }

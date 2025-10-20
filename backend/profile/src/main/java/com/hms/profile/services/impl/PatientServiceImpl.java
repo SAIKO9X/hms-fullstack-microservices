@@ -6,6 +6,8 @@ import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;
 import com.hms.profile.entities.Patient;
+import com.hms.profile.enums.BloodGroup;
+import com.hms.profile.enums.Gender;
 import com.hms.profile.exceptions.ProfileAlreadyExistsException;
 import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.PatientRepository;
@@ -132,10 +134,21 @@ public class PatientServiceImpl implements PatientService {
       patient.setEmergencyContactPhone(request.emergencyContactPhone());
     }
     if (request.bloodGroup() != null) {
-      patient.setBloodGroup(request.bloodGroup());
+      try {
+        patient.setBloodGroup(BloodGroup.valueOf(request.bloodGroup())); // Conversão String -> Enum
+      } catch (IllegalArgumentException e) {
+        System.err.println("Valor inválido para BloodGroup recebido: " + request.bloodGroup());
+      }
     }
     if (request.gender() != null) {
-      patient.setGender(request.gender());
+      try {
+        patient.setGender(Gender.valueOf(request.gender())); // Conversão String -> Enum
+      } catch (IllegalArgumentException e) {
+        System.err.println("Valor inválido para Gender recebido: " + request.gender());
+      }
+    }
+    if (request.dateOfBirth() != null) {
+      patient.setDateOfBirth(request.dateOfBirth());
     }
     if (request.chronicDiseases() != null) {
       patient.setChronicDiseases(request.chronicDiseases());

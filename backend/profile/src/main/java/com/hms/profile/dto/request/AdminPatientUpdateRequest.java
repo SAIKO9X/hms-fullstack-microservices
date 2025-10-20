@@ -1,8 +1,5 @@
 package com.hms.profile.dto.request;
 
-import com.hms.profile.enums.BloodGroup;
-import com.hms.profile.enums.Gender;
-
 import java.time.LocalDate;
 
 public record AdminPatientUpdateRequest(
@@ -12,8 +9,8 @@ public record AdminPatientUpdateRequest(
   String address,
   String emergencyContactName,
   String emergencyContactPhone,
-  BloodGroup bloodGroup,
-  Gender gender,
+  String bloodGroup,
+  String gender,
   LocalDate dateOfBirth,
   String chronicDiseases,
   String allergies
