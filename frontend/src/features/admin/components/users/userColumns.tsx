@@ -1,5 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, ArrowUpDown } from "lucide-react";
+import {
+  MoreHorizontal,
+  ArrowUpDown,
+  Pencil,
+  User,
+  HeartPulse,
+  Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +22,13 @@ import { ptBR } from "date-fns/locale";
 import type { PatientProfile } from "@/types/patient.types";
 import type { DoctorProfile } from "@/types/doctor.types";
 import { useUpdateUserStatusMutation } from "@/services/queries/admin-queries";
+import {
+  createErrorNotification,
+  createSuccessNotification,
+  type ActionNotification,
+} from "@/types/notification.types";
+import { getErrorMessage } from "@/utils/utils";
+import { useNavigate } from "react-router";
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
   return (
@@ -29,14 +43,19 @@ const StatusBadge = ({ isActive }: { isActive: boolean }) => {
   );
 };
 
+type PatientWithDetails = PatientProfile & { email?: string; active?: boolean };
+type DoctorWithDetails = DoctorProfile & { email?: string; active?: boolean };
+
 interface PatientColumnsOptions {
-  onEdit: (patient: PatientProfile) => void;
+  onEdit: (patient: PatientWithDetails) => void;
+  setNotification: (notification: ActionNotification | null) => void;
 }
 
 // --- Colunas para Pacientes ---
 export const patientColumns = ({
   onEdit,
-}: PatientColumnsOptions): ColumnDef<PatientProfile>[] => [
+  setNotification,
+}: PatientColumnsOptions): ColumnDef<PatientWithDetails>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -138,13 +157,35 @@ export const patientColumns = ({
   {
     id: "actions",
     cell: ({ row }) => {
-      const patient = row.original;
-
+      const patient = row.original as PatientWithDetails;
+      const navigate = useNavigate();
       const { mutate: updateUserStatus, isPending } =
         useUpdateUserStatusMutation();
 
       const handleToggleStatus = () => {
-        updateUserStatus({ userId: patient.userId, active: !patient.active });
+        const newStatus = !patient.active;
+        updateUserStatus(
+          { userId: patient.userId, active: newStatus },
+          {
+            onSuccess: () => {
+              setNotification(
+                createSuccessNotification(
+                  `Utilizador ${
+                    newStatus ? "ativado" : "desativado"
+                  } com sucesso!`
+                )
+              );
+            },
+            onError: (error: any) => {
+              setNotification(
+                createErrorNotification(
+                  "Erro ao atualizar status",
+                  getErrorMessage(error)
+                )
+              );
+            },
+          }
+        );
       };
 
       return (
@@ -155,27 +196,36 @@ export const patientColumns = ({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
+
+          <DropdownMenuItem
+            onClick={() => navigate(`/admin/users/patient/${patient.id}`)}
+          >
+            <User className="mr-2 h-4 w-4" />
+            Ver Perfil Completo
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              navigate(`/admin/users/patient/${patient.id}/history`)
+            }
+          >
+            <HeartPulse className="mr-2 h-4 w-4" />
+            Histórico Médico
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => console.log("Ver perfil", patient.id)}
-            >
-              Ver Perfil Completo
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => console.log("Ver histórico", patient.id)}
-            >
-              Histórico Médico
+            <DropdownMenuItem onClick={() => onEdit(patient)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar Perfil
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem onClick={() => onEdit(row.original)}>
-              Editar
-            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleToggleStatus}
-              disabled={isPending} // Desativa o botão durante o carregamento
+              disabled={isPending}
               className="text-destructive"
             >
               {isPending
@@ -193,12 +243,14 @@ export const patientColumns = ({
 
 // --- Colunas para Médicos ---
 interface DoctorColumnsOptions {
-  onEdit: (doctor: DoctorProfile) => void;
+  onEdit: (doctor: DoctorWithDetails) => void;
+  setNotification: (notification: ActionNotification | null) => void;
 }
 
 export const doctorColumns = ({
   onEdit,
-}: DoctorColumnsOptions): ColumnDef<DoctorProfile>[] => [
+  setNotification,
+}: DoctorColumnsOptions): ColumnDef<DoctorWithDetails>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -298,12 +350,35 @@ export const doctorColumns = ({
   {
     id: "actions",
     cell: ({ row }) => {
-      const doctor = row.original;
+      const doctor = row.original as DoctorWithDetails;
+      const navigate = useNavigate();
       const { mutate: updateUserStatus, isPending } =
         useUpdateUserStatusMutation();
 
       const handleToggleStatus = () => {
-        updateUserStatus({ userId: doctor.userId, active: !doctor.active });
+        const newStatus = !doctor.active;
+        updateUserStatus(
+          { userId: doctor.userId, active: newStatus },
+          {
+            onSuccess: () => {
+              setNotification(
+                createSuccessNotification(
+                  `Utilizador ${
+                    newStatus ? "ativado" : "desativado"
+                  } com sucesso!`
+                )
+              );
+            },
+            onError: (error: any) => {
+              setNotification(
+                createErrorNotification(
+                  "Erro ao atualizar status",
+                  getErrorMessage(error)
+                )
+              );
+            },
+          }
+        );
       };
 
       return (
@@ -316,17 +391,29 @@ export const doctorColumns = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
+
             <DropdownMenuItem
-              onClick={() => console.log("Ver perfil", doctor.id)}
+              onClick={() => navigate(`/admin/users/doctor/${doctor.id}`)}
             >
+              <User className="mr-2 h-4 w-4" />
               Ver Perfil Completo
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => console.log("Ver agenda", doctor.id)}
+              onClick={() =>
+                navigate(`/admin/users/doctor/${doctor.id}/schedule`)
+              }
             >
+              <Calendar className="mr-2 h-4 w-4" />
               Ver Agenda
             </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => onEdit(doctor)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Editar Perfil
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem
               onClick={handleToggleStatus}
               disabled={isPending}
@@ -337,9 +424,6 @@ export const doctorColumns = ({
                 : doctor.active
                 ? "Desativar"
                 : "Ativar"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(doctor)}>
-              Editar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
