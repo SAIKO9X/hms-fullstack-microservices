@@ -32,15 +32,24 @@ import {
   adminCreateUserSchema,
   type AdminCreateUserFormData,
 } from "@/lib/schemas/admin.schema";
+import {
+  createErrorNotification,
+  createSuccessNotification,
+  type ActionNotification,
+} from "@/types/notification.types";
+import { getErrorMessage } from "@/utils/utils";
+import { maskCPF } from "@/utils/masks";
 
 interface CreateUserDialogProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  setNotification: (notification: ActionNotification | null) => void;
 }
 
 export const CreateUserDialog = ({
   isOpen,
   onOpenChange,
+  setNotification,
 }: CreateUserDialogProps) => {
   const form = useForm<AdminCreateUserFormData>({
     resolver: zodResolver(adminCreateUserSchema),
@@ -62,8 +71,18 @@ export const CreateUserDialog = ({
   const onSubmit = (data: AdminCreateUserFormData) => {
     createUser(data, {
       onSuccess: () => {
+        setNotification(
+          createSuccessNotification("Utilizador criado com sucesso!")
+        );
         onOpenChange(false);
-        form.reset(); // Limpa o formulário
+        form.reset();
+      },
+      onError: (error) => {
+        const description =
+          getErrorMessage(error) ?? "Ocorreu um erro inesperado.";
+        setNotification(
+          createErrorNotification("Erro ao criar utilizador", description)
+        );
       },
     });
   };
@@ -159,7 +178,13 @@ export const CreateUserDialog = ({
                   <FormItem>
                     <FormLabel>CPF</FormLabel>
                     <FormControl>
-                      <Input placeholder="000.000.000-00" {...field} />
+                      <Input
+                        placeholder="000.000.000-00"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(maskCPF(e.target.value));
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

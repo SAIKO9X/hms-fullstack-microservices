@@ -26,6 +26,13 @@ import { medicalDepartments } from "@/data/medicalDepartments";
 import { Combobox } from "@/components/ui/combobox";
 import type { PatientProfile } from "@/types/patient.types";
 import type { DoctorProfile } from "@/types/doctor.types";
+import {
+  createErrorNotification,
+  createSuccessNotification,
+  type ActionNotification,
+} from "@/types/notification.types";
+import { getErrorMessage } from "@/utils/utils";
+import { maskCPF, maskPhone } from "@/utils/masks";
 
 const editUserSchema = z.object({
   name: z
@@ -57,6 +64,7 @@ interface EditUserDialogProps {
     | (DoctorProfile & { email?: string })
     | null;
   userType: "patient" | "doctor";
+  setNotification: (notification: ActionNotification | null) => void;
 }
 
 export const EditUserDialog = ({
@@ -64,6 +72,7 @@ export const EditUserDialog = ({
   onOpenChange,
   user,
   userType,
+  setNotification,
 }: EditUserDialogProps) => {
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
@@ -98,7 +107,17 @@ export const EditUserDialog = ({
 
     updateUser(payload, {
       onSuccess: () => {
+        setNotification(
+          createSuccessNotification("Utilizador atualizado com sucesso!")
+        );
         onOpenChange(false);
+      },
+      onError: (error) => {
+        const description =
+          getErrorMessage(error) ?? "Ocorreu um erro inesperado.";
+        setNotification(
+          createErrorNotification("Erro ao atualizar utilizador", description)
+        );
       },
     });
   };
@@ -149,6 +168,7 @@ export const EditUserDialog = ({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="phoneNumber"
@@ -156,7 +176,12 @@ export const EditUserDialog = ({
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(maskPhone(e.target.value));
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -172,12 +197,18 @@ export const EditUserDialog = ({
                       <FormItem>
                         <FormLabel>CPF</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(maskCPF(e.target.value));
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="address"
