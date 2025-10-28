@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { usePatientById } from "@/services/queries/profile-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { BloodGroup, Gender } from "@/types/patient.types";
 
 export const AdminPatientDetailPage = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { data: patient, isLoading, isError } = usePatientById(Number(id));
 
@@ -230,15 +231,17 @@ export const AdminPatientDetailPage = () => {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h4 className="font-semibold mb-2">Alergias</h4>
-              {patient.allergies && patient.allergies.length > 0 ? (
+              {patient.allergies &&
+              typeof patient.allergies === "string" &&
+              patient.allergies.trim() ? (
                 <div className="flex flex-wrap gap-2">
-                  {patient.allergies.map((allergy, index) => (
+                  {patient.allergies.split(",").map((allergy, index) => (
                     <Badge
                       key={index}
                       variant="outline"
                       className="bg-orange-50 border-orange-200 text-orange-900"
                     >
-                      {allergy}
+                      {allergy.trim()}
                     </Badge>
                   ))}
                 </div>
@@ -250,15 +253,17 @@ export const AdminPatientDetailPage = () => {
             </div>
             <div>
               <h4 className="font-semibold mb-2">Doenças Crônicas</h4>
-              {patient.chronicDiseases && patient.chronicDiseases.length > 0 ? (
+              {patient.chronicDiseases &&
+              typeof patient.chronicDiseases === "string" &&
+              patient.chronicDiseases.trim() ? (
                 <div className="flex flex-wrap gap-2">
-                  {patient.chronicDiseases.map((disease, index) => (
+                  {patient.chronicDiseases.split(",").map((disease, index) => (
                     <Badge
                       key={index}
                       variant="outline"
                       className="bg-blue-50 border-blue-200 text-blue-900"
                     >
-                      {disease}
+                      {disease.trim()}
                     </Badge>
                   ))}
                 </div>
@@ -276,7 +281,13 @@ export const AdminPatientDetailPage = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-3">
-            <Button variant="outline" className="w-full">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() =>
+                navigate(`/admin/users/patient/${patient.id}/history`)
+              }
+            >
               Ver Histórico Médico Completo
             </Button>
           </div>

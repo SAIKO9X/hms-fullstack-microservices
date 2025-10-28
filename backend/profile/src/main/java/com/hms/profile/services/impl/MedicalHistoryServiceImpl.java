@@ -25,7 +25,23 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
 
   @Override
   public MedicalHistoryResponse getPatientMedicalHistory(Long patientId) {
-    List<AppointmentResponse> appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientId);
+    return fetchAndProcessHistory(patientId);
+  }
+
+  @Override
+  public MedicalHistoryResponse getMedicalHistoryByPatientProfileId(Long patientProfileId) {
+    return fetchAndProcessHistory(patientProfileId);
+  }
+
+
+  private MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
+    List<AppointmentResponse> appointmentsFromService;
+    try {
+      appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
+    } catch (Exception e) {
+      System.err.println("Erro ao buscar histórico de consultas para o paciente ID " + patientProfileId + ": " + e.getMessage());
+      return new MedicalHistoryResponse(Collections.emptyList());
+    }
 
     if (appointmentsFromService == null || appointmentsFromService.isEmpty()) {
       return new MedicalHistoryResponse(Collections.emptyList());
@@ -42,8 +58,9 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
       .collect(Collectors.toMap(Doctor::getUserId, Function.identity()));
 
     List<AppointmentHistoryDto> appointmentHistories = appointmentsFromService.stream().map(app -> {
+      // Usa o userId do médico para buscar no mapa
       Doctor doctor = doctorsMap.get(app.doctorId());
-      String doctorName = (doctor != null) ? doctor.getName() : "Médico não encontrado";
+      String doctorName = (doctor != null) ? doctor.getName() : "Médico Desconhecido";
       return new AppointmentHistoryDto(
         app.id(),
         app.appointmentDateTime(),

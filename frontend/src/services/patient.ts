@@ -57,7 +57,7 @@ export const getMedicalHistory = async (
   patientId: number
 ): Promise<MedicalHistory> => {
   const response = await api.get<MedicalHistory>(
-    `/profile/patients/${patientId}/medical-history`
+    `/profile/patient/medical-history/${patientId}`
   );
   return response.data;
 };
