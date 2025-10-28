@@ -28,6 +28,9 @@ import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage
 import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedicalHistoryPage";
+import { AdminDoctorSchedulePage } from "@/features/doctor/pages/AdminDoctorSchedulePage";
+import { AdminDoctorHistoryPage } from "@/features/doctor/pages/AdminDoctorHistoryPage";
+import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
 
@@ -93,12 +96,24 @@ export const AppRoutes = () => {
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route
+              path="users/patient/:id/history"
+              element={<AdminPatientMedicalHistoryPage />}
+            />
+            <Route
               path="users/patient/:id"
               element={<AdminPatientDetailPage />}
             />
             <Route
               path="users/doctor/:id"
               element={<AdminDoctorDetailPage />}
+            />
+            <Route
+              path="users/doctor/:id/schedule"
+              element={<AdminDoctorSchedulePage />}
+            />
+            <Route
+              path="users/doctor/:id/history"
+              element={<AdminDoctorHistoryPage />}
             />
           </Route>
         </Route>

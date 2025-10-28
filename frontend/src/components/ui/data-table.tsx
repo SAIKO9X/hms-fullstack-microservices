@@ -174,7 +174,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination */}
+      {/* PAgination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">

@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useDoctorById } from "@/services/queries/profile-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 export const AdminDoctorDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { data: doctor, isLoading, isError } = useDoctorById(Number(id));
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -187,10 +188,23 @@ export const AdminDoctorDetailPage = () => {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button variant="outline" className="flex-1">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() =>
+                navigate(`/admin/users/doctor/${doctor.id}/schedule`)
+              }
+            >
               Ver Agenda do Médico
             </Button>
-            <Button variant="outline" className="flex-1">
+
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() =>
+                navigate(`/admin/users/doctor/${doctor.id}/history`)
+              }
+            >
               Ver Histórico de Consultas
             </Button>
           </div>

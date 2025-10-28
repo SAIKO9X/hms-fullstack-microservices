@@ -5,9 +5,17 @@ import type {
   DailyActivity,
   DoctorStatus,
 } from "@/types/admin.types";
-import { adminCreateUser, adminUpdateUser, updateUserStatus } from "../admin";
+import {
+  adminCreateUser,
+  adminUpdateUser,
+  getAppointmentsByDoctorId,
+  getPatientMedicalHistoryById,
+  updateUserStatus,
+} from "../admin";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
 import type { UserResponse } from "@/types/auth.types";
+import type { AppointmentDetail } from "@/types/appointment.types";
+import type { MedicalHistory } from "@/types/patient.types";
 
 export const useAdminProfileCounts = () => {
   return useQuery<AdminDashboardStats>({
@@ -110,6 +118,38 @@ export const useAllUsers = () => {
       const { data } = await api.get("/users/all");
       return data;
     },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useAdminDoctorAppointments = (doctorId: number | undefined) => {
+  return useQuery<AppointmentDetail[]>({
+    queryKey: ["adminDoctorAppointments", doctorId],
+    queryFn: () => {
+      // Se não tiver um doctorId, rejeita a promise
+      if (!doctorId) {
+        return Promise.reject(new Error("Doctor ID is required"));
+      }
+      return getAppointmentsByDoctorId(doctorId);
+    },
+    // A query só será executada (enabled) se o doctorId existir
+    enabled: !!doctorId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useAdminPatientMedicalHistory = (
+  patientId: number | undefined
+) => {
+  return useQuery<MedicalHistory>({
+    queryKey: ["adminPatientMedicalHistory", patientId],
+    queryFn: () => {
+      if (!patientId) {
+        return Promise.reject(new Error("Patient ID is required"));
+      }
+      return getPatientMedicalHistoryById(patientId);
+    },
+    enabled: !!patientId, // Só executa se patientId existir
     staleTime: 5 * 60 * 1000,
   });
 };
