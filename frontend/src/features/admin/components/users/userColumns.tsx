@@ -197,25 +197,26 @@ export const patientColumns = ({
             </Button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuItem
-            onClick={() => navigate(`/admin/users/patient/${patient.id}`)}
-          >
-            <User className="mr-2 h-4 w-4" />
-            Ver Perfil Completo
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() =>
-              navigate(`/admin/users/patient/${patient.id}/history`)
-            }
-          >
-            <HeartPulse className="mr-2 h-4 w-4" />
-            Histórico Médico
-          </DropdownMenuItem>
-
-          <DropdownMenuSeparator />
-
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
+
+            <DropdownMenuItem
+              onClick={() => navigate(`/admin/users/patient/${patient.id}`)}
+            >
+              <User className="mr-2 h-4 w-4" />
+              Ver Perfil Completo
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate(`/admin/users/patient/${patient.id}/history`)
+              }
+            >
+              <HeartPulse className="mr-2 h-4 w-4" />
+              Histórico Médico
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
             <DropdownMenuItem onClick={() => onEdit(patient)}>
               <Pencil className="mr-2 h-4 w-4" />
               Editar Perfil
