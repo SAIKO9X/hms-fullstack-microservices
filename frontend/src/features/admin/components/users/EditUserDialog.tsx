@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Select,
@@ -137,6 +137,10 @@ export const EditUserDialog = ({
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
   });
+
+  const currentYear = getYear(new Date());
+  const fromYear = currentYear - 100;
+  const toYear = currentYear;
 
   const { mutate: updateUser, isPending } = useAdminUpdateUserMutation();
 
@@ -309,6 +313,10 @@ export const EditUserDialog = ({
                             date > new Date() || date < new Date("1900-01-01")
                           }
                           initialFocus
+                          locale={ptBR}
+                          captionLayout="dropdown"
+                          fromYear={fromYear}
+                          toYear={toYear}
                         />
                       </PopoverContent>
                     </Popover>
