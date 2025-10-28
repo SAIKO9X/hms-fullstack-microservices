@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BloodGroup, Gender, type PatientProfile } from "@/types/patient.types";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import {
 } from "@/lib/schemas/profile.schema";
 import { maskCPF, maskPhone } from "@/utils/masks";
 import { BadgeInput } from "../../../components/ui/badge-input";
+import { cn } from "@/utils/utils";
 
 const bloodGroupOptions = Object.entries(BloodGroup).map(([key, value]) => ({
   value: key,
@@ -61,18 +62,37 @@ interface EditProfileDialogProps {
   onSave: (data: PatientProfileFormData) => void;
 }
 
+// Helper para converter string separada por vírgula para array de strings
+const stringToArray = (value: string | undefined | null): string[] => {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean); // Divide, remove espaços e vazios
+};
+
+// Helper para converter array de strings para string separada por vírgula
+const arrayToString = (value: string[] | undefined | null): string => {
+  if (!value) return "";
+  return value.join(", "); // Junta com vírgula e espaço
+};
+
 export const EditProfileDialog = ({
   open,
   onOpenChange,
   profile,
   onSave,
 }: EditProfileDialogProps) => {
+  const currentYear = getYear(new Date());
+  const fromYear = currentYear - 100;
+  const toYear = currentYear;
+
   const form = useForm<PatientProfileFormData>({
     resolver: zodResolver(PatientProfileSchema),
     defaultValues: {
       ...profile,
-      allergies: profile.allergies || [],
-      chronicDiseases: profile.chronicDiseases || [],
+      allergies: profile.allergies || "",
+      chronicDiseases: profile.chronicDiseases || "",
     },
   });
 
@@ -80,8 +100,8 @@ export const EditProfileDialog = ({
     if (open) {
       form.reset({
         ...profile,
-        allergies: profile.allergies || [],
-        chronicDiseases: profile.chronicDiseases || [],
+        allergies: profile.allergies || "",
+        chronicDiseases: profile.chronicDiseases || "",
       });
     }
   }, [profile, open, form]);
@@ -152,7 +172,10 @@ export const EditProfileDialog = ({
                         <FormControl>
                           <Button
                             variant="outline"
-                            className="font-normal w-full justify-start text-left"
+                            className={cn(
+                              "font-normal w-full justify-start text-left",
+                              !field.value && "text-muted-foreground"
+                            )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {field.value ? (
@@ -171,6 +194,10 @@ export const EditProfileDialog = ({
                           disabled={(date) =>
                             date > new Date() || date < new Date("1900-01-01")
                           }
+                          locale={ptBR}
+                          captionLayout="dropdown"
+                          fromYear={fromYear}
+                          toYear={toYear}
                           initialFocus
                         />
                       </PopoverContent>
@@ -306,8 +333,10 @@ export const EditProfileDialog = ({
                   <FormControl>
                     <BadgeInput
                       placeholder="Digite uma alergia e pressione Enter"
-                      value={field.value ?? []}
-                      onChange={field.onChange}
+                      value={stringToArray(field.value)}
+                      onChange={(valueArray) =>
+                        field.onChange(arrayToString(valueArray))
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -323,8 +352,10 @@ export const EditProfileDialog = ({
                   <FormControl>
                     <BadgeInput
                       placeholder="Digite uma doença e pressione Enter"
-                      value={field.value ?? []}
-                      onChange={field.onChange}
+                      value={stringToArray(field.value)}
+                      onChange={(valueArray) =>
+                        field.onChange(arrayToString(valueArray))
+                      }
                     />
                   </FormControl>
                   <FormMessage />

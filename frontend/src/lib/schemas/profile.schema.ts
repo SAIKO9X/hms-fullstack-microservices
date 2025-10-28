@@ -22,8 +22,8 @@ export const PatientProfileSchema = z.object({
   emergencyContactPhone: z
     .string()
     .min(15, { message: "O telefone do contato é obrigatório." }),
-  allergies: z.array(z.string()).optional(),
-  chronicDiseases: z.array(z.string()).optional(),
+  allergies: z.string().optional(),
+  chronicDiseases: z.string().optional(),
 });
 
 export const DoctorProfileSchema = z.object({

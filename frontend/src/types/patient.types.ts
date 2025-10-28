@@ -31,8 +31,8 @@ export interface PatientProfile {
   address: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
-  allergies?: string[];
-  chronicDiseases?: string[];
+  allergies?: string;
+  chronicDiseases?: string;
   profilePictureUrl?: string;
   active: boolean;
 }
