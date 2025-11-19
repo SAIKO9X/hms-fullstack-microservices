@@ -6,7 +6,7 @@ import {
 import { AlertCircle, Check, Clock, Users, X } from "lucide-react";
 import { StatusPieChart } from "@/features/doctor/components/StatusPieChart";
 import { UpcomingAppointments } from "@/features/doctor/components/UpcomingAppointments";
-import { StatCard } from "@/features/doctor/components/StatCard"; // Importe o novo componente
+import { StatCard } from "@/components/shared/StatCard";
 import { PatientGroupsCard } from "@/features/doctor/components/PatientGroupsCard";
 import { AdverseEffectsCard } from "@/features/doctor/components/AdverseEffectsCard";
 
@@ -40,7 +40,7 @@ export const DoctorDashboardPage = () => {
         </p>
       </div>
 
-      {/* Seção de Estatísticas com os novos Cards */}
+      {/* Seção de Estatísticas */}
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Consultas Hoje"
