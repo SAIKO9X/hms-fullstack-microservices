@@ -1,8 +1,17 @@
-import * as PatientService from "./patient";
-import * as DoctorService from "./doctor";
+import * as AdminService from "./admin";
 import * as AppointmentService from "./appointment";
+import * as DoctorService from "./doctor";
+import * as MediaService from "./media";
+import * as PatientService from "./patient";
+import * as PharmacyService from "./pharmacy";
+import * as ProfileService from "./profile";
 
-export { PatientService, DoctorService, AppointmentService };
-export * from "./patient";
-export * from "./doctor";
-export * from "./appointment";
+export {
+  AdminService,
+  AppointmentService,
+  DoctorService,
+  MediaService,
+  PatientService,
+  PharmacyService,
+  ProfileService,
+};

@@ -17,6 +17,7 @@ import type {
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type { MedicalDocumentCreateRequest } from "@/types/document.types";
 import { PatientService, DoctorService, AppointmentService } from "@/services";
+import { useRoleBasedQuery } from "../../hooks/use-role-based";
 
 // Tipo estendido com informações do médico
 export interface AppointmentWithDoctor extends Appointment {
@@ -49,29 +50,12 @@ export const appointmentKeys = {
 
 // === HOOKS PARA APPOINTMENTS ===
 export const useAppointments = () => {
-  const { user } = useAppSelector((state) => state.auth);
-
-  return useQuery({
-    queryKey:
-      user?.role === "DOCTOR"
-        ? appointmentKeys.doctor()
-        : appointmentKeys.patient(),
-    queryFn: async (): Promise<Appointment[]> => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      if (user.role === "DOCTOR") {
-        return await DoctorService.getMyAppointmentsAsDoctor();
-      } else if (user.role === "PATIENT") {
-        return await PatientService.getMyAppointments();
-      } else {
-        throw new Error("Role de usuário não suportada");
-      }
-    },
-    enabled: !!user && (user.role === "PATIENT" || user.role === "DOCTOR"),
-    staleTime: 3 * 60 * 1000,
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 401) return false;
-      return failureCount < 2;
+  return useRoleBasedQuery<Appointment[]>({
+    queryKey: appointmentKeys.all,
+    patientFn: PatientService.getMyAppointments,
+    doctorFn: DoctorService.getMyAppointmentsAsDoctor,
+    options: {
+      staleTime: 3 * 60 * 1000,
     },
   });
 };
@@ -89,25 +73,7 @@ export const useDoctorAppointmentDetails = (
 export const useAppointmentsWithDoctorNames = () => {
   const { user } = useAppSelector((state) => state.auth);
 
-  const appointmentsQuery = useQuery({
-    queryKey:
-      user?.role === "DOCTOR"
-        ? appointmentKeys.doctor()
-        : appointmentKeys.patient(),
-    queryFn: async (): Promise<Appointment[]> => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      if (user.role === "DOCTOR") {
-        return await DoctorService.getMyAppointmentsAsDoctor();
-      } else if (user.role === "PATIENT") {
-        return await PatientService.getMyAppointments();
-      } else {
-        throw new Error("Role de usuário não suportada");
-      }
-    },
-    enabled: !!user && (user.role === "PATIENT" || user.role === "DOCTOR"),
-    staleTime: 3 * 60 * 1000,
-  });
+  const appointmentsQuery = useAppointments();
 
   const doctorsQuery = useQuery({
     queryKey: appointmentKeys.doctors,
@@ -167,10 +133,7 @@ export const useCreateAppointment = () => {
       PatientService.createAppointment(appointmentData),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: appointmentKeys.patient(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.doctor(),
+        queryKey: appointmentKeys.all,
       });
     },
   });
@@ -211,7 +174,7 @@ export const useCompleteAppointment = () => {
       DoctorService.completeAppointment(id, notes),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: appointmentKeys.doctor(),
+        queryKey: appointmentKeys.all,
       });
     },
   });
@@ -246,7 +209,7 @@ export const useCreateAppointmentRecord = () => {
         appointmentKeys.record(data.appointmentId),
         data
       );
-      queryClient.invalidateQueries({ queryKey: appointmentKeys.doctor() });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -261,7 +224,7 @@ export const useUpdateAppointmentRecord = () => {
         appointmentKeys.record(data.appointmentId),
         data
       );
-      queryClient.invalidateQueries({ queryKey: appointmentKeys.doctor() });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -286,7 +249,7 @@ export const useCreatePrescription = () => {
         appointmentKeys.prescription(data.appointmentId),
         data
       );
-      queryClient.invalidateQueries({ queryKey: appointmentKeys.doctor() });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -301,7 +264,7 @@ export const useUpdatePrescription = () => {
         appointmentKeys.prescription(data.appointmentId),
         data
       );
-      queryClient.invalidateQueries({ queryKey: appointmentKeys.doctor() });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };

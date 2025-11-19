@@ -5,13 +5,7 @@ import type {
   DailyActivity,
   DoctorStatus,
 } from "@/types/admin.types";
-import {
-  adminCreateUser,
-  adminUpdateUser,
-  getAppointmentsByDoctorId,
-  getPatientMedicalHistoryById,
-  updateUserStatus,
-} from "../admin";
+import { AdminService } from "@/services";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
 import type { UserResponse } from "@/types/auth.types";
 import type { AppointmentDetail } from "@/types/appointment.types";
@@ -66,7 +60,7 @@ export const useUpdateUserStatusMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateUserStatus,
+    mutationFn: AdminService.updateUserStatus,
     onSuccess: () => {
       // Quando a mutação for bem-sucedida, os dados de pacientes e médicos estão desatualizados.
       // Invalidamos as queries para forçar o React Query a buscar os dados mais recentes.
@@ -84,7 +78,7 @@ export const useAdminCreateUserMutation = () => {
 
   return useMutation({
     mutationFn: (userData: AdminCreateUserFormData) =>
-      adminCreateUser(userData),
+      AdminService.adminCreateUser(userData),
     onSuccess: () => {
       // Invalida as listas de pacientes e médicos para forçar a atualização da tabela.
       queryClient.invalidateQueries({ queryKey: ["allPatients"] });
@@ -100,7 +94,7 @@ export const useAdminUpdateUserMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: adminUpdateUser,
+    mutationFn: AdminService.adminUpdateUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allPatients"] });
       queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
@@ -130,7 +124,7 @@ export const useAdminDoctorAppointments = (doctorId: number | undefined) => {
       if (!doctorId) {
         return Promise.reject(new Error("Doctor ID is required"));
       }
-      return getAppointmentsByDoctorId(doctorId);
+      return AdminService.getAppointmentsByDoctorId(doctorId);
     },
     // A query só será executada (enabled) se o doctorId existir
     enabled: !!doctorId,
@@ -147,7 +141,7 @@ export const useAdminPatientMedicalHistory = (
       if (!patientId) {
         return Promise.reject(new Error("Patient ID is required"));
       }
-      return getPatientMedicalHistoryById(patientId);
+      return AdminService.getPatientMedicalHistoryById(patientId);
     },
     enabled: !!patientId, // Só executa se patientId existir
     staleTime: 5 * 60 * 1000,

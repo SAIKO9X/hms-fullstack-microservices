@@ -1,24 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  addInventoryItem,
-  addMedicine,
-  createDirectSale,
-  deleteInventoryItem,
-  getAllInventory,
-  getAllSales,
-  updateInventoryItem,
-  updateMedicine,
-  type DirectSaleFormData,
-  type InventoryFormData,
-  type MedicineFormData,
+import { PharmacyService } from "@/services";
+import type {
+  DirectSaleFormData,
+  InventoryFormData,
+  MedicineFormData,
 } from "@/services/pharmacy";
 import type { Medicine } from "@/types/medicine.types";
 
 // Hook para adicionar um novo medicamento
 export const useAddMedicine = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (medicineData: MedicineFormData) => addMedicine(medicineData),
+    mutationFn: (medicineData: MedicineFormData) =>
+      PharmacyService.addMedicine(medicineData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
@@ -28,9 +23,10 @@ export const useAddMedicine = () => {
 // Hook para atualizar um medicamento existente
 export const useUpdateMedicine = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicineFormData }) =>
-      updateMedicine(id, data),
+      PharmacyService.updateMedicine(id, data),
     onSuccess: (updatedMedicine) => {
       queryClient.setQueryData(
         ["medicines"],
@@ -45,19 +41,29 @@ export const useUpdateMedicine = () => {
   });
 };
 
+// Hook para buscar todos os medicamentos
+export const useMedicines = () => {
+  return useQuery({
+    queryKey: ["medicines"],
+    queryFn: PharmacyService.getAllMedicines,
+  });
+};
+
 // Hook para buscar todos os itens do inventário
 export const useInventory = () => {
   return useQuery({
     queryKey: ["inventory"],
-    queryFn: getAllInventory,
+    queryFn: PharmacyService.getAllInventory,
   });
 };
 
 // Hook para adicionar um novo item ao inventário
 export const useAddInventoryItem = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data: InventoryFormData) => addInventoryItem(data),
+    mutationFn: (data: InventoryFormData) =>
+      PharmacyService.addInventoryItem(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
@@ -68,9 +74,10 @@ export const useAddInventoryItem = () => {
 // Hook para atualizar um item do inventário
 export const useUpdateInventoryItem = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: InventoryFormData }) =>
-      updateInventoryItem(id, data),
+      PharmacyService.updateInventoryItem(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
@@ -81,8 +88,9 @@ export const useUpdateInventoryItem = () => {
 // Hook para deletar um item do inventário
 export const useDeleteInventoryItem = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (id: number) => deleteInventoryItem(id),
+    mutationFn: (id: number) => PharmacyService.deleteInventoryItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
@@ -90,13 +98,15 @@ export const useDeleteInventoryItem = () => {
   });
 };
 
-// Hook para criar uma venda direta - SEM opções customizadas
+// Hook para criar uma venda direta
 export const useCreateDirectSale = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data: DirectSaleFormData) => createDirectSale(data),
+    mutationFn: (data: DirectSaleFormData) =>
+      PharmacyService.createDirectSale(data),
     onSuccess: () => {
-      // A única responsabilidade do hook é invalidar os caches
+      // Invalida os caches relacionados
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
@@ -104,9 +114,25 @@ export const useCreateDirectSale = () => {
   });
 };
 
+// Hook para criar venda a partir de prescrição
+export const useCreateSaleFromPrescription = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (prescriptionId: number) =>
+      PharmacyService.createSaleFromPrescription(prescriptionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
+    },
+  });
+};
+
+// Hook para buscar todas as vendas
 export const useSales = () => {
   return useQuery({
     queryKey: ["sales"],
-    queryFn: getAllSales,
+    queryFn: PharmacyService.getAllSales,
   });
 };
