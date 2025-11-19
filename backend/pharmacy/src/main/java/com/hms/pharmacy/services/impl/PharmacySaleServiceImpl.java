@@ -2,18 +2,20 @@ package com.hms.pharmacy.services.impl;
 
 import com.hms.pharmacy.clients.AppointmentFeignClient;
 import com.hms.pharmacy.clients.ProfileFeignClient;
+import com.hms.pharmacy.dto.request.DirectSaleRequest;
+import com.hms.pharmacy.dto.request.PharmacySaleRequest;
+import com.hms.pharmacy.dto.request.PrescriptionReceiveRequest;
+import com.hms.pharmacy.dto.request.SaleItemRequest;
+import com.hms.pharmacy.dto.response.DailyRevenueDto;
+import com.hms.pharmacy.dto.response.PatientProfileResponse;
+import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
+import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.entities.PharmacySale;
 import com.hms.pharmacy.entities.PharmacySaleItem;
 import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.repositories.PharmacySaleRepository;
-import com.hms.pharmacy.dto.request.DirectSaleRequest;
-import com.hms.pharmacy.dto.request.PharmacySaleRequest;
-import com.hms.pharmacy.dto.request.PrescriptionReceiveRequest;
-import com.hms.pharmacy.dto.request.SaleItemRequest;
-import com.hms.pharmacy.dto.response.PatientProfileResponse;
-import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.PharmacySaleService;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,7 +46,6 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       throw new IllegalStateException("Já existe uma venda para esta prescrição.");
     }
 
-    // Busca os dados do paciente no profile-service
     PatientProfileResponse patient;
     try {
       patient = profileFeignClient.getPatientProfileByUserId(request.patientId());
@@ -63,19 +64,16 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     BigDecimal totalAmount = BigDecimal.ZERO;
     List<PharmacySaleItem> saleItems = new ArrayList<>();
 
-    // Processa cada item da venda
     for (SaleItemRequest itemRequest : request.items()) {
       Medicine medicine = medicineRepository.findById(itemRequest.medicineId())
         .orElseThrow(() -> new MedicineNotFoundException("Medicamento com ID " + itemRequest.medicineId() + " não encontrado."));
 
-      // Deduz o estoque e obtém os detalhes do(s) lote(s) utilizado(s)
       String batchDetails = inventoryService.sellStock(itemRequest.medicineId(), itemRequest.quantity());
 
-      // Cria o item da venda
       PharmacySaleItem saleItem = new PharmacySaleItem();
       saleItem.setSale(sale);
       saleItem.setMedicineId(medicine.getId());
-      saleItem.setMedicineName(medicine.getName() + " " + medicine.getDosage()); // Salva nome e dosagem
+      saleItem.setMedicineName(medicine.getName() + " " + medicine.getDosage());
       saleItem.setQuantity(itemRequest.quantity());
       saleItem.setUnitPrice(medicine.getUnitPrice());
       saleItem.setTotalPrice(medicine.getUnitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity())));
@@ -106,32 +104,6 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       .toList();
   }
 
-  @Override
-  @Transactional
-  public PharmacySaleResponse processPrescriptionAndCreateSale(PrescriptionReceiveRequest prescriptionRequest) {
-    // Mapear os medicamentos da prescrição para os medicamentos do estoque da farmácia
-    List<SaleItemRequest> saleItems = prescriptionRequest.items().stream()
-      .map(item -> {
-        // Busca o medicamento pelo nome e dosagem para encontrar o ID interno da farmácia
-        Medicine medicine = medicineRepository
-          .findByNameIgnoreCaseAndDosageIgnoreCase(item.medicineName(), item.dosage())
-          .orElseThrow(() -> new MedicineNotFoundException(
-            "Medicamento '" + item.medicineName() + " " + item.dosage() + "' não encontrado no estoque."
-          ));
-
-        return new SaleItemRequest(medicine.getId(), item.quantity());
-      })
-      .collect(Collectors.toList());
-
-    // Monta o request para a criação da venda
-    PharmacySaleRequest saleRequest = new PharmacySaleRequest(
-      prescriptionRequest.originalPrescriptionId(),
-      prescriptionRequest.patientId(),
-      saleItems
-    );
-
-    return createSale(saleRequest);
-  }
 
   @Override
   public List<PharmacySaleResponse> getAllSales() {
@@ -147,14 +119,14 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
     List<SaleItemRequest> saleItems = prescriptionRequest.items().stream()
       .map(item -> {
-        // Busca o medicamento pelo nome e dosagem para encontrar o ID interno da farmácia
+        // Buscara o medicamento pelo nome e dosagem para encontrar o ID interno da farmácia
         Medicine medicine = medicineRepository
           .findByNameIgnoreCaseAndDosageIgnoreCase(item.medicineName(), item.dosage())
           .orElseThrow(() -> new MedicineNotFoundException(
             "Medicamento '" + item.medicineName() + " " + item.dosage() + "' não encontrado no estoque."
           ));
 
-        return new SaleItemRequest(medicine.getId(), 1);
+        return new SaleItemRequest(medicine.getId(), item.quantity());
       })
       .collect(Collectors.toList());
 
@@ -170,12 +142,43 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   @Override
   @Transactional
   public PharmacySaleResponse createDirectSale(DirectSaleRequest request) {
-    // Mapeia o DirectSaleRequest para o PharmacySaleRequest que o createSale espera
     PharmacySaleRequest saleRequest = new PharmacySaleRequest(
       null, // ID da prescrição é nulo para venda direta
       request.patientId(),
       request.items()
     );
     return createSale(saleRequest);
+  }
+
+  @Override
+  public PharmacyFinancialStatsResponse getFinancialStatsLast30Days() {
+    LocalDateTime endDate = LocalDateTime.now();
+    LocalDateTime startDate = endDate.minusDays(30);
+
+    List<PharmacySale> sales = saleRepository.findBySaleDateBetween(startDate, endDate);
+
+    // Calcula a receita total
+    BigDecimal totalRevenue = sales.stream()
+      .map(PharmacySale::getTotalAmount)
+      .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    Map<LocalDate, BigDecimal> salesByDate = sales.stream()
+      .collect(Collectors.groupingBy(
+        sale -> sale.getSaleDate().toLocalDate(),
+        Collectors.reducing(BigDecimal.ZERO, PharmacySale::getTotalAmount, BigDecimal::add)
+      ));
+
+    List<DailyRevenueDto> dailyBreakdown = new ArrayList<>();
+    for (int i = 0; i < 30; i++) {
+      LocalDate date = LocalDate.now().minusDays(i);
+      BigDecimal amount = salesByDate.getOrDefault(date, BigDecimal.ZERO);
+
+      dailyBreakdown.add(new DailyRevenueDto(date, amount));
+    }
+
+    //  Irá ordenar pela data crescente
+    dailyBreakdown.sort(Comparator.comparing(DailyRevenueDto::date));
+
+    return new PharmacyFinancialStatsResponse(totalRevenue, dailyBreakdown);
   }
 }

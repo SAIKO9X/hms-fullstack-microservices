@@ -2,6 +2,7 @@ package com.hms.pharmacy.controllers;
 
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.PharmacySaleRequest;
+import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
 import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.services.PharmacySaleService;
 import jakarta.validation.Valid;
@@ -59,6 +60,13 @@ public class PharmacySaleController {
   @PreAuthorize("hasRole('ADMIN')")
   public PharmacySaleResponse createSaleFromPrescription(@RequestBody Long prescriptionId) {
     return saleService.processPrescriptionAndCreateSale(prescriptionId);
+  }
+
+  @GetMapping("/stats/financial")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('ADMIN')")
+  public PharmacyFinancialStatsResponse getFinancialStats() {
+    return saleService.getFinancialStatsLast30Days();
   }
 }
 
