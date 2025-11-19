@@ -30,7 +30,7 @@ const statusMap: Record<
 };
 
 // Definição das Colunas
-export const doctorScheduleColumns: ColumnDef<AppointmentDetail>[] = [
+export const columns: ColumnDef<AppointmentDetail>[] = [
   {
     accessorKey: "patientName",
     header: "Paciente",

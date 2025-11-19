@@ -28,8 +28,8 @@ import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage
 import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
 import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedicalHistoryPage";
-import { AdminDoctorSchedulePage } from "@/features/doctor/pages/AdminDoctorSchedulePage";
-import { AdminDoctorHistoryPage } from "@/features/doctor/pages/AdminDoctorHistoryPage";
+import { AdminDoctorSchedulePage } from "@/features/admin/pages/AdminDoctorSchedulePage";
+import { AdminDoctorHistoryPage } from "@/features/admin/pages/AdminDoctorHistoryPage";
 import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
 
 const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
