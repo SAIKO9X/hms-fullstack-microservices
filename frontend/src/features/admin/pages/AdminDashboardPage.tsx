@@ -6,6 +6,7 @@ import {
 import { ActivityChart } from "../components/dashboard/ActivityChart";
 import { DoctorStatusList } from "../components/dashboard/DoctorStatusList";
 import { StatCard } from "@/components/shared/StatCard";
+import { PharmacyRevenueChart } from "../components/dashboard/PharmacyRevenueChart";
 
 export const AdminDashboardPage = () => {
   const { data: profileCounts, isLoading: isLoadingCounts } =
@@ -65,6 +66,7 @@ export const AdminDashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityChart />
         <DoctorStatusList />
+        <PharmacyRevenueChart />
       </div>
     </div>
   );

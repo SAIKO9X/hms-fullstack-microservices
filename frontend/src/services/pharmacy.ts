@@ -4,6 +4,7 @@ import type {
   MedicineInventory,
   PharmacySale,
 } from "@/types/medicine.types";
+import type { PharmacyFinancialStats } from "@/types/stats.types";
 
 export type MedicineFormData = Omit<Medicine, "id" | "createdAt">;
 
@@ -100,5 +101,11 @@ export const createSaleFromPrescription = async (
       },
     }
   );
+  return data;
+};
+
+// Obter estatísticas financeiras da farmácia (últimos 30 dias)
+export const getPharmacyStats = async (): Promise<PharmacyFinancialStats> => {
+  const { data } = await api.get("/pharmacy/sales/stats/financial");
   return data;
 };

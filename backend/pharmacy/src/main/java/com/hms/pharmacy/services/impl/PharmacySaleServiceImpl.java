@@ -169,7 +169,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       ));
 
     List<DailyRevenueDto> dailyBreakdown = new ArrayList<>();
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i <= 30; i++) {
       LocalDate date = LocalDate.now().minusDays(i);
       BigDecimal amount = salesByDate.getOrDefault(date, BigDecimal.ZERO);
 
