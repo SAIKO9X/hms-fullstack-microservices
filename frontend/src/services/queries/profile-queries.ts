@@ -1,29 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/hooks";
-import type { PatientProfile } from "@/types/patient.types";
-import type { DoctorProfile } from "@/types/doctor.types";
-import type {
-  PatientProfileFormData,
-  DoctorProfileFormData,
-} from "@/lib/schemas/profile.schema";
 import { ProfileService, PatientService } from "@/services";
 import {
   useRoleBasedMutationFn,
   useRoleBasedQuery,
 } from "../../hooks/use-role-based";
 
-// Types
+import type { PatientProfile } from "@/types/patient.types";
+import type { DoctorProfile } from "@/types/doctor.types";
+import type {
+  PatientProfileFormData,
+  DoctorProfileFormData,
+} from "@/lib/schemas/profile.schema";
+
 type Profile = PatientProfile | DoctorProfile;
 type ProfileFormData = PatientProfileFormData | DoctorProfileFormData;
 
-// Query Keys
 export const profileKeys = {
   all: ["profile"] as const,
   patient: () => [...profileKeys.all, "patient"] as const,
   doctor: () => [...profileKeys.all, "doctor"] as const,
+  patientsDropdown: ["patientsDropdown"] as const,
+  allPatients: ["allPatients"] as const,
+  allDoctors: ["allDoctors"] as const,
+  patientById: (id: number) => ["patient", id] as const,
+  doctorById: (id: number) => ["doctor", id] as const,
+  medicalHistory: (patientId: number | undefined) =>
+    ["medicalHistory", patientId] as const,
 };
 
-// === HOOK PRINCIPAL DO PERFIL ===
 export const useProfileQuery = () => {
   return useRoleBasedQuery<Profile>({
     queryKey: profileKeys.all,
@@ -31,12 +36,10 @@ export const useProfileQuery = () => {
     doctorFn: ProfileService.getMyDoctorProfile,
     options: {
       staleTime: 5 * 60 * 1000,
-      // O 'retry' já está a ser tratado dentro do hook genérico
     },
   });
 };
 
-// === MUTATION PARA UPDATE DO PERFIL ===
 export const useUpdateProfileMutation = () => {
   const queryClient = useQueryClient();
   const { user } = useAppSelector((state) => state.auth);
@@ -51,49 +54,32 @@ export const useUpdateProfileMutation = () => {
   return useMutation({
     mutationFn,
     onSuccess: (updatedProfile) => {
-      // Atualiza o cache com o perfil atualizado
       const queryKey =
         user?.role === "PATIENT" ? profileKeys.patient() : profileKeys.doctor();
-      queryClient.setQueryData(queryKey, updatedProfile);
 
-      // Invalida a query base 'profile' para garantir consistência
+      queryClient.setQueryData(queryKey, updatedProfile);
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
-    },
-    onError: (error) => {
-      console.error("Erro ao atualizar perfil:", error);
     },
   });
 };
 
-// === HOOK COMBINADO ===
 export const useProfile = () => {
   const { user } = useAppSelector((state) => state.auth);
   const profileQuery = useProfileQuery();
   const updateProfileMutation = useUpdateProfileMutation();
 
   return {
-    // Dados do perfil
     profile: profileQuery.data,
     user,
-
-    // Estados de loading
     isLoading: profileQuery.isLoading,
     isError: profileQuery.isError,
     isSuccess: profileQuery.isSuccess,
     isFetching: profileQuery.isFetching,
-
-    // Estados de update
     isUpdating: updateProfileMutation.isPending,
-
-    // Erros
     error: profileQuery.error?.message || null,
     updateError: updateProfileMutation.error?.message || null,
-
-    // Funções
     refetch: profileQuery.refetch,
     updateProfile: updateProfileMutation.mutateAsync,
-
-    // Status para compatibilidade com código existente
     status: profileQuery.isLoading
       ? "loading"
       : profileQuery.isError
@@ -104,33 +90,31 @@ export const useProfile = () => {
   };
 };
 
-// === HOOKS PARA DROPDOWNS E LISTAGENS ===
 export const usePatientsDropdown = () => {
   return useQuery({
-    queryKey: ["patientsDropdown"],
+    queryKey: profileKeys.patientsDropdown,
     queryFn: ProfileService.getPatientsForDropdown,
-    staleTime: 10 * 60 * 1000, // Cache de 10 minutos
+    staleTime: 10 * 60 * 1000,
   });
 };
 
 export const useAllPatients = () => {
   return useQuery({
-    queryKey: ["allPatients"],
+    queryKey: profileKeys.allPatients,
     queryFn: ProfileService.getAllPatients,
   });
 };
 
 export const useAllDoctors = () => {
   return useQuery({
-    queryKey: ["allDoctors"],
+    queryKey: profileKeys.allDoctors,
     queryFn: ProfileService.getAllDoctors,
   });
 };
 
-// === HOOKS PARA PERFIS ESPECÍFICOS ===
 export const usePatientById = (id: number) => {
   return useQuery({
-    queryKey: ["patient", id],
+    queryKey: profileKeys.patientById(id),
     queryFn: () => ProfileService.getPatientById(id),
     enabled: !!id,
   });
@@ -138,13 +122,12 @@ export const usePatientById = (id: number) => {
 
 export const useDoctorById = (id: number) => {
   return useQuery({
-    queryKey: ["doctor", id],
+    queryKey: profileKeys.doctorById(id),
     queryFn: () => ProfileService.getDoctorById(id),
     enabled: !!id,
   });
 };
 
-// === MUTATION PARA FOTO DE PERFIL ===
 export const useUpdateProfilePicture = () => {
   const queryClient = useQueryClient();
 
@@ -156,23 +139,16 @@ export const useUpdateProfilePicture = () => {
   return useMutation({
     mutationFn,
     onSuccess: () => {
-      // Invalida a query do perfil para forçar a atualização da imagem na UI
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
 };
 
-// === HOOK PARA HISTÓRICO MÉDICO ===
 export const useMedicalHistory = (patientId: number | undefined) => {
   return useQuery({
-    queryKey: ["medicalHistory", patientId],
-    queryFn: () => {
-      if (!patientId) {
-        return Promise.reject(new Error("Patient ID is not provided"));
-      }
-      return PatientService.getMedicalHistory(patientId);
-    },
+    queryKey: profileKeys.medicalHistory(patientId),
+    queryFn: () => PatientService.getMedicalHistory(patientId!),
     enabled: !!patientId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 5 * 60 * 1000,
   });
 };

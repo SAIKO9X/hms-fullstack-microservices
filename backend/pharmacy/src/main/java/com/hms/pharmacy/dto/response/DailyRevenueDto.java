@@ -7,4 +7,4 @@ public record DailyRevenueDto(
   LocalDate date,
   BigDecimal totalAmount
 ) {
-}
+} 

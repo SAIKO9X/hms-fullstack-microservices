@@ -1,11 +1,14 @@
-import { useAppSelector } from "@/store/hooks";
 import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
+import { useAppSelector } from "@/store/hooks";
+import { useRoleBasedQuery } from "../../hooks/use-role-based";
+import { PatientService, DoctorService, AppointmentService } from "@/services";
 import type {
   AdverseEffectReportCreateRequest,
   Appointment,
 } from "@/types/appointment.types";
+import type { MedicalDocumentCreateRequest } from "@/types/document.types";
+import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import type {
   AppointmentRecordFormData,
   AppointmentRecordUpdateData,
@@ -15,17 +18,12 @@ import type {
   PrescriptionUpdateData,
 } from "@/lib/schemas/prescription.schema";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
-import type { MedicalDocumentCreateRequest } from "@/types/document.types";
-import { PatientService, DoctorService, AppointmentService } from "@/services";
-import { useRoleBasedQuery } from "../../hooks/use-role-based";
 
-// Tipo estendido com informações do médico
 export interface AppointmentWithDoctor extends Appointment {
   doctorName?: string;
   doctorSpecialty?: string;
 }
 
-// Query Keys
 export const appointmentKeys = {
   all: ["appointments"] as const,
   patient: () => [...appointmentKeys.all, "patient"] as const,
@@ -48,7 +46,6 @@ export const appointmentKeys = {
     [...appointmentKeys.doctor(), "details", dateFilter || "all"] as const,
 };
 
-// === HOOKS PARA APPOINTMENTS ===
 export const useAppointments = () => {
   return useRoleBasedQuery<Appointment[]>({
     queryKey: appointmentKeys.all,
@@ -72,7 +69,6 @@ export const useDoctorAppointmentDetails = (
 
 export const useAppointmentsWithDoctorNames = () => {
   const { user } = useAppSelector((state) => state.auth);
-
   const appointmentsQuery = useAppointments();
 
   const doctorsQuery = useQuery({
@@ -83,9 +79,7 @@ export const useAppointmentsWithDoctorNames = () => {
   });
 
   const appointmentsWithDoctorNames: AppointmentWithDoctor[] = useMemo(() => {
-    if (!appointmentsQuery.data) {
-      return [];
-    }
+    if (!appointmentsQuery.data) return [];
 
     if (user?.role === "DOCTOR" || !doctorsQuery.data) {
       return appointmentsQuery.data;
@@ -132,9 +126,7 @@ export const useCreateAppointment = () => {
     mutationFn: (appointmentData: AppointmentFormData) =>
       PatientService.createAppointment(appointmentData),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.all,
-      });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -145,9 +137,7 @@ export const useCancelAppointment = () => {
   return useMutation({
     mutationFn: (id: number) => AppointmentService.cancelAppointment(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.all,
-      });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -159,9 +149,7 @@ export const useRescheduleAppointment = () => {
     mutationFn: ({ id, newDateTime }: { id: number; newDateTime: string }) =>
       AppointmentService.rescheduleAppointment(id, newDateTime),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.all,
-      });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -173,9 +161,7 @@ export const useCompleteAppointment = () => {
     mutationFn: ({ id, notes }: { id: number; notes?: string }) =>
       DoctorService.completeAppointment(id, notes),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.all,
-      });
+      queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
   });
 };
@@ -189,7 +175,6 @@ export const useDoctorsDropdown = () => {
   });
 };
 
-// === HOOKS PARA APPOINTMENT RECORDS ===
 export const useAppointmentRecord = (appointmentId: number) => {
   return useQuery({
     queryKey: appointmentKeys.record(appointmentId),
@@ -229,7 +214,6 @@ export const useUpdateAppointmentRecord = () => {
   });
 };
 
-// === HOOKS PARA PRESCRIPTIONS ===
 export const usePrescription = (appointmentId: number) => {
   return useQuery({
     queryKey: appointmentKeys.prescription(appointmentId),
@@ -269,7 +253,6 @@ export const useUpdatePrescription = () => {
   });
 };
 
-// === HOOKS PARA DASHBOARD DO PACIENTE ===
 export const useNextAppointment = () => {
   return useQuery({
     queryKey: appointmentKeys.next(),
@@ -325,7 +308,6 @@ export const useCreateAdverseEffectReport = () => {
   });
 };
 
-// === HOOKS PARA DOCUMENTOS MÉDICOS ===
 export const useMyDocuments = () => {
   return useQuery({
     queryKey: appointmentKeys.myDocuments(),
@@ -369,7 +351,6 @@ export const useDeleteMedicalDocument = () => {
   });
 };
 
-// === HOOKS PARA DASHBOARD DO MÉDICO ===
 export const useDoctorDashboardStats = () => {
   return useQuery({
     queryKey: ["doctorDashboardStats"],

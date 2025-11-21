@@ -31,8 +31,7 @@ import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedic
 import { AdminDoctorSchedulePage } from "@/features/admin/pages/AdminDoctorSchedulePage";
 import { AdminDoctorHistoryPage } from "@/features/admin/pages/AdminDoctorHistoryPage";
 import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
-
-const DoctorHomePage = () => <h2>Bem-vindo, Doutor!</h2>;
+import { ProfileCompletionGuard } from "./ProfileCompletionGuard";
 
 export const AppRoutes = () => {
   return (
@@ -50,38 +49,42 @@ export const AppRoutes = () => {
       {/* --- Rotas Privadas --- */}
       <Route element={<PrivateRoute />}>
         {/* Paciente */}
-        <Route element={<RoleBasedGuard allowedRoles={["PATIENT"]} />}>
-          <Route path="/patient/*" element={<PatientDashboard />}>
-            <Route path="dashboard" element={<PatientDashboardPage />} />
-            <Route path="profile" element={<PatientProfilePage />} />
-            <Route path="appointments" element={<PatientAppointmentsPage />} />
-            <Route
-              path="appointments/:id"
-              element={<PatientAppointmentDetailPage />}
-            />
-            <Route
-              path="prescriptions"
-              element={<PatientPrescriptionsPage />}
-            />
-            <Route path="documents" element={<PatientDocumentsPage />} />
-            <Route
-              path="medical-history"
-              element={<PatientMedicalHistoryPage />}
-            />
+        <Route element={<ProfileCompletionGuard />}>
+          <Route element={<RoleBasedGuard allowedRoles={["PATIENT"]} />}>
+            <Route path="/patient/*" element={<PatientDashboard />}>
+              <Route path="dashboard" element={<PatientDashboardPage />} />
+              <Route path="profile" element={<PatientProfilePage />} />
+              <Route
+                path="appointments"
+                element={<PatientAppointmentsPage />}
+              />
+              <Route
+                path="appointments/:id"
+                element={<PatientAppointmentDetailPage />}
+              />
+              <Route
+                path="prescriptions"
+                element={<PatientPrescriptionsPage />}
+              />
+              <Route path="documents" element={<PatientDocumentsPage />} />
+              <Route
+                path="medical-history"
+                element={<PatientMedicalHistoryPage />}
+              />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Doutor */}
-        <Route element={<RoleBasedGuard allowedRoles={["DOCTOR"]} />}>
-          <Route path="/doctor/*" element={<DoctorDashboard />}>
-            <Route path="dashboard" element={<DoctorDashboardPage />} />
-            <Route path="dashboard" element={<DoctorHomePage />} />
-            <Route path="profile" element={<DoctorProfilePage />} />
-            <Route path="appointments" element={<DoctorAppointmentsPage />} />
-            <Route
-              path="appointments/:id"
-              element={<DoctorAppointmentsDetailPage />}
-            />
+          {/* Doutor */}
+          <Route element={<RoleBasedGuard allowedRoles={["DOCTOR"]} />}>
+            <Route path="/doctor/*" element={<DoctorDashboard />}>
+              <Route path="dashboard" element={<DoctorDashboardPage />} />
+              <Route path="profile" element={<DoctorProfilePage />} />
+              <Route path="appointments" element={<DoctorAppointmentsPage />} />
+              <Route
+                path="appointments/:id"
+                element={<DoctorAppointmentsDetailPage />}
+              />
+            </Route>
           </Route>
         </Route>
 

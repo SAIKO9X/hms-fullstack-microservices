@@ -1,19 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/config/axios";
+import { AdminService } from "@/services";
 import type {
   AdminDashboardStats,
   DailyActivity,
   DoctorStatus,
 } from "@/types/admin.types";
-import { AdminService } from "@/services";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
 import type { UserResponse } from "@/types/auth.types";
 import type { AppointmentDetail } from "@/types/appointment.types";
 import type { MedicalHistory } from "@/types/patient.types";
 
+export const adminKeys = {
+  stats: ["adminDashboardStats"] as const,
+  appointmentsToday: ["appointmentsTodayCount"] as const,
+  dailyActivity: ["dailyActivity"] as const,
+  doctorsStatus: ["doctorsStatus"] as const,
+  allUsers: ["allUsers"] as const,
+  doctorAppointments: (id: number) => ["adminDoctorAppointments", id] as const,
+  patientHistory: (id: number) => ["adminPatientMedicalHistory", id] as const,
+};
+
 export const useAdminProfileCounts = () => {
   return useQuery<AdminDashboardStats>({
-    queryKey: ["adminDashboardStats"],
+    queryKey: adminKeys.stats,
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/counts");
       return data;
@@ -24,7 +34,7 @@ export const useAdminProfileCounts = () => {
 
 export const useAppointmentsTodayCount = () => {
   return useQuery<number>({
-    queryKey: ["appointmentsTodayCount"],
+    queryKey: adminKeys.appointmentsToday,
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/appointments-today");
       return data;
@@ -35,7 +45,7 @@ export const useAppointmentsTodayCount = () => {
 
 export const useDailyActivity = () => {
   return useQuery<DailyActivity[]>({
-    queryKey: ["dailyActivity"],
+    queryKey: adminKeys.dailyActivity,
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/daily-activity");
       return data;
@@ -46,7 +56,7 @@ export const useDailyActivity = () => {
 
 export const useDoctorsStatus = () => {
   return useQuery<DoctorStatus[]>({
-    queryKey: ["doctorsStatus"],
+    queryKey: adminKeys.doctorsStatus,
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/doctors-status");
       return data;
@@ -62,13 +72,9 @@ export const useUpdateUserStatusMutation = () => {
   return useMutation({
     mutationFn: AdminService.updateUserStatus,
     onSuccess: () => {
-      // Quando a mutação for bem-sucedida, os dados de pacientes e médicos estão desatualizados.
-      // Invalidamos as queries para forçar o React Query a buscar os dados mais recentes.
       queryClient.invalidateQueries({ queryKey: ["allPatients"] });
       queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-    },
-    onError: (error) => {
-      console.error("Erro ao atualizar o status do utilizador:", error);
+      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
     },
   });
 };
@@ -80,12 +86,9 @@ export const useAdminCreateUserMutation = () => {
     mutationFn: (userData: AdminCreateUserFormData) =>
       AdminService.adminCreateUser(userData),
     onSuccess: () => {
-      // Invalida as listas de pacientes e médicos para forçar a atualização da tabela.
       queryClient.invalidateQueries({ queryKey: ["allPatients"] });
       queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-    },
-    onError: (error) => {
-      console.error("Erro ao criar utilizador:", error);
+      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
     },
   });
 };
@@ -98,16 +101,14 @@ export const useAdminUpdateUserMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["allPatients"] });
       queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-    },
-    onError: (error) => {
-      console.error("Erro ao atualizar utilizador:", error);
+      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
     },
   });
 };
 
 export const useAllUsers = () => {
   return useQuery<UserResponse[]>({
-    queryKey: ["allUsers"],
+    queryKey: adminKeys.allUsers,
     queryFn: async () => {
       const { data } = await api.get("/users/all");
       return data;
@@ -118,15 +119,8 @@ export const useAllUsers = () => {
 
 export const useAdminDoctorAppointments = (doctorId: number | undefined) => {
   return useQuery<AppointmentDetail[]>({
-    queryKey: ["adminDoctorAppointments", doctorId],
-    queryFn: () => {
-      // Se não tiver um doctorId, rejeita a promise
-      if (!doctorId) {
-        return Promise.reject(new Error("Doctor ID is required"));
-      }
-      return AdminService.getAppointmentsByDoctorId(doctorId);
-    },
-    // A query só será executada (enabled) se o doctorId existir
+    queryKey: adminKeys.doctorAppointments(doctorId!),
+    queryFn: () => AdminService.getAppointmentsByDoctorId(doctorId!),
     enabled: !!doctorId,
     staleTime: 5 * 60 * 1000,
   });
@@ -136,14 +130,9 @@ export const useAdminPatientMedicalHistory = (
   patientId: number | undefined
 ) => {
   return useQuery<MedicalHistory>({
-    queryKey: ["adminPatientMedicalHistory", patientId],
-    queryFn: () => {
-      if (!patientId) {
-        return Promise.reject(new Error("Patient ID is required"));
-      }
-      return AdminService.getPatientMedicalHistoryById(patientId);
-    },
-    enabled: !!patientId, // Só executa se patientId existir
+    queryKey: adminKeys.patientHistory(patientId!),
+    queryFn: () => AdminService.getPatientMedicalHistoryById(patientId!),
+    enabled: !!patientId,
     staleTime: 5 * 60 * 1000,
   });
 };
