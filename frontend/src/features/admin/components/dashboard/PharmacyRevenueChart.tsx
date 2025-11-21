@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -6,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getPharmacyStats } from "@/services/pharmacy";
 import {
   Area,
   AreaChart,
@@ -16,29 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Loader2 } from "lucide-react";
-import type { PharmacyFinancialStats } from "@/types/stats.types";
+import { Loader2, AlertCircle } from "lucide-react";
+import { usePharmacyStats } from "@/services/queries/pharmacy-queries";
 
 export function PharmacyRevenueChart() {
-  const [stats, setStats] = useState<PharmacyFinancialStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading, isError } = usePharmacyStats();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await getPharmacyStats();
-        setStats(data);
-      } catch (error) {
-        console.error("Erro ao carregar estatísticas da farmácia:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="col-span-4">
         <CardHeader>
@@ -52,13 +34,22 @@ export function PharmacyRevenueChart() {
     );
   }
 
-  if (!stats) {
+  if (isError || !stats) {
     return (
-      <Card className="col-span-4">
+      <Card className="col-span-4 border-destructive/50">
         <CardHeader>
-          <CardTitle>Receita da Farmácia</CardTitle>
-          <CardDescription>Não foi possível carregar os dados.</CardDescription>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Erro de Carregamento
+          </CardTitle>
+          <CardDescription>
+            Não foi possível carregar os dados financeiros. Tente novamente mais
+            tarde.
+          </CardDescription>
         </CardHeader>
+        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
+          Sem dados disponíveis
+        </CardContent>
       </Card>
     );
   }
@@ -68,10 +59,8 @@ export function PharmacyRevenueChart() {
     return new Date(year, month - 1, day);
   };
 
-  // converter data string para formato legível se necessário
   const chartData = stats.dailyBreakdown.map((item) => {
     const dateObj = parseLocalDate(item.date);
-
     return {
       date: dateObj.toLocaleDateString("pt-BR", {
         day: "2-digit",
@@ -81,8 +70,6 @@ export function PharmacyRevenueChart() {
       fullDate: item.date,
     };
   });
-
-  console.log("Dados do Gráfico:", chartData);
 
   return (
     <Card className="col-span-4">
@@ -125,6 +112,11 @@ export function PharmacyRevenueChart() {
                 tickFormatter={(value) => `R$${value}`}
               />
               <Tooltip
+                contentStyle={{
+                  borderRadius: "8px",
+                  border: "none",
+                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                }}
                 formatter={(value: number) => [
                   new Intl.NumberFormat("pt-BR", {
                     style: "currency",

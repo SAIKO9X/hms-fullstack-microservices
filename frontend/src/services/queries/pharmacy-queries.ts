@@ -11,6 +11,7 @@ export const pharmacyKeys = {
   medicines: ["medicines"] as const,
   inventory: ["inventory"] as const,
   sales: ["sales"] as const,
+  stats: ["pharmacyStats"] as const,
 };
 
 export const useAddMedicine = () => {
@@ -130,5 +131,13 @@ export const useSales = () => {
   return useQuery({
     queryKey: pharmacyKeys.sales,
     queryFn: PharmacyService.getAllSales,
+  });
+};
+
+export const usePharmacyStats = () => {
+  return useQuery({
+    queryKey: pharmacyKeys.stats,
+    queryFn: PharmacyService.getPharmacyStats,
+    staleTime: 5 * 60 * 1000, // Cache de 5 minutos para não sobrecarregar o backend
   });
 };
