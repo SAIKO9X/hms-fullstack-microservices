@@ -15,4 +15,7 @@ public interface AppointmentFeignClient {
 
   @GetMapping("/patient/appointments/history/{patientId}")
   List<AppointmentResponse> getAppointmentHistoryForPatient(@PathVariable("patientId") Long patientId);
+
+  @GetMapping("/appointments/{id}")
+  AppointmentResponse getAppointmentById(@PathVariable("id") Long id);
 }

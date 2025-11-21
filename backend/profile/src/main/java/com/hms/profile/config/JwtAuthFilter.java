@@ -1,4 +1,4 @@
-package com.hms.profile.config; // Garanta que o pacote esteja correto
+package com.hms.profile.config;
 
 import com.hms.profile.services.JwtService;
 import jakarta.servlet.FilterChain;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -30,28 +30,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @NonNull FilterChain filterChain
   ) throws ServletException, IOException {
     final String authHeader = request.getHeader("Authorization");
+    final String jwt;
+    final String userEmail;
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
       filterChain.doFilter(request, response);
       return;
     }
 
-    final String jwt = authHeader.substring(7);
-    final String userEmail = jwtService.extractUsername(jwt);
+    jwt = authHeader.substring(7);
+    userEmail = jwtService.extractUsername(jwt);
 
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      // Extrai a 'role' diretamente do token
+      Long userId = jwtService.extractUserId(jwt);
       String role = jwtService.extractClaim(jwt, claims -> claims.get("role", String.class));
-      var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
 
-      // Cria o objeto de autenticação com base nos dados do token, sem consultar o BD
-      UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+      // Cria o UserPrincipal com os dados do token (sem ir ao banco)
+      UserPrincipal userPrincipal = new UserPrincipal(
+        userId,
         userEmail,
-        null,
-        authorities
+        List.of(new SimpleGrantedAuthority("ROLE_" + role))
       );
-      authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-      SecurityContextHolder.getContext().setAuthentication(authToken);
+
+      if (jwtService.isTokenValid(jwt, userPrincipal)) {
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+          userPrincipal,
+          null,
+          userPrincipal.getAuthorities()
+        );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+      }
     }
     filterChain.doFilter(request, response);
   }

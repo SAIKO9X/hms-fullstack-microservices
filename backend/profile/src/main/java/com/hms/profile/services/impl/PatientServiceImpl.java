@@ -32,7 +32,6 @@ public class PatientServiceImpl implements PatientService {
       throw new ProfileAlreadyExistsException("Um perfil para este usuário ou CPF já existe.");
     }
 
-    // Mapeamento do DTO para a Entidade
     Patient newPatient = new Patient();
     newPatient.setUserId(request.userId());
     newPatient.setCpf(request.cpf());
@@ -40,7 +39,6 @@ public class PatientServiceImpl implements PatientService {
 
     Patient savedPatient = patientRepository.save(newPatient);
 
-    // Converte a entidade salva para o DTO de resposta
     return PatientResponse.fromEntity(savedPatient);
   }
 
