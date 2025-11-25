@@ -1,12 +1,23 @@
 import { useParams, Link } from "react-router";
 import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
-  useDoctorAppointmentDetails,
-  useAppointmentRecord,
-  usePrescription,
-  useRescheduleAppointment,
-  useDocumentsByPatientId,
-} from "@/services/queries/appointment-queries";
+  Calendar,
+  Clock,
+  Phone,
+  User,
+  FileText,
+  TestTube,
+  Stethoscope,
+  Pill,
+  Edit,
+  CheckCircle,
+  AlertCircle,
+  FolderOpen,
+  Eye,
+  Download,
+} from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,27 +37,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AppointmentRecordForm } from "@/features/doctor/components/AppointmentRecordForm";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  Calendar,
-  Clock,
-  Phone,
-  User,
-  FileText,
-  TestTube,
-  Stethoscope,
-  Pill,
-  Edit,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+import { AppointmentRecordForm } from "@/features/doctor/components/AppointmentRecordForm";
 import { PrescriptionForm } from "@/features/doctor/components/PrescriptionForm";
 import { RescheduleDialog } from "@/features/doctor/components/RescheduleDialog";
-import type { AppointmentDetail } from "@/types/appointment.types";
 import { AddDocumentDialog } from "@/features/patient/components/AddDocumentDialog";
+import {
+  useDoctorAppointmentDetails,
+  useAppointmentRecord,
+  usePrescription,
+  useRescheduleAppointment,
+  useDocumentsByPatientId,
+} from "@/services/queries/appointment-queries";
+import type { AppointmentDetail } from "@/types/appointment.types";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -73,16 +76,13 @@ export const DoctorAppointmentsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const appointmentId = Number(id);
   const [isAddDocOpen, setIsAddDocOpen] = useState(false);
-
   const [notification, setNotification] = useState<{
     message: string;
     type: "success" | "error";
   } | null>(null);
-
   const [editingSection, setEditingSection] = useState<
     "record" | "prescription" | null
   >(null);
-
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
 
   const { data: appointments, isLoading: isLoadingAppointments } =
@@ -106,10 +106,8 @@ export const DoctorAppointmentsDetailPage = () => {
     (app: AppointmentDetail) => app.id === appointmentId
   );
 
-  const { refetch: refetchDocuments } = useDocumentsByPatientId(
-    appointment?.patientId,
-    !!appointment
-  );
+  const { data: documents, refetch: refetchDocuments } =
+    useDocumentsByPatientId(appointment?.patientId, !!appointment);
 
   const isLoading =
     isLoadingAppointments || isLoadingRecord || isLoadingPrescription;
@@ -120,7 +118,7 @@ export const DoctorAppointmentsDetailPage = () => {
       type: "success",
     });
     setEditingSection(null);
-    refetchRecord(); // Força um refetch dos dados
+    refetchRecord();
   };
 
   const handlePrescriptionSuccess = () => {
@@ -129,7 +127,15 @@ export const DoctorAppointmentsDetailPage = () => {
       type: "success",
     });
     setEditingSection(null);
-    refetchPrescription(); // Força um refetch dos dados
+    refetchPrescription();
+  };
+
+  const handleDocumentSuccess = () => {
+    setNotification({
+      message: "Documento enviado com sucesso!",
+      type: "success",
+    });
+    refetchDocuments();
   };
 
   const handleRescheduleAppointment = async (
@@ -189,14 +195,6 @@ export const DoctorAppointmentsDetailPage = () => {
     );
   }
 
-  const handleDocumentSuccess = () => {
-    setNotification({
-      message: "Documento enviado com sucesso!",
-      type: "success",
-    });
-    refetchDocuments(); // Atualiza a lista de documentos
-  };
-
   const statusConfig = getStatusConfig(appointment.status);
   const StatusIcon = statusConfig.icon;
 
@@ -211,7 +209,6 @@ export const DoctorAppointmentsDetailPage = () => {
         />
       )}
 
-      {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -232,9 +229,7 @@ export const DoctorAppointmentsDetailPage = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* Header da Consulta */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Informações do Paciente */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-start justify-between">
@@ -292,7 +287,6 @@ export const DoctorAppointmentsDetailPage = () => {
           </CardContent>
         </Card>
 
-        {/* Status e Ações */}
         <Card className="flex justify-center">
           <CardHeader>
             <CardTitle>Ações Rápidas</CardTitle>
@@ -325,9 +319,8 @@ export const DoctorAppointmentsDetailPage = () => {
         </Card>
       </div>
 
-      {/* Tabs de Conteúdo */}
       <Tabs defaultValue="record" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
           <TabsTrigger value="record" className="flex items-center gap-2">
             <Stethoscope className="h-4 w-4" />
             <span className="hidden sm:inline">Registo</span>
@@ -343,6 +336,10 @@ export const DoctorAppointmentsDetailPage = () => {
           >
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Documentos</span>
           </TabsTrigger>
         </TabsList>
 
@@ -360,7 +357,6 @@ export const DoctorAppointmentsDetailPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Mostra o formulário de edição se estiver editando OU se não há registo */}
               {editingSection === "record" || !record ? (
                 <AppointmentRecordForm
                   appointmentId={appointmentId}
@@ -370,7 +366,6 @@ export const DoctorAppointmentsDetailPage = () => {
                 />
               ) : (
                 <div className="space-y-6">
-                  {/* Sintomas */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 bg-primary rounded-full"></div>
@@ -385,7 +380,6 @@ export const DoctorAppointmentsDetailPage = () => {
                     </div>
                   </div>
 
-                  {/* Diagnóstico */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 bg-primary rounded-full"></div>
@@ -396,7 +390,6 @@ export const DoctorAppointmentsDetailPage = () => {
                     </p>
                   </div>
 
-                  {/* Testes */}
                   {record.tests && record.tests.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -413,7 +406,6 @@ export const DoctorAppointmentsDetailPage = () => {
                     </div>
                   )}
 
-                  {/* Notas */}
                   {record.notes && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -455,7 +447,6 @@ export const DoctorAppointmentsDetailPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Mostra o formulário de edição se estiver editando OU se não há prescrição */}
               {editingSection === "prescription" || !prescription ? (
                 <PrescriptionForm
                   appointmentId={appointmentId}
@@ -485,7 +476,6 @@ export const DoctorAppointmentsDetailPage = () => {
                     </div>
                   )}
 
-                  {/* Botão de editar prescrição */}
                   <div className="flex justify-end pt-4 border-t">
                     <Button
                       variant="outline"
@@ -529,15 +519,65 @@ export const DoctorAppointmentsDetailPage = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <span>Documentos do Paciente</span>
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5" />
+                  <span>Documentos do Paciente</span>
+                </div>
                 <Button onClick={() => setIsAddDocOpen(true)}>
                   Adicionar Documento
                 </Button>
               </CardTitle>
+              <CardDescription>
+                Exames e arquivos anexados a este paciente
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Aqui pode listar os documentos. Por agora, uma mensagem. */}
-              <p>A lista de documentos aparecerá aqui.</p>
+              {!documents || documents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                  <FolderOpen className="h-10 w-10 mb-2 opacity-20" />
+                  <p>Nenhum documento encontrado.</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {documents.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 text-blue-600 rounded">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{doc.fileName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {doc.fileType} •{" "}
+                            {format(new Date(doc.uploadedAt), "dd/MM/yyyy", {
+                              locale: ptBR,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" asChild>
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button variant="ghost" size="icon" asChild>
+                          <a href={doc.fileUrl} download>
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -551,7 +591,6 @@ export const DoctorAppointmentsDetailPage = () => {
         patientId={appointment.patientId}
       />
 
-      {/* Reschedule Dialog */}
       {appointment && (
         <RescheduleDialog
           open={rescheduleDialogOpen}

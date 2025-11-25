@@ -15,13 +15,13 @@ import {
   Home,
   Settings,
   Calendar,
-  UserCheck,
   Shield,
   Stethoscope,
   FileText,
   Heart,
   Clipboard,
   UserPen,
+  UserRoundSearch,
 } from "lucide-react";
 
 export const PatientSidebar = () => {
@@ -48,7 +48,11 @@ export const PatientSidebar = () => {
       icon: Calendar,
     },
     { url: "/patient/documents", title: "Documentos", icon: FileText },
-
+    {
+      icon: UserRoundSearch,
+      title: "Encontrar Médicos",
+      url: "/patient/doctors",
+    },
     {
       title: "Exames",
       url: "/patient/exams",

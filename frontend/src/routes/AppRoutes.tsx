@@ -32,6 +32,8 @@ import { AdminDoctorSchedulePage } from "@/features/admin/pages/AdminDoctorSched
 import { AdminDoctorHistoryPage } from "@/features/admin/pages/AdminDoctorHistoryPage";
 import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
 import { ProfileCompletionGuard } from "./ProfileCompletionGuard";
+import { PatientDoctorsListPage } from "@/features/patient/pages/PatientDoctorsListPage";
+import { PatientViewDoctorProfilePage } from "@/features/patient/pages/PatientViewDoctorProfilePage";
 
 export const AppRoutes = () => {
   return (
@@ -70,6 +72,11 @@ export const AppRoutes = () => {
               <Route
                 path="medical-history"
                 element={<PatientMedicalHistoryPage />}
+              />
+              <Route path="doctors" element={<PatientDoctorsListPage />} />
+              <Route
+                path="doctors/:id"
+                element={<PatientViewDoctorProfilePage />}
               />
             </Route>
           </Route>

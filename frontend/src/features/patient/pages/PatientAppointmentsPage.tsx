@@ -11,6 +11,7 @@ import { columns } from "@/features/patient/components/appointmentsColumns";
 import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { CreateAppointmentDialog } from "../components/CreateAppointmentDialog";
+import { useNavigate } from "react-router";
 
 export const PatientAppointmentsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -24,6 +25,8 @@ export const PatientAppointmentsPage = () => {
     variant: "info",
     title: "",
   });
+
+  const navigate = useNavigate();
 
   const {
     data: appointments,
@@ -202,7 +205,10 @@ export const PatientAppointmentsPage = () => {
       {/* Data Table */}
       <div className="bg-card rounded-lg border shadow-sm">
         <DataTable
-          columns={columns({ handleCancelAppointment })}
+          columns={columns({
+            handleCancelAppointment,
+            handleViewDetails: (id) => navigate(`/patient/appointments/${id}`),
+          })}
           data={appointments || []}
         />
       </div>

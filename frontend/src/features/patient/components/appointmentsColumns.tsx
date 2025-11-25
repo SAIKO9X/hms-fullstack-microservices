@@ -15,7 +15,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Appointment, AppointmentStatus } from "@/types/appointment.types";
 
-// Helper para os badges de status
 const getStatusBadge = (status: AppointmentStatus) => {
   const statusConfig = {
     SCHEDULED: { label: "Agendada", className: "bg-blue-100 text-blue-800" },
@@ -34,8 +33,10 @@ const getStatusBadge = (status: AppointmentStatus) => {
   );
 };
 
+// 1. Adicionamos handleViewDetails à tipagem das opções
 export const columns = (options: {
   handleCancelAppointment: (appointmentId: number) => void;
+  handleViewDetails: (appointmentId: number) => void;
 }): ColumnDef<Appointment>[] => [
   {
     id: "select",
@@ -107,18 +108,22 @@ export const columns = (options: {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
+            {/* 2. Chamamos a função de navegação aqui */}
             <DropdownMenuItem
-              onClick={() => console.log("Ver detalhes", appointment.id)}
+              onClick={() => options.handleViewDetails(appointment.id)}
+              className="cursor-pointer"
             >
               Ver Detalhes
             </DropdownMenuItem>
-            <DropdownMenuItem>Reagendar</DropdownMenuItem>
+
+            {/* Reagendar pode ser implementado futuramente */}
+            <DropdownMenuItem disabled>Reagendar</DropdownMenuItem>
+
             <DropdownMenuSeparator />
-            {/* 2. LIGAR A FUNÇÃO E DESATIVAR QUANDO NECESSÁRIO */}
             <DropdownMenuItem
               onClick={() => options.handleCancelAppointment(appointment.id)}
               disabled={!canCancel}
-              className="text-destructive"
+              className="text-destructive cursor-pointer"
             >
               Cancelar
             </DropdownMenuItem>

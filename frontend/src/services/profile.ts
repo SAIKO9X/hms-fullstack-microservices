@@ -5,6 +5,11 @@ import type {
 } from "@/lib/schemas/profile.schema";
 import type { DoctorProfile } from "@/types/doctor.types";
 import type { PatientProfile } from "@/types/patient.types";
+import type {
+  DoctorRatingStats,
+  ReviewRequest,
+  ReviewResponse,
+} from "@/types/review.types";
 
 export const getMyPatientProfile = async (): Promise<PatientProfile> => {
   const { data } = await api.get("/profile/patients");
@@ -67,4 +72,25 @@ export const updateMyDoctorProfilePicture = async (
   pictureUrl: string
 ): Promise<void> => {
   await api.put("/profile/doctors/picture", { pictureUrl });
+};
+
+export const createReview = async (
+  reviewData: ReviewRequest
+): Promise<ReviewResponse> => {
+  const { data } = await api.post("/profile/reviews", reviewData);
+  return data;
+};
+
+export const getDoctorStats = async (
+  doctorId: number
+): Promise<DoctorRatingStats> => {
+  const { data } = await api.get(`/profile/reviews/doctor/${doctorId}/stats`);
+  return data;
+};
+
+export const getDoctorReviews = async (
+  doctorId: number
+): Promise<ReviewResponse[]> => {
+  const { data } = await api.get(`/profile/reviews/doctor/${doctorId}`);
+  return data;
 };

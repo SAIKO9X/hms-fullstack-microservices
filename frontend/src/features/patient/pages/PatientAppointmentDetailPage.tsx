@@ -1,8 +1,9 @@
 import { useParams, Link } from "react-router";
-import {
-  useAppointmentById,
-  useAppointmentsWithDoctorNames,
-} from "@/services/queries/appointment-queries";
+import { useState } from "react";
+import { useAppSelector } from "@/store/hooks";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Calendar,
@@ -19,11 +21,14 @@ import {
   User,
   Stethoscope,
   FileText,
+  Star,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useAppSelector } from "@/store/hooks";
+
+import {
+  useAppointmentById,
+  useAppointmentsWithDoctorNames,
+} from "@/services/queries/appointment-queries";
+import { CreateReviewDialog } from "../components/CreateReviewDialog";
 
 const statusConfig = {
   SCHEDULED: {
@@ -46,12 +51,14 @@ const statusConfig = {
 
 export const PatientAppointmentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const appointmentId = Number(id);
   const { user } = useAppSelector((state) => state.auth);
 
-  // Usamos o hook que já busca os nomes dos médicos para enriquecer os dados
-  const { data: appointment, isLoading } = useAppointmentById(appointmentId);
+  const appointmentId = Number(id);
+
   const { data: doctors } = useAppointmentsWithDoctorNames();
+  const { data: appointment, isLoading } = useAppointmentById(appointmentId);
+
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
   const doctorName =
     doctors?.find((doc) => doc.doctorId === appointment?.doctorId)
@@ -68,7 +75,9 @@ export const PatientAppointmentDetailPage = () => {
   }
 
   if (!appointment) {
-    return <div>Consulta não encontrada.</div>;
+    return (
+      <div className="container mx-auto py-8">Consulta não encontrada.</div>
+    );
   }
 
   const currentStatus = statusConfig[
@@ -122,6 +131,7 @@ export const PatientAppointmentDetailPage = () => {
               value={user?.name || "Você"}
             />
           </div>
+
           <div>
             <InfoItem
               icon={FileText}
@@ -129,13 +139,32 @@ export const PatientAppointmentDetailPage = () => {
               value={appointment.reason}
             />
           </div>
-          <div className="flex justify-end">
+
+          <div className="flex justify-between items-center border-t pt-4 mt-4">
             <Badge variant="outline" className={currentStatus.className}>
               {currentStatus.label}
             </Badge>
+
+            {appointment.status === "COMPLETED" && (
+              <Button
+                onClick={() => setIsReviewDialogOpen(true)}
+                className="gap-2"
+              >
+                <Star className="h-4 w-4" />
+                Avaliar Consulta
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      <CreateReviewDialog
+        open={isReviewDialogOpen}
+        onOpenChange={setIsReviewDialogOpen}
+        appointmentId={appointmentId}
+        doctorId={appointment.doctorId}
+        doctorName={doctorName}
+      />
     </div>
   );
 };

@@ -1,18 +1,23 @@
 import { useRef, useState } from "react";
 import { Edit } from "lucide-react";
-import type { DoctorProfile } from "@/types/doctor.types";
-import type { DoctorProfileFormData } from "@/lib/schemas/profile.schema";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileInfoTable } from "@/features/patient/components/ProfileInfoTable";
 import { EditDoctorProfileDialog } from "@/features/doctor/components/EditDoctorProfileDialog";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
+import { StarRating } from "@/components/shared/StarRating";
 import {
   useProfile,
   useUpdateProfilePicture,
 } from "@/services/queries/profile-queries";
 import { uploadFile } from "@/services/media";
+import { getDoctorReviews, getDoctorStats } from "@/services/profile";
+import type { DoctorProfile } from "@/types/doctor.types";
+import type { DoctorProfileFormData } from "@/lib/schemas/profile.schema";
+
+const API_BASE_URL = "http://localhost:9000";
 
 export const DoctorProfilePage = () => {
   const {
@@ -34,7 +39,57 @@ export const DoctorProfilePage = () => {
     title: string;
   } | null>(null);
 
-  // Verificar se o usuário é doutor
+  const doctorId = profile?.id;
+
+  const { data: stats } = useQuery({
+    queryKey: ["doctor-stats", doctorId],
+    queryFn: () => getDoctorStats(doctorId!),
+    enabled: !!doctorId,
+  });
+
+  const { data: reviews } = useQuery({
+    queryKey: ["doctor-reviews", doctorId],
+    queryFn: () => getDoctorReviews(doctorId!),
+    enabled: !!doctorId,
+  });
+
+  const handleSaveProfile = async (data: DoctorProfileFormData) => {
+    try {
+      await updateProfile(data);
+      setIsDialogOpen(false);
+      setActionNotification({
+        variant: "success",
+        title: "Perfil atualizado com sucesso!",
+      });
+    } catch (err: any) {
+      setActionNotification({
+        variant: "error",
+        title: err.message || "Não foi possível salvar as alterações.",
+      });
+    }
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const mediaResponse = await uploadFile(file);
+      await updatePictureMutation.mutateAsync(mediaResponse.url);
+      setActionNotification({
+        variant: "success",
+        title: "Foto de perfil atualizada com sucesso!",
+      });
+    } catch (err: any) {
+      setActionNotification({
+        variant: "error",
+        title: "Erro ao atualizar a foto",
+      });
+    }
+  };
+
   if (user?.role !== "DOCTOR") {
     return (
       <div className="text-center p-10 text-red-500">
@@ -63,7 +118,6 @@ export const DoctorProfilePage = () => {
     );
   }
 
-  // Perfil não encontrado
   if (status === "succeeded" && !profile) {
     return (
       <div className="container mx-auto p-4">
@@ -76,10 +130,8 @@ export const DoctorProfilePage = () => {
     );
   }
 
-  // Agora sabemos que profile existe
   const doctorProfile = profile as DoctorProfile;
 
-  // Verificar se o perfil está incompleto (só tem campos básicos preenchidos)
   const isProfileIncomplete =
     doctorProfile &&
     !doctorProfile.specialization &&
@@ -119,48 +171,8 @@ export const DoctorProfilePage = () => {
     },
   ];
 
-  const handleSaveProfile = async (data: DoctorProfileFormData) => {
-    try {
-      await updateProfile(data);
-      setIsDialogOpen(false);
-      setActionNotification({
-        variant: "success",
-        title: "Perfil atualizado com sucesso!",
-      });
-    } catch (err: any) {
-      setActionNotification({
-        variant: "error",
-        title: err.message || "Não foi possível salvar as alterações.",
-      });
-    }
-  };
-
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const mediaResponse = await uploadFile(file);
-      await updatePictureMutation.mutateAsync(mediaResponse.url);
-      setActionNotification({
-        variant: "success",
-        title: "Foto de perfil atualizada com sucesso!",
-      });
-    } catch (err: any) {
-      setActionNotification({
-        variant: "error",
-        title: "Erro ao atualizar a foto",
-      });
-    }
-  };
-
-  const API_BASE_URL = "http://localhost:9000";
-
   return (
     <div className="container mx-auto p-4 space-y-8">
-      {/* Aviso para perfil incompleto */}
       {isProfileIncomplete && (
         <CustomNotification
           variant="info"
@@ -182,7 +194,6 @@ export const DoctorProfilePage = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-center gap-6">
-            {/* INÍCIO DA ALTERAÇÃO */}
             <div className="relative group">
               <Avatar className="h-24 w-24">
                 <AvatarImage
@@ -215,9 +226,8 @@ export const DoctorProfilePage = () => {
                 accept="image/png, image/jpeg, image/gif"
               />
             </div>
-            {/* FIM DA ALTERAÇÃO */}
 
-            <div className="flex-1 text-center sm:text-left">
+            <div className="flex-1 text-center sm:text-left space-y-1">
               <CardTitle className="text-2xl">
                 Dr. {user?.name || "Nome não informado"}
               </CardTitle>
@@ -225,10 +235,18 @@ export const DoctorProfilePage = () => {
                 {doctorProfile?.specialization ||
                   "Especialização não informada"}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground">
                 CRM: {doctorProfile?.crmNumber || "Não informado"}
               </p>
+
+              <div className="flex items-center gap-2 justify-center sm:justify-start pt-1">
+                <StarRating rating={stats?.averageRating || 0} readOnly />
+                <span className="text-sm text-muted-foreground">
+                  ({stats?.totalReviews || 0} avaliações)
+                </span>
+              </div>
             </div>
+
             <Button
               variant="outline"
               onClick={() => setIsDialogOpen(true)}
@@ -242,7 +260,6 @@ export const DoctorProfilePage = () => {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Coluna da Esquerda */}
         <div className="space-y-8">
           <ProfileInfoTable
             title="Informações Pessoais"
@@ -254,7 +271,6 @@ export const DoctorProfilePage = () => {
           />
         </div>
 
-        {/* Coluna da Direita */}
         <div className="space-y-8">
           <Card>
             <CardHeader>
@@ -276,6 +292,38 @@ export const DoctorProfilePage = () => {
           </Card>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Avaliações dos Pacientes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!reviews || reviews.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              Ainda não existem avaliações com comentários.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="border-b pb-4 last:border-0 last:pb-0"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <StarRating rating={review.rating} readOnly size={16} />
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(review.createdAt).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 italic">
+                    "{review.comment || "Sem comentário escrito."}"
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <EditDoctorProfileDialog
         open={isDialogOpen}
