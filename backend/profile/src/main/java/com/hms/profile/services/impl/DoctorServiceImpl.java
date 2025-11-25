@@ -54,14 +54,30 @@ public class DoctorServiceImpl implements DoctorService {
     Doctor doctorToUpdate = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil de doutor não encontrado para o usuário com ID: " + userId));
 
-    doctorToUpdate.setName(request.name());
-    doctorToUpdate.setDateOfBirth(request.dateOfBirth());
-    doctorToUpdate.setSpecialization(request.specialization());
-    doctorToUpdate.setDepartment(request.department());
-    doctorToUpdate.setPhoneNumber(request.phoneNumber());
-    doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
-    doctorToUpdate.setQualifications(request.qualifications());
-    doctorToUpdate.setBiography(request.biography());
+    if (request.name() != null && !request.name().isBlank()) {
+      doctorToUpdate.setName(request.name());
+    }
+    if (request.dateOfBirth() != null) {
+      doctorToUpdate.setDateOfBirth(request.dateOfBirth());
+    }
+    if (request.specialization() != null && !request.specialization().isBlank()) {
+      doctorToUpdate.setSpecialization(request.specialization());
+    }
+    if (request.department() != null && !request.department().isBlank()) {
+      doctorToUpdate.setDepartment(request.department());
+    }
+    if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+      doctorToUpdate.setPhoneNumber(request.phoneNumber());
+    }
+    if (request.yearsOfExperience() > 0) {
+      doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
+    }
+    if (request.qualifications() != null) {
+      doctorToUpdate.setQualifications(request.qualifications());
+    }
+    if (request.biography() != null) {
+      doctorToUpdate.setBiography(request.biography());
+    }
 
     return DoctorResponse.fromEntity(doctorRepository.save(doctorToUpdate));
   }

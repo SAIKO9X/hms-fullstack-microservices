@@ -38,7 +38,7 @@ public class PatientController {
     return patientService.getPatientProfileByUserId(userId);
   }
 
-  @PutMapping
+  @PatchMapping
   @ResponseStatus(HttpStatus.OK)
   public PatientResponse updateMyProfile(
     @RequestHeader("Authorization") String token,
@@ -63,12 +63,6 @@ public class PatientController {
   @ResponseStatus(HttpStatus.OK)
   public List<PatientDropdownResponse> getPatientsForDropdown() {
     return patientService.getPatientsForDropdown();
-  }
-
-  @GetMapping("/patients/by-user/{userId}")
-  @ResponseStatus(HttpStatus.OK)
-  public PatientResponse getPatientByUserId(@PathVariable Long userId) {
-    return patientService.getPatientProfileByUserId(userId);
   }
 
   @GetMapping("/all")

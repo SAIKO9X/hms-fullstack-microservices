@@ -7,6 +7,15 @@ import { ptBR } from "date-fns/locale";
 import { BloodGroup, Gender, type PatientProfile } from "@/types/patient.types";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { BadgeInput } from "@/components/ui/badge-input";
+import { maskCPF, maskPhone } from "@/utils/masks";
+import { cn } from "@/utils/utils";
+import {
+  PatientProfileSchema,
+  type PatientProfileFormData,
+} from "@/lib/schemas/profile.schema";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +32,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -36,14 +44,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  PatientProfileSchema,
-  type PatientProfileFormData,
-} from "@/lib/schemas/profile.schema";
-import { maskCPF, maskPhone } from "@/utils/masks";
-import { BadgeInput } from "../../../components/ui/badge-input";
-import { cn } from "@/utils/utils";
 
 const bloodGroupOptions = Object.entries(BloodGroup).map(([key, value]) => ({
   value: key,
@@ -62,19 +62,17 @@ interface EditProfileDialogProps {
   onSave: (data: PatientProfileFormData) => void;
 }
 
-// Helper para converter string separada por vírgula para array de strings
 const stringToArray = (value: string | undefined | null): string[] => {
   if (!value) return [];
   return value
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean); // Divide, remove espaços e vazios
+    .filter(Boolean);
 };
 
-// Helper para converter array de strings para string separada por vírgula
 const arrayToString = (value: string[] | undefined | null): string => {
   if (!value) return "";
-  return value.join(", "); // Junta com vírgula e espaço
+  return value.join(", ");
 };
 
 export const EditProfileDialog = ({
@@ -87,22 +85,27 @@ export const EditProfileDialog = ({
   const fromYear = currentYear - 100;
   const toYear = currentYear;
 
+  const getSanitizedValues = (data: PatientProfile) => ({
+    cpf: data.cpf || "",
+    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+    phoneNumber: data.phoneNumber || "",
+    gender: data.gender || "OTHER",
+    bloodGroup: data.bloodGroup || undefined,
+    address: data.address || "",
+    emergencyContactName: data.emergencyContactName || "",
+    emergencyContactPhone: data.emergencyContactPhone || "",
+    allergies: data.allergies || "",
+    chronicDiseases: data.chronicDiseases || "",
+  });
+
   const form = useForm<PatientProfileFormData>({
     resolver: zodResolver(PatientProfileSchema),
-    defaultValues: {
-      ...profile,
-      allergies: profile.allergies || "",
-      chronicDiseases: profile.chronicDiseases || "",
-    },
+    defaultValues: getSanitizedValues(profile),
   });
 
   useEffect(() => {
-    if (open) {
-      form.reset({
-        ...profile,
-        allergies: profile.allergies || "",
-        chronicDiseases: profile.chronicDiseases || "",
-      });
+    if (open && profile) {
+      form.reset(getSanitizedValues(profile));
     }
   }, [profile, open, form]);
 
@@ -113,14 +116,13 @@ export const EditProfileDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-full">
         <DialogHeader>
           <DialogTitle>Editar Perfil</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* CPF e Telefone */}
               <FormField
                 control={form.control}
                 name="cpf"
@@ -140,6 +142,7 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="phoneNumber"
@@ -160,7 +163,6 @@ export const EditProfileDialog = ({
                 )}
               />
 
-              {/* Data de Nascimento e Gênero */}
               <FormField
                 control={form.control}
                 name="dateOfBirth"
@@ -206,6 +208,7 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="gender"
@@ -214,7 +217,7 @@ export const EditProfileDialog = ({
                     <FormLabel>Gênero</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -234,7 +237,6 @@ export const EditProfileDialog = ({
                 )}
               />
 
-              {/* Tipo Sanguíneo */}
               <FormField
                 control={form.control}
                 name="bloodGroup"
@@ -243,7 +245,7 @@ export const EditProfileDialog = ({
                     <FormLabel>Tipo Sanguíneo</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -264,7 +266,6 @@ export const EditProfileDialog = ({
               />
             </div>
 
-            {/* Endereço */}
             <FormField
               control={form.control}
               name="address"
@@ -273,7 +274,7 @@ export const EditProfileDialog = ({
                   <FormLabel>Endereço Completo</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Ex: Rua das Flores, 123, Bairro Jardim, São Paulo - SP"
+                      placeholder="Rua, Número, Bairro, Cidade - Estado"
                       {...field}
                     />
                   </FormControl>
@@ -282,19 +283,63 @@ export const EditProfileDialog = ({
               )}
             />
 
-            {/* Contatos de Emergência */}
-            <h3 className="text-lg font-medium pt-4">Contato de Emergência</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4 pt-2">
+              <h3 className="text-lg font-medium border-b pb-2">
+                Contato de Emergência
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="emergencyContactName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome do Contato</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Nome completo" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="emergencyContactPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone do Contato</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(maskPhone(e.target.value))
+                          }
+                          placeholder="(00) 00000-0000"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <h3 className="text-lg font-medium border-b pb-2">
+                Informações Médicas
+              </h3>
               <FormField
                 control={form.control}
-                name="emergencyContactName"
+                name="allergies"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome do Contato</FormLabel>
+                    <FormLabel>Alergias</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Nome completo do contato"
+                      <BadgeInput
+                        placeholder="Digite e pressione Enter"
+                        value={stringToArray(field.value)}
+                        onChange={(valueArray) =>
+                          field.onChange(arrayToString(valueArray))
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -303,17 +348,17 @@ export const EditProfileDialog = ({
               />
               <FormField
                 control={form.control}
-                name="emergencyContactPhone"
+                name="chronicDiseases"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Telefone do Contato</FormLabel>
+                    <FormLabel>Doenças Crônicas</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(maskPhone(e.target.value))
+                      <BadgeInput
+                        placeholder="Digite e pressione Enter"
+                        value={stringToArray(field.value)}
+                        onChange={(valueArray) =>
+                          field.onChange(arrayToString(valueArray))
                         }
-                        placeholder="(00) 00000-0000"
                       />
                     </FormControl>
                     <FormMessage />
@@ -321,47 +366,6 @@ export const EditProfileDialog = ({
                 )}
               />
             </div>
-
-            {/* Informações Médicas */}
-            <h3 className="text-lg font-medium pt-4">Informações Médicas</h3>
-            <FormField
-              control={form.control}
-              name="allergies"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Alergias</FormLabel>
-                  <FormControl>
-                    <BadgeInput
-                      placeholder="Digite uma alergia e pressione Enter"
-                      value={stringToArray(field.value)}
-                      onChange={(valueArray) =>
-                        field.onChange(arrayToString(valueArray))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="chronicDiseases"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Doenças Crônicas</FormLabel>
-                  <FormControl>
-                    <BadgeInput
-                      placeholder="Digite uma doença e pressione Enter"
-                      value={stringToArray(field.value)}
-                      onChange={(valueArray) =>
-                        field.onChange(arrayToString(valueArray))
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <DialogFooter className="pt-6">
               <DialogClose asChild>

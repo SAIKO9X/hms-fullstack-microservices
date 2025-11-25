@@ -60,21 +60,39 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   public PatientResponse updatePatientProfile(Long userId, PatientUpdateRequest request) {
-    // Busca a entidade existente pelo userId
     Patient patientToUpdate = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
 
-    // Mapeia os campos do DTO de atualização para a entidade existente
-    patientToUpdate.setName(request.name());
-    patientToUpdate.setGender(request.gender());
-    patientToUpdate.setDateOfBirth(request.dateOfBirth());
-    patientToUpdate.setPhoneNumber(request.phoneNumber());
-    patientToUpdate.setBloodGroup(request.bloodGroup());
-    patientToUpdate.setAddress(request.address());
-    patientToUpdate.setEmergencyContactName(request.emergencyContactName());
-    patientToUpdate.setEmergencyContactPhone(request.emergencyContactPhone());
-    patientToUpdate.setAllergies(request.allergies());
-    patientToUpdate.setChronicDiseases(request.chronicDiseases());
+    if (request.name() != null && !request.name().isBlank()) {
+      patientToUpdate.setName(request.name());
+    }
+    if (request.gender() != null) {
+      patientToUpdate.setGender(request.gender());
+    }
+    if (request.dateOfBirth() != null) {
+      patientToUpdate.setDateOfBirth(request.dateOfBirth());
+    }
+    if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+      patientToUpdate.setPhoneNumber(request.phoneNumber());
+    }
+    if (request.bloodGroup() != null) {
+      patientToUpdate.setBloodGroup(request.bloodGroup());
+    }
+    if (request.address() != null && !request.address().isBlank()) {
+      patientToUpdate.setAddress(request.address());
+    }
+    if (request.emergencyContactName() != null && !request.emergencyContactName().isBlank()) {
+      patientToUpdate.setEmergencyContactName(request.emergencyContactName());
+    }
+    if (request.emergencyContactPhone() != null && !request.emergencyContactPhone().isBlank()) {
+      patientToUpdate.setEmergencyContactPhone(request.emergencyContactPhone());
+    }
+    if (request.allergies() != null) {
+      patientToUpdate.setAllergies(request.allergies());
+    }
+    if (request.chronicDiseases() != null) {
+      patientToUpdate.setChronicDiseases(request.chronicDiseases());
+    }
 
     Patient updatedPatient = patientRepository.save(patientToUpdate);
 

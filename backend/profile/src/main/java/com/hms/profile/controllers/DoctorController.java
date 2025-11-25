@@ -38,7 +38,7 @@ public class DoctorController {
     return doctorService.getDoctorProfileByUserId(userId);
   }
 
-  @PutMapping
+  @PatchMapping
   @ResponseStatus(HttpStatus.OK)
   public DoctorResponse updateMyProfile(
     @RequestHeader("Authorization") String token,
@@ -67,14 +67,12 @@ public class DoctorController {
 
   @GetMapping("/all")
   @ResponseStatus(HttpStatus.OK)
-  @PreAuthorize("hasRole('ADMIN')")
   public List<DoctorResponse> getAllDoctorProfiles() {
     return doctorService.findAllDoctors();
   }
 
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
-  @PreAuthorize("hasRole('ADMIN')")
   public DoctorResponse getDoctorProfileById(@PathVariable Long id) {
     return doctorService.getDoctorProfileById(id);
   }
