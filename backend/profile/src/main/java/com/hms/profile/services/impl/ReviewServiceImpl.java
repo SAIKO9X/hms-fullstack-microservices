@@ -5,8 +5,12 @@ import com.hms.profile.dto.request.ReviewCreateRequest;
 import com.hms.profile.dto.response.AppointmentResponse;
 import com.hms.profile.dto.response.DoctorRatingDto;
 import com.hms.profile.dto.response.ReviewResponse;
+import com.hms.profile.entities.Doctor;
+import com.hms.profile.entities.Patient;
 import com.hms.profile.entities.Review;
 import com.hms.profile.enums.AppointmentStatus;
+import com.hms.profile.repositories.DoctorRepository;
+import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.repositories.ReviewRepository;
 import com.hms.profile.services.JwtService;
 import com.hms.profile.services.ReviewService;
@@ -22,6 +26,8 @@ import java.util.NoSuchElementException;
 public class ReviewServiceImpl implements ReviewService {
 
   private final ReviewRepository reviewRepository;
+  private final DoctorRepository doctorRepository;
+  private final PatientRepository patientRepository;
   private final AppointmentFeignClient appointmentClient;
   private final JwtService jwtService;
 
@@ -39,7 +45,6 @@ public class ReviewServiceImpl implements ReviewService {
       throw new NoSuchElementException("Consulta não encontrada ou serviço indisponível.");
     }
 
-    // Regra de Negócio: Apenas consultas "COMPLETED" podem receber reviews
     if (appointment.status() != AppointmentStatus.COMPLETED) {
       throw new IllegalStateException("Apenas consultas concluídas podem ser avaliadas.");
     }
@@ -48,10 +53,17 @@ public class ReviewServiceImpl implements ReviewService {
       throw new IllegalArgumentException("O médico informado não corresponde ao médico da consulta.");
     }
 
+    Doctor doctor = doctorRepository.findByUserId(request.doctorId())
+      .orElseThrow(() -> new NoSuchElementException("Perfil de médico não encontrado."));
+
+    Long currentUserUserId = jwtService.getCurrentUserId();
+    Patient patient = patientRepository.findByUserId(currentUserUserId)
+      .orElseThrow(() -> new NoSuchElementException("Perfil de paciente não encontrado."));
+
     Review review = new Review();
     review.setAppointmentId(request.appointmentId());
-    review.setDoctorId(request.doctorId());
-    review.setPatientId(jwtService.getCurrentUserId());
+    review.setDoctorId(doctor.getId());
+    review.setPatientId(patient.getId());
     review.setRating(request.rating());
     review.setComment(request.comment());
 
@@ -64,8 +76,6 @@ public class ReviewServiceImpl implements ReviewService {
   public DoctorRatingDto getDoctorStats(Long doctorId) {
     Double avg = reviewRepository.getAverageRating(doctorId);
     Long count = reviewRepository.countByDoctorId(doctorId);
-
-    // Se não houver avaliações, retorna média 0.0 em vez de null
     return new DoctorRatingDto(avg != null ? avg : 0.0, count);
   }
 
