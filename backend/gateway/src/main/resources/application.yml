@@ -50,6 +50,12 @@ spring:
           predicates:
             - Path=/media/**
 
+        # Rota para o Chat-Service
+        - id: chat-service-route
+          uri: lb://chat-service
+          predicates:
+            - Path=/chat/**, /ws/** ```
+
 application:
   security:
     jwt:

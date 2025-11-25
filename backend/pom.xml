@@ -28,6 +28,7 @@
         <module>eureka-server</module>
         <module>pharmacy</module>
         <module>media</module>
+        <module>chat</module>
     </modules>
 
     <dependencyManagement>

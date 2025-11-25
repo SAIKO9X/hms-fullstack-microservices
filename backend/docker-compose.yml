@@ -76,9 +76,25 @@ services:
       - media-mysql-data:/var/lib/mysql
     restart: always
 
+  # --- Banco de Dados para o Chat Service (NOVO) ---
+  mysql-chat:
+    image: mysql:8.0
+    container_name: ms-chat-db
+    environment:
+      MYSQL_DATABASE: ms_chat_db
+      MYSQL_USER: mysql_chat_user
+      MYSQL_PASSWORD: mysql_chat_password
+      MYSQL_ROOT_PASSWORD: root_password_chat
+    ports:
+      - "3312:3306"
+    volumes:
+      - chat-mysql-data:/var/lib/mysql
+    restart: always
+
 volumes:
   user-mysql-data:
   profile-mysql-data:
   appointment-mysql-data:
   pharmacy-mysql-data:
   media-mysql-data:
+  chat-mysql-data:

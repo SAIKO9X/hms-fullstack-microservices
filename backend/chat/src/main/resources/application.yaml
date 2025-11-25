@@ -1,0 +1,32 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: chat-service
+  datasource:
+    url: jdbc:mysql://localhost:3312/ms_chat_db
+    username: mysql_chat_user
+    password: mysql_chat_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+application:
+  security:
+    jwt:
+      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
+      expiration: 86400000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    hostname: localhost
