@@ -14,9 +14,7 @@ public class JwtUtil {
   @Value("${application.security.jwt.secret-key}")
   private String secretKey;
 
-  /**
-   * Valida o token JWT. Verifica a assinatura e a data de expiração.
-   */
+  // Valida o token JWT. Verifica a assinatura e a data de expiração.
   public void validateToken(final String token) {
     Jwts.parser()
       .verifyWith(getSignInKey())

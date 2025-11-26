@@ -25,7 +25,7 @@ public class JwtService {
   private long jwtExpiration;
 
 
-  // Gera um token JWT com claims customizados a partir da entidade User.
+  // Gera um token JWT com claims
   public String generateToken(User user) {
     Map<String, Object> claims = new HashMap<>();
     claims.put("userId", user.getId());

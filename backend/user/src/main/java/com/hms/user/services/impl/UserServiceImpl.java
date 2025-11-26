@@ -40,12 +40,9 @@ public class UserServiceImpl implements UserService {
 
     User user = request.toEntity();
     user.setPassword(encoder.encode(user.getPassword()));
-
-    // Salva o usuário primeiro para ter o ID
     User savedUser = userRepository.save(user);
 
     try {
-      // Tenta criar o perfil no outro serviço
       if (savedUser.getRole() == UserRole.PATIENT) {
         profileFeignClient.createPatientProfile(new PatientCreateRequest(savedUser.getId(), request.cpfOuCrm(), savedUser.getName()));
       } else if (savedUser.getRole() == UserRole.DOCTOR) {
@@ -58,7 +55,7 @@ public class UserServiceImpl implements UserService {
       System.err.println("Falha ao criar perfil. Iniciando rollback manual para o usuário: " + savedUser.getId());
       userRepository.deleteById(savedUser.getId());
 
-      // Lança a exceção original para que o frontend saiba que falhou
+      // Lança a exceção original
       throw new RuntimeException("Falha na comunicação com o serviço de perfil. O usuário não foi criado. Causa: " + e.getMessage(), e);
     }
 
@@ -115,7 +112,6 @@ public class UserServiceImpl implements UserService {
     var user = userRepository.findByEmail(request.email())
       .orElseThrow(() -> new IllegalStateException("Usuário não encontrado após autenticação."));
 
-    // Gera o token JWT
     var jwtToken = jwtService.generateToken(user);
     var expirationTime = jwtService.getExpirationTime();
 
@@ -138,7 +134,6 @@ public class UserServiceImpl implements UserService {
       throw new UserAlreadyExistsException("O email " + request.getEmail() + " já está em uso.");
     }
 
-    // Criação do Utilizador
     User newUser = new User();
     newUser.setName(request.getName());
     newUser.setEmail(request.getEmail());
@@ -148,7 +143,6 @@ public class UserServiceImpl implements UserService {
 
     User savedUser = userRepository.save(newUser);
 
-    // Criação do Perfil
     try {
       if (request.getRole() == UserRole.PATIENT) {
         profileFeignClient.createPatientProfile(
@@ -196,7 +190,6 @@ public class UserServiceImpl implements UserService {
 
     userRepository.save(user);
 
-    // Chama o profile-service
     if (user.getRole() == UserRole.PATIENT) {
       AdminPatientUpdateRequest patientRequest = new AdminPatientUpdateRequest(
         request.name(),
