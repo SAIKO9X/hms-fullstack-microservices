@@ -15,4 +15,9 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  define: {
+    // Algumas bibliotecas (como sockjs-client) usam 'global' que é do Node.js
+    // Por isso mapear para 'window' para funcionar no navegador
+    global: "window",
+  },
 });
