@@ -17,6 +17,7 @@ import {
   FolderOpen,
   Eye,
   Download,
+  MessageSquare,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -50,6 +51,7 @@ import {
   useDocumentsByPatientId,
 } from "@/services/queries/appointment-queries";
 import type { AppointmentDetail } from "@/types/appointment.types";
+import { ChatSheet } from "@/features/chat/components/ChatSheet";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -74,6 +76,7 @@ const getStatusConfig = (status: string) => {
 
 export const DoctorAppointmentsDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const appointmentId = Number(id);
   const [isAddDocOpen, setIsAddDocOpen] = useState(false);
   const [notification, setNotification] = useState<{
@@ -244,6 +247,18 @@ export const DoctorAppointmentsDetailPage = () => {
                 <StatusIcon className="h-3 w-3 mr-1" />
                 {statusConfig.label}
               </Badge>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsChatOpen(true)}
+                className="gap-2"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Chat com Paciente
+              </Button>
+              <Button variant="outline">Voltar</Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -602,6 +617,13 @@ export const DoctorAppointmentsDetailPage = () => {
           isLoading={rescheduleAppointmentMutation.isPending}
         />
       )}
+
+      <ChatSheet
+        isOpen={isChatOpen}
+        onOpenChange={setIsChatOpen}
+        recipientId={appointment.patientId}
+        recipientName={appointment.patientName}
+      />
     </div>
   );
 };

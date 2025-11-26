@@ -2,7 +2,13 @@ import { useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Clock, Award, Stethoscope } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Award,
+  Stethoscope,
+  MessageSquare,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,11 +20,15 @@ import {
   getDoctorStats,
   getDoctorReviews,
 } from "@/services/profile";
+import { useState } from "react";
+import { ChatSheet } from "@/features/chat/components/ChatSheet";
 
 export const PatientViewDoctorProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const doctorId = Number(id);
   const API_BASE_URL = "http://localhost:9000";
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const { data: doctor, isLoading: isLoadingDoctor } = useQuery({
     queryKey: ["doctor", doctorId],
@@ -96,12 +106,23 @@ export const PatientViewDoctorProfilePage = () => {
                 ({stats?.totalReviews || 0} avaliações)
               </span>
             </div>
+          </div>
 
+          <div className="flex flex-col gap-3 min-w-[200px]">
             <div className="pt-4">
-              <Button size="lg" className="px-8 shadow-md">
+              <Button className="px-20 shadow-md text-secondary">
                 Agendar Consulta
               </Button>
             </div>
+
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => setIsChatOpen(true)}
+            >
+              <MessageSquare className="w-4 h-4" />
+              Enviar Mensagem
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -214,6 +235,13 @@ export const PatientViewDoctorProfilePage = () => {
           </Card>
         </div>
       </div>
+
+      <ChatSheet
+        isOpen={isChatOpen}
+        onOpenChange={setIsChatOpen}
+        recipientId={doctor.userId}
+        recipientName={doctor.name}
+      />
     </div>
   );
 };
