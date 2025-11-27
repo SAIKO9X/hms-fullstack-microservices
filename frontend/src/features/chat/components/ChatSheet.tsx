@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ChatWindow } from "./ChatWindow";
 
 interface ChatSheetProps {
@@ -12,6 +7,7 @@ interface ChatSheetProps {
   onOpenChange: (open: boolean) => void;
   recipientId: number;
   recipientName: string;
+  recipientProfilePictureUrl?: string;
 }
 
 export const ChatSheet: React.FC<ChatSheetProps> = ({
@@ -19,18 +15,20 @@ export const ChatSheet: React.FC<ChatSheetProps> = ({
   onOpenChange,
   recipientId,
   recipientName,
+  recipientProfilePictureUrl,
 }) => {
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md p-0 flex flex-col"
+        className="w-full sm:max-w-md p-0 flex flex-col gap-0"
       >
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle>Chat com {recipientName}</SheetTitle>
-        </SheetHeader>
-        <div className="flex-1">
-          <ChatWindow recipientId={recipientId} recipientName={recipientName} />
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ChatWindow
+            recipientId={recipientId}
+            recipientName={recipientName}
+            recipientProfilePictureUrl={recipientProfilePictureUrl}
+          />
         </div>
       </SheetContent>
     </Sheet>

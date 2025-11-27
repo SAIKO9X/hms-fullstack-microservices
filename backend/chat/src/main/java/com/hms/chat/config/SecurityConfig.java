@@ -31,6 +31,7 @@ public class SecurityConfig {
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/ws/**").permitAll() // Permite o handshake inicial (HTTP)
+        .requestMatchers("/chat/**").authenticated()
         .anyRequest().authenticated()
       )
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -48,7 +49,9 @@ public class SecurityConfig {
     configuration.setAllowCredentials(true);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
+    // Aplica CORS apenas no endpoint do WebSocket (que o front acessa direto na porta 8086)
+    source.registerCorsConfiguration("/ws/**", configuration);
+
     return source;
   }
 }

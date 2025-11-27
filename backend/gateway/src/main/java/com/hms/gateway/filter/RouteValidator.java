@@ -8,15 +8,14 @@ import java.util.function.Predicate;
 
 @Component
 public class RouteValidator {
-
   public static final List<String> openApiEndpoints = List.of(
     "/users/register",
-    "/auth/login"
+    "/auth/login",
+    "/chat/ws"
   );
 
   public Predicate<ServerHttpRequest> isSecured =
     request -> openApiEndpoints
       .stream()
       .noneMatch(uri -> request.getURI().getPath().contains(uri));
-
 }

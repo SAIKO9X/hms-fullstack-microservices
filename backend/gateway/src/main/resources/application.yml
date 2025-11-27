@@ -6,13 +6,11 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      # Filtros padrão aplicados a TODAS as rotas
       default-filters:
         - name: TokenFilter
 
       server:
         webflux:
-          # Configuração de CORS Global
           globalcors:
             cors-configurations:
               '[/**]':
@@ -28,45 +26,50 @@ spring:
                 allow-credentials: true
                 max-age: 3600
 
-          # Lista de rotas (nova sintaxe)
           routes:
-            # Rota para o User-Service
-            - id: user-service-route
-              uri: lb://user-service
-              predicates:
-                - Path=/auth/**, /users/**
+          # Rota para o User-Service
+          - id: user-service-route
+            uri: lb://user-service
+            predicates:
+              - Path=/auth/**, /users/**
 
-            # Rota para o Profile-Service
-            - id: profile-service-route
-              uri: lb://profile-service
-              predicates:
-                - Path=/profile/**
+          # Rota para o Profile-Service
+          - id: profile-service-route
+            uri: lb://profile-service
+            predicates:
+              - Path=/profile/**
 
-            # Rota para o Appointment-Service
-            - id: appointment-service-route
-              uri: lb://appointment-service
-              predicates:
-                - Path=/patient/**, /doctor/**, /appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**, /admin/**
+          # Rota para o Appointment-Service
+          - id: appointment-service-route
+            uri: lb://appointment-service
+            predicates:
+              - Path=/patient/**, /doctor/**, /appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**, /admin/**
 
-            # Rota para o Pharmacy-Service
-            - id: pharmacy-service-route
-              uri: lb://pharmacy-service
-              predicates:
-                - Path=/pharmacy/**
+          # Rota para o Pharmacy-Service
+          - id: pharmacy-service-route
+            uri: lb://pharmacy-service
+            predicates:
+              - Path=/pharmacy/**
 
-            # Rota para o Media-Service
-            - id: media-service-route
-              uri: lb://media-service
-              predicates:
-                - Path=/media/**
+          # Rota para o Media-Service
+          - id: media-service-route
+            uri: lb://media-service
+            predicates:
+              - Path=/media/**
 
-            # Rota para o Chat-Service (REST + WebSocket)
-            - id: chat-service-route
-              uri: lb://chat-service
-              predicates:
-                - Path=/chat/**, /ws/**
-              filters:
-                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+          # Rota para o Chat WebSocket
+          - id: chat-websocket-route
+            uri: lb:ws://chat-service
+            predicates:
+              - Path=/chat/ws/**
+            filters:
+              - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
+
+          # Rota para o Chat REST
+          - id: chat-rest-route
+            uri: lb://chat-service
+            predicates:
+              - Path=/chat/**
 
 application:
   security:
