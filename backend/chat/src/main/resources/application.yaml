@@ -1,13 +1,21 @@
 server:
-  port: 8086
+  port: ${SERVER_PORT:8086}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
 
 spring:
   application:
     name: chat-service
   datasource:
-    url: jdbc:mysql://localhost:3312/ms_chat_db
-    username: mysql_chat_user
-    password: mysql_chat_password
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_chat_db}
+    username: ${DB_USER:mysql_chat_user}
+    password: ${DB_PASSWORD:mysql_chat_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -21,12 +29,5 @@ spring:
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
-      expiration: 86400000
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    hostname: localhost
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:86400000}

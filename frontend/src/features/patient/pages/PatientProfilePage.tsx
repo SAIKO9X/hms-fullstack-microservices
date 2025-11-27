@@ -273,9 +273,12 @@ export const PatientProfilePage = () => {
             <CardContent className="flex flex-wrap gap-2">
               {patientProfile?.allergies &&
               patientProfile.allergies.length > 0 ? (
-                patientProfile.allergies.map((item, index) => (
+                (typeof patientProfile.allergies === "string"
+                  ? patientProfile.allergies.split(",")
+                  : patientProfile.allergies
+                ).map((item: string, index: number) => (
                   <Badge key={index} variant="secondary">
-                    {item}
+                    {item.trim()}
                   </Badge>
                 ))
               ) : (
@@ -292,9 +295,12 @@ export const PatientProfilePage = () => {
             <CardContent className="flex flex-wrap gap-2">
               {patientProfile?.chronicDiseases &&
               patientProfile.chronicDiseases.length > 0 ? (
-                patientProfile.chronicDiseases.map((item, index) => (
+                (typeof patientProfile.chronicDiseases === "string"
+                  ? patientProfile.chronicDiseases.split(",")
+                  : patientProfile.chronicDiseases
+                ).map((item: string, index: number) => (
                   <Badge key={index} variant="secondary">
-                    {item}
+                    {item.trim()}
                   </Badge>
                 ))
               ) : (

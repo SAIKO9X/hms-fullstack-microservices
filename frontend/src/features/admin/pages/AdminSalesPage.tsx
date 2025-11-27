@@ -23,8 +23,9 @@ export const AdminSalesPage = () => {
     };
   }, [sales]);
 
-  const handleImportSuccess = (saleId: number) => {
+  const handleImportSuccess = (data: any) => {
     setIsImportOpen(false);
+    const saleId = data?.id || data;
     navigate(`/admin/sales/${saleId}`);
   };
 

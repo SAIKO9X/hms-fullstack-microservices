@@ -9,76 +9,76 @@ spring:
       default-filters:
         - name: TokenFilter
 
-      server:
-        webflux:
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowed-origins: "http://localhost:5173"
-                allowed-methods:
-                  - GET
-                  - POST
-                  - PUT
-                  - DELETE
-                  - PATCH
-                  - OPTIONS
-                allowed-headers: "*"
-                allow-credentials: true
-                max-age: 3600
+      # Configuração Global de CORS
+      globalcors:
+        cors-configurations:
+          "[/**]":
+            allowed-origins: "${FRONTEND_URI}"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: true
+            max-age: 3600
 
-          routes:
-          # Rota para o User-Service
-          - id: user-service-route
-            uri: lb://user-service
-            predicates:
-              - Path=/auth/**, /users/**
+      routes:
+        # Rota para o User-Service
+        - id: user-service-route
+          uri: lb://user-service
+          predicates:
+            - Path=/auth/**, /users/**
 
-          # Rota para o Profile-Service
-          - id: profile-service-route
-            uri: lb://profile-service
-            predicates:
-              - Path=/profile/**
+        # Rota para o Profile-Service
+        - id: profile-service-route
+          uri: lb://profile-service
+          predicates:
+            - Path=/profile/**
 
-          # Rota para o Appointment-Service
-          - id: appointment-service-route
-            uri: lb://appointment-service
-            predicates:
-              - Path=/patient/**, /doctor/**, /appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**, /admin/**
+        # Rota para o Appointment-Service
+        - id: appointment-service-route
+          uri: lb://appointment-service
+          predicates:
+            - Path=/patient/**, /doctor/**, /appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**, /admin/**
 
-          # Rota para o Pharmacy-Service
-          - id: pharmacy-service-route
-            uri: lb://pharmacy-service
-            predicates:
-              - Path=/pharmacy/**
+        # Rota para o Pharmacy-Service
+        - id: pharmacy-service-route
+          uri: lb://pharmacy-service
+          predicates:
+            - Path=/pharmacy/**
 
-          # Rota para o Media-Service
-          - id: media-service-route
-            uri: lb://media-service
-            predicates:
-              - Path=/media/**
+        # Rota para o Media-Service
+        - id: media-service-route
+          uri: lb://media-service
+          predicates:
+            - Path=/media/**
 
-          # Rota para o Chat WebSocket
-          - id: chat-websocket-route
-            uri: lb:ws://chat-service
-            predicates:
-              - Path=/chat/ws/**
-            filters:
-              - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
+        # Rota para o Chat WebSocket
+        # lb:ws:// para balanceamento de carga em WebSockets
+        - id: chat-websocket-route
+          uri: lb:ws://chat-service
+          predicates:
+            - Path=/chat/ws/**
+          filters:
+            - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
 
-          # Rota para o Chat REST
-          - id: chat-rest-route
-            uri: lb://chat-service
-            predicates:
-              - Path=/chat/**
+        # Rota para o Chat REST
+        - id: chat-rest-route
+          uri: lb://chat-service
+          predicates:
+            - Path=/chat/**
 
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
+      secret-key: ${JWT_SECRET}
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI}
   instance:
     hostname: localhost

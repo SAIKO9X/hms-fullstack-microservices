@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Eye, EyeOff, Mail, Lock, User, CreditCard } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
 import { RegisterFormSchema } from "@/lib/schemas/auth.schema";
 import { registerUser } from "@/services/auth";

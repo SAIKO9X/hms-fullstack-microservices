@@ -1,32 +1,39 @@
 server:
-  port: 8085
+  port: ${SERVER_PORT:8085}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
 
 spring:
   application:
     name: media-service
   datasource:
-    url: jdbc:mysql://localhost:3311/ms_media_db
-    username: mysql_media_user
-    password: mysql_media_password
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_media_db}
+    username: ${DB_USER:mysql_media_user}
+    password: ${DB_PASSWORD:mysql_media_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-  # Configurações para upload de arquivos
+        format_sql: true
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu # Use a mesma chave dos outros serviços
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:86400000}
+  storage:
+    upload-dir: ${UPLOAD_DIR:uploads} # Pode ser mapeado via volume no futuro se quiser persistÃªncia fora do container

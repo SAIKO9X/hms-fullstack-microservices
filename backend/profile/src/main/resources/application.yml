@@ -1,20 +1,21 @@
 server:
-  port: 8082
+  port: ${SERVER_PORT:8082}
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
 
 spring:
   application:
     name: profile-service
   datasource:
-    url: jdbc:mysql://localhost:3308/ms_profile_db
-    username: mysql_profile_user
-    password: mysql_profile_password
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_profile_db}
+    username: ${DB_USER:mysql_profile_user}
+    password: ${DB_PASSWORD:mysql_profile_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -28,4 +29,4 @@ spring:
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
+      secret-key: ${JWT_SECRET}

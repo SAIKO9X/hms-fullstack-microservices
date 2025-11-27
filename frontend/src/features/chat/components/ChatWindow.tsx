@@ -49,7 +49,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isTyping] = useState(false);
 
   const stompClientRef = useRef<Stomp.Client | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

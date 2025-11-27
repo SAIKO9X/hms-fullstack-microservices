@@ -1,31 +1,33 @@
 server:
-  port: 8084
+  port: ${SERVER_PORT:8084}
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
 
 spring:
   application:
     name: pharmacy-service
   datasource:
-    url: jdbc:mysql://localhost:3310/ms_pharmacy_db
-    username: mysql_pharmacy_user
-    password: mysql_pharmacy_password
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_pharmacy_db}
+    username: ${DB_USER:mysql_pharmacy_user}
+    password: ${DB_PASSWORD:mysql_pharmacy_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
 
-# Bloco de configuração aplicação
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
-      expiration: 86400000
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:86400000}

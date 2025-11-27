@@ -26,21 +26,19 @@ const getUserFromToken = (): UserResponse | null => {
       exp: number;
     } = jwtDecode(token);
 
-    // Verifica se o token não expirou
     if (decodedToken.exp * 1000 > Date.now()) {
       return {
         id: decodedToken.userId,
         name: decodedToken.fullName,
-        email: decodedToken.sub, // 'sub' é o e-mail
+        email: decodedToken.sub,
         role: decodedToken.role as "PATIENT" | "DOCTOR" | "ADMIN",
+        active: true,
       };
     } else {
-      // Token expirado - remove do localStorage
       localStorage.removeItem("authToken");
       return null;
     }
   } catch (error) {
-    // Se o token for inválido, limpa
     localStorage.removeItem("authToken");
     return null;
   }

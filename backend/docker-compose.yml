@@ -1,95 +1,274 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # --- Banco de Dados para o User Service ---
+  # ====================================================
+  # INFRAESTRUTURA
+  # ====================================================
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SERVER_PORT=8761
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=false
+      - EUREKA_CLIENT_FETCH_REGISTRY=false
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    ports:
+      - "9000:9000"
+    environment:
+      - SERVER_PORT=9000
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URI=${FRONTEND_URI}
+    depends_on:
+      eureka-server:
+        condition: service_started
+    networks:
+      - hms-network
+
+  # ====================================================
+  # BANCOS DE DADOS
+  # ====================================================
+
   mysql-user:
     image: mysql:8.0
     container_name: ms-user-db
     environment:
-      MYSQL_DATABASE: ms_user_db
-      MYSQL_USER: mysql_user
-      MYSQL_PASSWORD: mysql_password
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: ${MYSQL_USER_DB}
+      MYSQL_USER: ${MYSQL_USER_USER}
+      MYSQL_PASSWORD: ${MYSQL_USER_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3307:3306"
+      - "${MYSQL_USER_PORT}:3306"
     volumes:
       - user-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
 
-  # --- Banco de Dados para o Profile Service ---
   mysql-profile:
     image: mysql:8.0
     container_name: ms-profile-db
     environment:
-      MYSQL_DATABASE: ms_profile_db
-      MYSQL_USER: mysql_profile_user
-      MYSQL_PASSWORD: mysql_profile_password
-      MYSQL_ROOT_PASSWORD: root_password_profile
+      MYSQL_DATABASE: ${MYSQL_PROFILE_DB}
+      MYSQL_USER: ${MYSQL_PROFILE_USER}
+      MYSQL_PASSWORD: ${MYSQL_PROFILE_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3308:3306"
+      - "${MYSQL_PROFILE_PORT}:3306"
     volumes:
       - profile-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
 
-  # --- Banco de Dados para o Appointment Service ---
   mysql-appointment:
     image: mysql:8.0
     container_name: ms-appointment-db
     environment:
-      MYSQL_DATABASE: ms_appointment_db
-      MYSQL_USER: mysql_appointment_user
-      MYSQL_PASSWORD: mysql_appointment_password
-      MYSQL_ROOT_PASSWORD: root_password_appointment
+      MYSQL_DATABASE: ${MYSQL_APPOINTMENT_DB}
+      MYSQL_USER: ${MYSQL_APPOINTMENT_USER}
+      MYSQL_PASSWORD: ${MYSQL_APPOINTMENT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3309:3306"
+      - "${MYSQL_APPOINTMENT_PORT}:3306"
     volumes:
       - appointment-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
 
-  # --- Banco de Dados para o Pharmacy Service ---
   mysql-pharmacy:
     image: mysql:8.0
     container_name: ms-pharmacy-db
     environment:
-      MYSQL_DATABASE: ms_pharmacy_db
-      MYSQL_USER: mysql_pharmacy_user
-      MYSQL_PASSWORD: mysql_pharmacy_password
-      MYSQL_ROOT_PASSWORD: root_password_pharmacy
+      MYSQL_DATABASE: ${MYSQL_PHARMACY_DB}
+      MYSQL_USER: ${MYSQL_PHARMACY_USER}
+      MYSQL_PASSWORD: ${MYSQL_PHARMACY_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3310:3306"
+      - "${MYSQL_PHARMACY_PORT}:3306"
     volumes:
       - pharmacy-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
 
-  # --- Banco de Dados para o Media Service ---
   mysql-media:
     image: mysql:8.0
     container_name: ms-media-db
     environment:
-      MYSQL_DATABASE: ms_media_db
-      MYSQL_USER: mysql_media_user
-      MYSQL_PASSWORD: mysql_media_password
-      MYSQL_ROOT_PASSWORD: root_password_media
+      MYSQL_DATABASE: ${MYSQL_MEDIA_DB}
+      MYSQL_USER: ${MYSQL_MEDIA_USER}
+      MYSQL_PASSWORD: ${MYSQL_MEDIA_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3311:3306" # Usando uma nova porta externa
+      - "${MYSQL_MEDIA_PORT}:3306"
     volumes:
       - media-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
 
-  # --- Banco de Dados para o Chat Service (NOVO) ---
   mysql-chat:
     image: mysql:8.0
     container_name: ms-chat-db
     environment:
-      MYSQL_DATABASE: ms_chat_db
-      MYSQL_USER: mysql_chat_user
-      MYSQL_PASSWORD: mysql_chat_password
-      MYSQL_ROOT_PASSWORD: root_password_chat
+      MYSQL_DATABASE: ${MYSQL_CHAT_DB}
+      MYSQL_USER: ${MYSQL_CHAT_USER}
+      MYSQL_PASSWORD: ${MYSQL_CHAT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - "3312:3306"
+      - "${MYSQL_CHAT_PORT}:3306"
     volumes:
       - chat-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
     restart: always
+
+  # ====================================================
+  # MICROSSERVIÇOS
+  # ====================================================
+
+  user-service:
+    build: ./user
+    container_name: user-service
+    environment:
+      - SERVER_PORT=8081
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-user
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_USER_DB}
+      - DB_USER=${MYSQL_USER_USER}
+      - DB_PASSWORD=${MYSQL_USER_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - PROFILE_URI=http://profile-service:8082
+    depends_on:
+      - mysql-user
+      - eureka-server
+      - profile-service
+    networks:
+      - hms-network
+
+  profile-service:
+    build: ./profile
+    container_name: profile-service
+    environment:
+      - SERVER_PORT=8082
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-profile
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_PROFILE_DB}
+      - DB_USER=${MYSQL_PROFILE_USER}
+      - DB_PASSWORD=${MYSQL_PROFILE_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mysql-profile
+      - eureka-server
+    networks:
+      - hms-network
+
+  appointment-service:
+    build: ./appointment
+    container_name: appointment-service
+    environment:
+      - SERVER_PORT=8083
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-appointment
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_APPOINTMENT_DB}
+      - DB_USER=${MYSQL_APPOINTMENT_USER}
+      - DB_PASSWORD=${MYSQL_APPOINTMENT_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - PROFILE_URI=http://profile-service:8082
+    depends_on:
+      - mysql-appointment
+      - eureka-server
+      - profile-service
+    networks:
+      - hms-network
+
+  pharmacy-service:
+    build: ./pharmacy
+    container_name: pharmacy-service
+    environment:
+      - SERVER_PORT=8084
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-pharmacy
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_PHARMACY_DB}
+      - DB_USER=${MYSQL_PHARMACY_USER}
+      - DB_PASSWORD=${MYSQL_PHARMACY_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mysql-pharmacy
+      - eureka-server
+    networks:
+      - hms-network
+
+  media-service:
+    build: ./media
+    container_name: media-service
+    environment:
+      - SERVER_PORT=8085
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-media
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_MEDIA_DB}
+      - DB_USER=${MYSQL_MEDIA_USER}
+      - DB_PASSWORD=${MYSQL_MEDIA_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mysql-media
+      - eureka-server
+    networks:
+      - hms-network
+
+  chat-service:
+    build: ./chat
+    container_name: chat-service
+    environment:
+      - SERVER_PORT=8086
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-chat
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_CHAT_DB}
+      - DB_USER=${MYSQL_CHAT_USER}
+      - DB_PASSWORD=${MYSQL_CHAT_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - mysql-chat
+      - eureka-server
+    networks:
+      - hms-network
+
+  # ====================================================
+  # FRONTEND
+  # ====================================================
+  frontend:
+    build: ../frontend
+    container_name: frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - gateway
+    networks:
+      - hms-network
 
 volumes:
   user-mysql-data:
@@ -98,3 +277,7 @@ volumes:
   pharmacy-mysql-data:
   media-mysql-data:
   chat-mysql-data:
+
+networks:
+  hms-network:
+    driver: bridge

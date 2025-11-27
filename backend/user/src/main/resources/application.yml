@@ -1,19 +1,17 @@
-# Bloco de configuração do servidor
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 services:
   profile:
-    base-url: "http://localhost:8082" # URL base do profile-service
+    base-url: "${PROFILE_URI:http://localhost:8082}"
 
-# Bloco de configuração do Spring
 spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:mysql://localhost:3307/ms_user_db
-    username: mysql_user
-    password: mysql_password
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_user_db}
+    username: ${DB_USER:mysql_user}
+    password: ${DB_PASSWORD:mysql_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -24,17 +22,16 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
 
-# Bloco de configuração aplicação
 application:
   security:
     jwt:
-      secret-key: NERVZW5jb2RlIG9ubGluZSIgY29tIHBlbG8gbWVub3MgMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMuMjU2IGJpdHMu
-      expiration: 86400000
+      secret-key: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION:86400000}
 
-# Bloco de configuração do Eureka Client
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
-    hostname: localhost
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
