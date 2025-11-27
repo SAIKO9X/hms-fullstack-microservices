@@ -1,12 +1,18 @@
 import api from "@/config/axios";
 import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
 import type { Appointment, AppointmentStats } from "@/types/appointment.types";
+import type { Page } from "@/types/pagination.types";
 import type { MedicalHistory } from "@/types/patient.types";
 import type { Prescription } from "@/types/record.types";
 
 // Buscar consultas como paciente
-export const getMyAppointments = async (): Promise<Appointment[]> => {
-  const { data } = await api.get("/patient/appointments");
+export const getMyAppointments = async (
+  page = 0,
+  size = 10
+): Promise<Page<Appointment>> => {
+  const { data } = await api.get(
+    `/patient/appointments?page=${page}&size=${size}`
+  );
   return data;
 };
 
@@ -47,8 +53,13 @@ export const getLatestPrescription = async (): Promise<Prescription | null> => {
 };
 
 // Buscar histórico de prescrições do paciente logado
-export const getMyPrescriptionsHistory = async (): Promise<Prescription[]> => {
-  const { data } = await api.get("/prescriptions/patient/my-history");
+export const getMyPrescriptionsHistory = async (
+  page = 0,
+  size = 10
+): Promise<Page<Prescription>> => {
+  const { data } = await api.get(
+    `/prescriptions/patient/my-history?page=${page}&size=${size}`
+  );
   return data;
 };
 

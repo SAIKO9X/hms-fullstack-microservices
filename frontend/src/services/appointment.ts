@@ -19,6 +19,7 @@ import type {
   MedicalDocumentCreateRequest,
 } from "@/types/document.types";
 import type { HealthMetric } from "@/types/health.types";
+import type { Page } from "@/types/pagination.types";
 import type { AppointmentRecord, Prescription } from "@/types/record.types";
 
 // === ROTAS COMPARTILHADAS (acessíveis por pacientes e médicos) ===
@@ -110,9 +111,13 @@ export const getPrescriptionByAppointmentId = async (
 };
 
 export const getPrescriptionsByPatientId = async (
-  patientId: number
-): Promise<Prescription[]> => {
-  const { data } = await api.get(`/prescriptions/patient/${patientId}`);
+  patientId: number,
+  page = 0,
+  size = 10
+): Promise<Page<Prescription>> => {
+  const { data } = await api.get(
+    `/prescriptions/patient/${patientId}?page=${page}&size=${size}`
+  );
   return data;
 };
 
@@ -152,23 +157,35 @@ export const createAdverseEffectReport = async (
   await api.post("/adverse-effects", reportData);
 };
 
-export const getAdverseEffectReports = async (): Promise<
-  AdverseEffectReport[]
-> => {
-  const { data } = await api.get("/adverse-effects/doctor");
+export const getAdverseEffectReports = async (
+  page = 0,
+  size = 10
+): Promise<Page<AdverseEffectReport>> => {
+  const { data } = await api.get(
+    `/adverse-effects/doctor?page=${page}&size=${size}`
+  );
   return data;
 };
 
 // === MEDICAL DOCUMENTS ===
-export const getMyDocuments = async (): Promise<MedicalDocument[]> => {
-  const { data } = await api.get("/documents/patient");
+export const getMyDocuments = async (
+  page = 0,
+  size = 10
+): Promise<Page<MedicalDocument>> => {
+  const { data } = await api.get(
+    `/documents/patient?page=${page}&size=${size}`
+  );
   return data;
 };
 
 export const getDocumentsByPatientId = async (
-  patientId: number
-): Promise<MedicalDocument[]> => {
-  const { data } = await api.get(`/documents/patient/${patientId}`);
+  patientId: number,
+  page = 0,
+  size = 10
+): Promise<Page<MedicalDocument>> => {
+  const { data } = await api.get(
+    `/documents/patient/${patientId}?page=${page}&size=${size}`
+  );
   return data;
 };
 

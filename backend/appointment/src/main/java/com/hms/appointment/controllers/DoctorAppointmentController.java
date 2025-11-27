@@ -9,6 +9,10 @@ import com.hms.appointment.dto.response.PatientGroupResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,19 +31,22 @@ public class DoctorAppointmentController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public List<AppointmentResponse> getMyAppointmentsAsDoctor(@RequestHeader("Authorization") String token) {
+  public Page<AppointmentResponse> getMyAppointments(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "appointmentDateTime", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long doctorId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentsForDoctor(doctorId);
+    return appointmentService.getAppointmentsForDoctor(doctorId, pageable);
   }
 
   @GetMapping("/details")
   @ResponseStatus(HttpStatus.OK)
   public List<AppointmentDetailResponse> getAppointmentDetails(
     @RequestHeader("Authorization") String token,
-    @RequestParam(name = "date", required = false) String dateFilter
+    @RequestParam(required = false, defaultValue = "all") String filter
   ) {
     Long doctorId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentDetailsForDoctor(doctorId, dateFilter);
+    return appointmentService.getAppointmentDetailsForDoctor(doctorId, filter);
   }
 
   @PatchMapping("/{id}/complete")

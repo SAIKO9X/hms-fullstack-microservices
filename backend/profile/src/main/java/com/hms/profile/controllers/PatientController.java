@@ -10,6 +10,9 @@ import com.hms.profile.services.JwtService;
 import com.hms.profile.services.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -68,8 +71,8 @@ public class PatientController {
   @GetMapping("/all")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
-  public List<PatientResponse> getAllPatientProfiles() {
-    return patientService.findAllPatients();
+  public Page<PatientResponse> getAllPatientProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
+    return patientService.findAllPatients(pageable);
   }
 
   @GetMapping("/{id}")

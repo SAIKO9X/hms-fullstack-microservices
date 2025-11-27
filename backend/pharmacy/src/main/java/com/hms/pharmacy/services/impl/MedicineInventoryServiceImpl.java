@@ -1,5 +1,7 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
+import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.entities.MedicineInventory;
 import com.hms.pharmacy.enums.StockStatus;
@@ -7,17 +9,16 @@ import com.hms.pharmacy.exceptions.InsufficientStockException;
 import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineInventoryRepository;
 import com.hms.pharmacy.repositories.MedicineRepository;
-import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
-import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.MedicineService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -50,10 +51,9 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<MedicineInventoryResponse> getAllInventory() {
-    return inventoryRepository.findAll().stream()
-      .map(MedicineInventoryResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<MedicineInventoryResponse> getAllInventory(Pageable pageable) {
+    return inventoryRepository.findAll(pageable)
+      .map(MedicineInventoryResponse::fromEntity);
   }
 
   @Override

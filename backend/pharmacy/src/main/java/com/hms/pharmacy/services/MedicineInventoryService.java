@@ -2,13 +2,13 @@ package com.hms.pharmacy.services;
 
 import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
 import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface MedicineInventoryService {
   MedicineInventoryResponse addInventory(MedicineInventoryRequest request);
 
-  List<MedicineInventoryResponse> getAllInventory();
+  Page<MedicineInventoryResponse> getAllInventory(Pageable pageable);
 
   MedicineInventoryResponse getInventoryById(Long inventoryId);
 

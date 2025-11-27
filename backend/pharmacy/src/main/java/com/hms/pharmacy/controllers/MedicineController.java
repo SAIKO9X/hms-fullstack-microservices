@@ -5,11 +5,12 @@ import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.services.MedicineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,8 +34,9 @@ public class MedicineController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public List<MedicineResponse> getAllMedicines() {
-    return medicineService.getAllMedicines();
+  public Page<MedicineResponse> getAllMedicines(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
+    // O @PageableDefault define valores padrão
+    return medicineService.getAllMedicines(pageable);
   }
 
   @PutMapping("/{id}")

@@ -4,8 +4,8 @@ import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
 import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
 import com.hms.appointment.dto.response.PrescriptionResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface PrescriptionService {
   PrescriptionResponse createPrescription(PrescriptionCreateRequest request, Long doctorId);
@@ -14,7 +14,7 @@ public interface PrescriptionService {
 
   PrescriptionResponse updatePrescription(Long prescriptionId, PrescriptionUpdateRequest request, Long doctorId);
 
-  List<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId);
+  Page<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId, Pageable pageable);
 
   PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId);
 

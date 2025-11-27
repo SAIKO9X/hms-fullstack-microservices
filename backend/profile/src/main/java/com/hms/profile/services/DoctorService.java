@@ -6,6 +6,8 @@ import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
 import com.hms.profile.dto.response.DoctorStatusResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -20,7 +22,7 @@ public interface DoctorService {
 
   List<DoctorDropdownResponse> getDoctorsForDropdown();
 
-  List<DoctorResponse> findAllDoctors();
+  Page<DoctorResponse> findAllDoctors(Pageable pageable);
 
   DoctorResponse getDoctorProfileById(Long id);
 

@@ -1,17 +1,16 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
+import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.entities.MedicalDocument;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
-import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
-import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,10 +42,9 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
 
 
   @Override
-  public List<MedicalDocumentResponse> getDocumentsByPatientId(Long patientId) {
-    return documentRepository.findByPatientIdOrderByUploadedAtDesc(patientId).stream()
-      .map(MedicalDocumentResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<MedicalDocumentResponse> getDocumentsByPatientId(Long patientId, Pageable pageable) {
+    return documentRepository.findByPatientIdOrderByUploadedAtDesc(patientId, pageable)
+      .map(MedicalDocumentResponse::fromEntity);
   }
 
   @Override

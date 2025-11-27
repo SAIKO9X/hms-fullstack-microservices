@@ -6,11 +6,13 @@ import com.hms.appointment.services.AdverseEffectReportService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,9 +35,12 @@ public class AdverseEffectReportController {
   @GetMapping("/doctor")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('DOCTOR')")
-  public List<AdverseEffectReportResponse> getMyReports(@RequestHeader("Authorization") String token) {
+  public Page<AdverseEffectReportResponse> getMyReports(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "reportedAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long doctorId = getUserIdFromToken(token);
-    return reportService.getReportsByDoctorId(doctorId);
+    return reportService.getReportsByDoctorId(doctorId, pageable);
   }
 
   @PutMapping("/{reportId}/review")

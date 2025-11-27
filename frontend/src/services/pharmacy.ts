@@ -4,6 +4,7 @@ import type {
   MedicineInventory,
   PharmacySale,
 } from "@/types/medicine.types";
+import type { Page } from "@/types/pagination.types";
 import type { PharmacyFinancialStats } from "@/types/stats.types";
 
 export type MedicineFormData = Omit<Medicine, "id" | "createdAt">;
@@ -24,8 +25,13 @@ export type DirectSaleFormData = {
 };
 
 // Buscar todos os medicamentos
-export const getAllMedicines = async (): Promise<Medicine[]> => {
-  const { data } = await api.get("/pharmacy/medicines");
+export const getAllMedicines = async (
+  page = 0,
+  size = 10
+): Promise<Page<Medicine>> => {
+  const { data } = await api.get(
+    `/pharmacy/medicines?page=${page}&size=${size}`
+  );
   return data;
 };
 
@@ -47,8 +53,13 @@ export const updateMedicine = async (
 };
 
 // Buscar todos os itens do inventário
-export const getAllInventory = async (): Promise<MedicineInventory[]> => {
-  const { data } = await api.get("/pharmacy/inventory");
+export const getAllInventory = async (
+  page = 0,
+  size = 10
+): Promise<Page<MedicineInventory>> => {
+  const { data } = await api.get(
+    `/pharmacy/inventory?page=${page}&size=${size}`
+  );
   return data;
 };
 
@@ -75,8 +86,11 @@ export const deleteInventoryItem = async (id: number): Promise<void> => {
 };
 
 // Buscar todas as vendas
-export const getAllSales = async (): Promise<PharmacySale[]> => {
-  const { data } = await api.get("/pharmacy/sales");
+export const getAllSales = async (
+  page = 0,
+  size = 10
+): Promise<Page<PharmacySale>> => {
+  const { data } = await api.get(`/pharmacy/sales?page=${page}&size=${size}`);
   return data;
 };
 

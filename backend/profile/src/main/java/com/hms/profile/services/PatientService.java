@@ -5,6 +5,8 @@ import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -22,7 +24,7 @@ public interface PatientService {
 
   List<PatientDropdownResponse> getPatientsForDropdown();
 
-  List<PatientResponse> findAllPatients();
+  Page<PatientResponse> findAllPatients(Pageable pageable);
 
   void updateProfilePicture(Long userId, String pictureUrl);
 

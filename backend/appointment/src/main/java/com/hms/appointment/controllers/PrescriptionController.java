@@ -8,15 +8,17 @@ import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.PrescriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/prescriptions")
+@RequiredArgsConstructor
 public class PrescriptionController {
 
   private final PrescriptionService prescriptionService;
@@ -24,57 +26,70 @@ public class PrescriptionController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public PrescriptionResponse createPrescription(@RequestHeader("Authorization") String token, @Valid @RequestBody PrescriptionCreateRequest request) {
+  @PreAuthorize("hasRole('DOCTOR')")
+  public PrescriptionResponse createPrescription(
+    @RequestHeader("Authorization") String token,
+    @Valid @RequestBody PrescriptionCreateRequest request) {
     Long doctorId = getUserIdFromToken(token);
     return prescriptionService.createPrescription(request, doctorId);
   }
 
-  @GetMapping("/appointment/{appointmentId}")
+  @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
-  public PrescriptionResponse getPrescriptionByAppointmentId(@RequestHeader("Authorization") String token, @PathVariable Long appointmentId) {
+  public PrescriptionResponse getPrescriptionById(
+    @RequestHeader("Authorization") String token,
+    @PathVariable Long id) {
     Long requesterId = getUserIdFromToken(token);
-    return prescriptionService.getPrescriptionByAppointmentId(appointmentId, requesterId);
+    return prescriptionService.getPrescriptionByAppointmentId(id, requesterId);
   }
 
-  @PutMapping("/{prescriptionId}")
+  @PutMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('DOCTOR')")
   public PrescriptionResponse updatePrescription(
     @RequestHeader("Authorization") String token,
-    @PathVariable Long prescriptionId,
-    @Valid @RequestBody PrescriptionUpdateRequest request
-  ) {
+    @PathVariable Long id,
+    @Valid @RequestBody PrescriptionUpdateRequest request) {
     Long doctorId = getUserIdFromToken(token);
-    return prescriptionService.updatePrescription(prescriptionId, request, doctorId);
+    return prescriptionService.updatePrescription(id, request, doctorId);
   }
 
+  // === ALTERADO PARA PAGINAÇÃO ===
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
-  public List<PrescriptionResponse> getPrescriptionsByPatientId(@RequestHeader("Authorization") String token, @PathVariable Long patientId) {
+  public Page<PrescriptionResponse> getPrescriptionsByPatientId(
+    @RequestHeader("Authorization") String token,
+    @PathVariable Long patientId,
+    @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long requesterId = getUserIdFromToken(token);
-    return prescriptionService.getPrescriptionsByPatientId(patientId, requesterId);
-  }
-
-  @GetMapping("/{id}/for-pharmacy")
-  @ResponseStatus(HttpStatus.OK)
-  public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(@PathVariable Long id) {
-    // Este endpoint será chamado internamente pelo pharmacy-service
-    return prescriptionService.getPrescriptionForPharmacy(id);
-  }
-
-  @GetMapping("/patient/latest")
-  @ResponseStatus(HttpStatus.OK)
-  public PrescriptionResponse getLatestPrescription(@RequestHeader("Authorization") String token) {
-    Long patientId = getUserIdFromToken(token);
-    return prescriptionService.getLatestPrescriptionByPatientId(patientId);
+    return prescriptionService.getPrescriptionsByPatientId(patientId, requesterId, pageable);
   }
 
   @GetMapping("/patient/my-history")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('PATIENT')")
-  public List<PrescriptionResponse> getMyPrescriptionHistory(@RequestHeader("Authorization") String token) {
+  public Page<PrescriptionResponse> getMyPrescriptionHistory(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long patientId = getUserIdFromToken(token);
     // Reutiliza o método de serviço existente, passando o ID do próprio paciente
-    return prescriptionService.getPrescriptionsByPatientId(patientId, patientId);
+    return prescriptionService.getPrescriptionsByPatientId(patientId, patientId, pageable);
+  }
+
+  @GetMapping("/pharmacy-access/{id}")
+  @ResponseStatus(HttpStatus.OK)
+  public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(@PathVariable Long id) {
+    return prescriptionService.getPrescriptionForPharmacy(id);
+  }
+
+  @GetMapping("/patient/latest")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasRole('PATIENT')")
+  public PrescriptionResponse getLatestPrescription(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    return prescriptionService.getLatestPrescriptionByPatientId(patientId);
   }
 
   private Long getUserIdFromToken(String token) {

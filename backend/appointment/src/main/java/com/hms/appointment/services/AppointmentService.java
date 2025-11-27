@@ -2,6 +2,8 @@ package com.hms.appointment.services;
 
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,9 +14,9 @@ public interface AppointmentService {
 
   AppointmentResponse getAppointmentById(Long appointmentId, Long requesterId);
 
-  List<AppointmentResponse> getAppointmentsForPatient(Long patientId);
+  Page<AppointmentResponse> getAppointmentsForPatient(Long patientId, Pageable pageable);
 
-  List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId);
+  Page<AppointmentResponse> getAppointmentsForDoctor(Long doctorId, Pageable pageable);
 
   List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId, String dateFilter);
 

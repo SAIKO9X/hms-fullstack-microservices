@@ -1,16 +1,15 @@
 package com.hms.appointment.services.impl;
 
-import com.hms.appointment.entities.HealthMetric;
-import com.hms.appointment.repositories.HealthMetricRepository;
 import com.hms.appointment.dto.request.HealthMetricCreateRequest;
 import com.hms.appointment.dto.response.HealthMetricResponse;
+import com.hms.appointment.entities.HealthMetric;
+import com.hms.appointment.repositories.HealthMetricRepository;
 import com.hms.appointment.services.HealthMetricService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,9 +48,8 @@ public class HealthMetricServiceImpl implements HealthMetricService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<HealthMetricResponse> getHealthMetricHistory(Long patientId) {
-    return healthMetricRepository.findByPatientIdOrderByRecordedAtDesc(patientId).stream()
-      .map(HealthMetricResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<HealthMetricResponse> getHealthMetricHistory(Long patientId, Pageable pageable) {
+    return healthMetricRepository.findByPatientIdOrderByRecordedAtDesc(patientId, pageable)
+      .map(HealthMetricResponse::fromEntity);
   }
 }

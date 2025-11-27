@@ -6,8 +6,8 @@ import com.hms.user.dto.request.LoginRequest;
 import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.dto.response.UserResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface UserService {
 
@@ -25,7 +25,7 @@ public interface UserService {
 
   UserResponse adminCreateUser(AdminCreateUserRequest request);
 
-  List<UserResponse> findAllUsers();
+  Page<UserResponse> findAllUsers(Pageable pageable);
 
   void adminUpdateUser(Long userId, AdminUpdateUserRequest request);
 }

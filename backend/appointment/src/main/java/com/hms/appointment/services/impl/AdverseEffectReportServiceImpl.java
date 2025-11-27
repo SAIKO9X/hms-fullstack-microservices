@@ -1,18 +1,17 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.dto.request.AdverseEffectReportCreateRequest;
+import com.hms.appointment.dto.response.AdverseEffectReportResponse;
 import com.hms.appointment.entities.AdverseEffectReport;
 import com.hms.appointment.enums.ReportStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.AdverseEffectReportRepository;
-import com.hms.appointment.dto.request.AdverseEffectReportCreateRequest;
-import com.hms.appointment.dto.response.AdverseEffectReportResponse;
 import com.hms.appointment.services.AdverseEffectReportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +35,9 @@ public class AdverseEffectReportServiceImpl implements AdverseEffectReportServic
 
   @Override
   @Transactional(readOnly = true)
-  public List<AdverseEffectReportResponse> getReportsByDoctorId(Long doctorId) {
-    return reportRepository.findByDoctorIdOrderByReportedAtDesc(doctorId).stream()
-      .map(AdverseEffectReportResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<AdverseEffectReportResponse> getReportsByDoctorId(Long doctorId, Pageable pageable) {
+    return reportRepository.findByDoctorIdOrderByReportedAtDesc(doctorId, pageable)
+      .map(AdverseEffectReportResponse::fromEntity);
   }
 
   @Override

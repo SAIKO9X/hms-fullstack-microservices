@@ -13,6 +13,8 @@ import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.DoctorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,10 +96,9 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<DoctorResponse> findAllDoctors() {
-    return doctorRepository.findAll().stream()
-      .map(DoctorResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<DoctorResponse> findAllDoctors(Pageable pageable) {
+    return doctorRepository.findAll(pageable)
+      .map(DoctorResponse::fromEntity);
   }
 
   @Override

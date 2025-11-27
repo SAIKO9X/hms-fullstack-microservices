@@ -7,15 +7,16 @@ import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
+@RequestMapping("/appointments/patient")
 @RequiredArgsConstructor
-@RequestMapping("/patient/appointments")
 public class PatientAppointmentController {
 
   private final AppointmentService appointmentService;
@@ -23,19 +24,21 @@ public class PatientAppointmentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  public AppointmentResponse scheduleAppointment(
+  public AppointmentResponse createAppointment(
     @RequestHeader("Authorization") String token,
-    @Valid @RequestBody AppointmentCreateRequest request
-  ) {
+    @Valid @RequestBody AppointmentCreateRequest request) {
     Long patientId = getUserIdFromToken(token);
     return appointmentService.createAppointment(patientId, request);
   }
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public List<AppointmentResponse> getMyAppointmentsAsPatient(@RequestHeader("Authorization") String token) {
+  public Page<AppointmentResponse> getMyAppointments(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "appointmentDateTime", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long patientId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentsForPatient(patientId);
+    return appointmentService.getAppointmentsForPatient(patientId, pageable);
   }
 
   @GetMapping("/next")
@@ -50,13 +53,6 @@ public class PatientAppointmentController {
   public AppointmentStatsResponse getAppointmentStats(@RequestHeader("Authorization") String token) {
     Long patientId = getUserIdFromToken(token);
     return appointmentService.getAppointmentStatsForPatient(patientId);
-  }
-
-  @GetMapping("/history/{patientId}")
-  @ResponseStatus(HttpStatus.OK)
-  @PreAuthorize("isAuthenticated()")
-  public List<AppointmentResponse> getAppointmentHistoryForPatient(@PathVariable Long patientId) {
-    return appointmentService.getAppointmentsByPatientId(patientId);
   }
 
   private Long getUserIdFromToken(String token) {

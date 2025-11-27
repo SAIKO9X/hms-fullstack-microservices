@@ -6,15 +6,17 @@ import com.hms.appointment.services.HealthMetricService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/health-metrics")
+@RequiredArgsConstructor
 public class HealthMetricController {
 
   private final HealthMetricService healthMetricService;
@@ -23,7 +25,9 @@ public class HealthMetricController {
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
   @PreAuthorize("hasRole('PATIENT')")
-  public HealthMetricResponse addHealthMetric(@RequestHeader("Authorization") String token, @Valid @RequestBody HealthMetricCreateRequest request) {
+  public HealthMetricResponse addHealthMetric(
+    @RequestHeader("Authorization") String token,
+    @Valid @RequestBody HealthMetricCreateRequest request) {
     Long patientId = getUserIdFromToken(token);
     return healthMetricService.createHealthMetric(patientId, request);
   }
@@ -31,7 +35,7 @@ public class HealthMetricController {
   @GetMapping("/latest")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('PATIENT')")
-  public HealthMetricResponse getLatestHealthMetric(@RequestHeader("Authorization") String token) {
+  public HealthMetricResponse getLatestMetric(@RequestHeader("Authorization") String token) {
     Long patientId = getUserIdFromToken(token);
     return healthMetricService.getLatestHealthMetric(patientId);
   }
@@ -39,9 +43,12 @@ public class HealthMetricController {
   @GetMapping("/history")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('PATIENT')")
-  public List<HealthMetricResponse> getHealthMetricHistory(@RequestHeader("Authorization") String token) {
+  public Page<HealthMetricResponse> getHealthMetricHistory(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "recordedAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long patientId = getUserIdFromToken(token);
-    return healthMetricService.getHealthMetricHistory(patientId);
+    return healthMetricService.getHealthMetricHistory(patientId, pageable);
   }
 
   private Long getUserIdFromToken(String token) {

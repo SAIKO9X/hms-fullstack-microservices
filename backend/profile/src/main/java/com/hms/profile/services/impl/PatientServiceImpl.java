@@ -13,11 +13,12 @@ import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -111,10 +112,9 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<PatientResponse> findAllPatients() {
-    return patientRepository.findAll().stream()
-      .map(PatientResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<PatientResponse> findAllPatients(Pageable pageable) {
+    return patientRepository.findAll(pageable)
+      .map(PatientResponse::fromEntity);
   }
 
   @Override

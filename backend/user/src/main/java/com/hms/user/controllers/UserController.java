@@ -7,13 +7,15 @@ import com.hms.user.dto.response.UserResponse;
 import com.hms.user.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @Validated
@@ -66,7 +68,7 @@ public class UserController {
   @GetMapping("/all")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
-  public List<UserResponse> getAllUsers() {
-    return userService.findAllUsers();
+  public Page<UserResponse> getAllUsers(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
+    return userService.findAllUsers(pageable);
   }
 }

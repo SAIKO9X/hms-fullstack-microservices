@@ -5,12 +5,13 @@ import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -28,8 +29,8 @@ public class MedicineInventoryController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public List<MedicineInventoryResponse> getAllInventory() {
-    return inventoryService.getAllInventory();
+  public Page<MedicineInventoryResponse> getAllInventory(@PageableDefault(size = 10) Pageable pageable) {
+    return inventoryService.getAllInventory(pageable);
   }
 
   @GetMapping("/{id}")

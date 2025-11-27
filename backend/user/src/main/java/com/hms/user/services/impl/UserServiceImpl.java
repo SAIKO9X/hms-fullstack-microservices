@@ -12,15 +12,15 @@ import com.hms.user.repositories.UserRepository;
 import com.hms.user.services.JwtService;
 import com.hms.user.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +61,6 @@ public class UserServiceImpl implements UserService {
 
     return UserResponse.fromEntity(savedUser);
   }
-
 
   @Override
   @Transactional(readOnly = true)
@@ -163,10 +162,9 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<UserResponse> findAllUsers() {
-    return userRepository.findAll().stream()
-      .map(UserResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<UserResponse> findAllUsers(Pageable pageable) {
+    return userRepository.findAll(pageable)
+      .map(UserResponse::fromEntity);
   }
 
   @Override

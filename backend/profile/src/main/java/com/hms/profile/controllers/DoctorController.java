@@ -10,6 +10,9 @@ import com.hms.profile.services.DoctorService;
 import com.hms.profile.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -67,8 +70,8 @@ public class DoctorController {
 
   @GetMapping("/all")
   @ResponseStatus(HttpStatus.OK)
-  public List<DoctorResponse> getAllDoctorProfiles() {
-    return doctorService.findAllDoctors();
+  public Page<DoctorResponse> getAllDoctorProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
+    return doctorService.findAllDoctors(pageable);
   }
 
   @GetMapping("/{id}")

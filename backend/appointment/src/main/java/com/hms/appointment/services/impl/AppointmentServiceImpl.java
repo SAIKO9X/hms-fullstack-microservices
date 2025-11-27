@@ -12,6 +12,8 @@ import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +60,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional(readOnly = true)
   public AppointmentResponse getAppointmentById(Long appointmentId, Long requesterId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
-    // Validação de segurança: o requisitante é o paciente ou o doutor da consulta?
+    // Validação de segurança, o requisitante é o paciente ou o doutor da consulta
     if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
       throw new SecurityException("Acesso negado. Você não faz parte desta consulta.");
     }
@@ -67,20 +69,17 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentResponse> getAppointmentsForPatient(Long patientId) {
-    return appointmentRepository.findByPatientId(patientId).stream()
-      .map(AppointmentResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<AppointmentResponse> getAppointmentsForPatient(Long patientId, Pageable pageable) {
+    return appointmentRepository.findByPatientId(patientId, pageable)
+      .map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId) {
-    return appointmentRepository.findByDoctorId(doctorId).stream()
-      .map(AppointmentResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<AppointmentResponse> getAppointmentsForDoctor(Long doctorId, Pageable pageable) {
+    return appointmentRepository.findByDoctorId(doctorId, pageable)
+      .map(AppointmentResponse::fromEntity);
   }
-
 
   @Override
   @Transactional(readOnly = true)

@@ -4,6 +4,8 @@ import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.PharmacySaleRequest;
 import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
 import com.hms.pharmacy.dto.response.PharmacySaleResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -14,7 +16,7 @@ public interface PharmacySaleService {
 
   List<PharmacySaleResponse> getSalesByPatientId(Long patientId);
 
-  List<PharmacySaleResponse> getAllSales();
+  Page<PharmacySaleResponse> getAllSales(Pageable pageable);
 
   PharmacySaleResponse processPrescriptionAndCreateSale(Long prescriptionId);
 

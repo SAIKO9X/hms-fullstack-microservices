@@ -6,15 +6,18 @@ import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/documents")
+@RequiredArgsConstructor
 public class MedicalDocumentController {
 
   private final MedicalDocumentService documentService;
@@ -22,37 +25,42 @@ public class MedicalDocumentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR')")
   public MedicalDocumentResponse uploadDocument(
     @RequestHeader("Authorization") String token,
     @Valid @RequestBody MedicalDocumentCreateRequest request) {
     Long uploaderId = getUserIdFromToken(token);
-    // Passa o token completo para o serviço poder extrair a role
     return documentService.createDocument(uploaderId, token, request);
   }
 
   @GetMapping("/patient")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('PATIENT')")
-  public List<MedicalDocumentResponse> getMyDocuments(@RequestHeader("Authorization") String token) {
+  public Page<MedicalDocumentResponse> getMyDocuments(
+    @RequestHeader("Authorization") String token,
+    @PageableDefault(size = 10, sort = "uploadedAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
     Long patientId = getUserIdFromToken(token);
-    return documentService.getDocumentsByPatientId(patientId);
+    return documentService.getDocumentsByPatientId(patientId, pageable);
   }
 
-  // Endpoint para médicos ou admins verem documentos de um paciente específico
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-  public List<MedicalDocumentResponse> getDocumentsForPatient(@PathVariable Long patientId) {
-    return documentService.getDocumentsByPatientId(patientId);
+  public Page<MedicalDocumentResponse> getDocumentsForPatient(
+    @PathVariable Long patientId,
+    @PageableDefault(size = 10, sort = "uploadedAt", direction = Sort.Direction.DESC) Pageable pageable
+  ) {
+    return documentService.getDocumentsByPatientId(patientId, pageable);
   }
 
   @DeleteMapping("/{id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  @PreAuthorize("hasRole('PATIENT')")
-  public void deleteDocument(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+  public ResponseEntity<Void> deleteDocument(
+    @PathVariable Long id,
+    @RequestHeader("Authorization") String token
+  ) {
     Long patientId = getUserIdFromToken(token);
     documentService.deleteDocument(id, patientId);
+    return ResponseEntity.noContent().build();
   }
 
   private Long getUserIdFromToken(String token) {

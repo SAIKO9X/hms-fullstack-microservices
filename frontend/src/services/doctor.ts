@@ -5,10 +5,16 @@ import type {
   DoctorDashboardStats,
   PatientGroup,
 } from "@/types/appointment.types";
+import type { Page } from "@/types/pagination.types";
 
 // Buscar consultas como médico
-export const getMyAppointmentsAsDoctor = async (): Promise<Appointment[]> => {
-  const { data } = await api.get("/doctor/appointments");
+export const getMyAppointmentsAsDoctor = async (
+  page = 0,
+  size = 10
+): Promise<Page<Appointment>> => {
+  const { data } = await api.get(
+    `/doctor/appointments?page=${page}&size=${size}`
+  );
   return data;
 };
 

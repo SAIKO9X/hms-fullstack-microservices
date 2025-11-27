@@ -2,6 +2,8 @@ package com.hms.pharmacy.services;
 
 import com.hms.pharmacy.dto.request.MedicineRequest;
 import com.hms.pharmacy.dto.response.MedicineResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -12,7 +14,7 @@ public interface MedicineService {
 
   MedicineResponse getMedicineById(Long medicineId);
 
-  List<MedicineResponse> getAllMedicines();
+  Page<MedicineResponse> getAllMedicines(Pageable pageable);
 
   Integer getStockById(Long medicineId);
 

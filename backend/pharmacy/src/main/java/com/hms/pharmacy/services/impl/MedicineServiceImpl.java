@@ -1,19 +1,18 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.pharmacy.dto.request.MedicineRequest;
+import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.exceptions.InsufficientStockException;
 import com.hms.pharmacy.exceptions.MedicineAlreadyExistsException;
 import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
-import com.hms.pharmacy.dto.request.MedicineRequest;
-import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.services.MedicineService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -63,10 +62,9 @@ public class MedicineServiceImpl implements MedicineService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<MedicineResponse> getAllMedicines() {
-    return medicineRepository.findAll().stream()
-      .map(MedicineResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<MedicineResponse> getAllMedicines(Pageable pageable) {
+    return medicineRepository.findAll(pageable)
+      .map(MedicineResponse::fromEntity);
   }
 
   @Override

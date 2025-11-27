@@ -19,6 +19,8 @@ import com.hms.pharmacy.repositories.PharmacySaleRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.PharmacySaleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,10 +108,9 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
 
   @Override
-  public List<PharmacySaleResponse> getAllSales() {
-    return saleRepository.findAll().stream()
-      .map(PharmacySaleResponse::fromEntity)
-      .collect(Collectors.toList());
+  public Page<PharmacySaleResponse> getAllSales(Pageable pageable) {
+    return saleRepository.findAll(pageable)
+      .map(PharmacySaleResponse::fromEntity);
   }
 
   @Override

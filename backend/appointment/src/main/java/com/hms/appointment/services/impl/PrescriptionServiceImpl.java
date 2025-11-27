@@ -1,5 +1,10 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.dto.request.MedicineRequest;
+import com.hms.appointment.dto.request.PrescriptionCreateRequest;
+import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
+import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
+import com.hms.appointment.dto.response.PrescriptionResponse;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.Medicine;
 import com.hms.appointment.entities.Prescription;
@@ -7,13 +12,10 @@ import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
-import com.hms.appointment.dto.request.MedicineRequest;
-import com.hms.appointment.dto.request.PrescriptionCreateRequest;
-import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
-import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
-import com.hms.appointment.dto.response.PrescriptionResponse;
 import com.hms.appointment.services.PrescriptionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,20 +90,14 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId) {
+  public Page<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId, Pageable pageable) {
     // Validação de segurança: apenas o próprio paciente ou um médico pode ver
     List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
     boolean isAuthorized = appointments.stream()
       .anyMatch(app -> app.getPatientId().equals(requesterId) || app.getDoctorId().equals(requesterId));
 
-    // Por enquanto, vamos simplificar para a comunicação entre serviços
-    // if (!isAuthorized) {
-    //   throw new SecurityException("Acesso negado.");
-    // }
-
-    return prescriptionRepository.findByAppointmentPatientId(patientId).stream()
-      .map(PrescriptionResponse::fromEntity)
-      .collect(Collectors.toList());
+    return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
+      .map(PrescriptionResponse::fromEntity);
   }
 
   @Override
