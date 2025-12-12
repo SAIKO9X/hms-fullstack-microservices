@@ -8,9 +8,8 @@ import { cn } from "@/utils/utils";
 import {
   useAddInventoryItem,
   useUpdateInventoryItem,
+  useMedicines,
 } from "@/services/queries/pharmacy-queries";
-import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacy";
 import type { MedicineInventory } from "@/types/medicine.types";
 import {
   Dialog,
@@ -46,7 +45,6 @@ import {
 } from "@/components/ui/command";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 
-// Schema de validação
 const InventoryFormSchema = z.object({
   medicineId: z.number({ message: "Selecione um medicamento" }),
   batchNo: z
@@ -86,17 +84,11 @@ export const AddEditInventoryDialog = ({
     },
   });
 
-  // Buscar medicamentos para o dropdown
-  const { data: medicines = [] } = useQuery({
-    queryKey: ["medicines"],
-    queryFn: getAllMedicines,
-  });
-
-  // Hooks de mutação
+  const { data: medicinesPage } = useMedicines(0, 100);
+  const medicines = medicinesPage?.content || [];
   const addMutation = useAddInventoryItem();
   const updateMutation = useUpdateInventoryItem();
 
-  // Preenche o formulário quando em modo de edição
   useEffect(() => {
     if (open) {
       if (isEditing && inventory) {

@@ -14,6 +14,8 @@ import {
   Filter,
   AlertCircle,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -73,22 +75,24 @@ const documentTypeConfig: Record<
 };
 
 export const PatientDocumentsPage = () => {
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
   const {
-    data: documents,
+    data: documentsPage,
     isLoading,
     refetch: refetchDocuments,
-  } = useMyDocuments();
+  } = useMyDocuments(page, pageSize);
+  const documents = documentsPage?.content || [];
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("ALL");
   const { user } = useAppSelector((state) => state.auth);
   const [isAddDocOpen, setIsAddDocOpen] = useState(false);
-
   const [notification, setNotification] = useState<{
     message: string;
     variant: "success" | "error";
   } | null>(null);
 
-  // Filtrar e ordenar documentos
+  // Filtra e ordena documentos (apenas da página atual)
   const filteredDocuments = useMemo(() => {
     if (!documents) return [];
 
@@ -121,9 +125,8 @@ export const PatientDocumentsPage = () => {
     return Array.from(types);
   }, [documents]);
 
-  // Estatísticas
   const stats = useMemo(() => {
-    if (!documents) return { total: 0, thisMonth: 0, lastUpload: null };
+    if (!documentsPage) return { total: 0, thisMonth: 0, lastUpload: null };
 
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -132,7 +135,7 @@ export const PatientDocumentsPage = () => {
     ).length;
 
     return {
-      total: documents.length,
+      total: documentsPage.totalElements || 0,
       thisMonth,
       lastUpload:
         documents.length > 0
@@ -143,7 +146,7 @@ export const PatientDocumentsPage = () => {
             ).uploadedAt
           : null,
     };
-  }, [documents]);
+  }, [documents, documentsPage]);
 
   const handleDocumentSuccess = () => {
     setNotification({
@@ -216,7 +219,7 @@ export const PatientDocumentsPage = () => {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">Este Mês</p>
+                <p className="text-sm text-muted-foreground">Este Mês (Pág.)</p>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
@@ -228,7 +231,9 @@ export const PatientDocumentsPage = () => {
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">Último Upload</p>
+                <p className="text-sm text-muted-foreground">
+                  Último Upload (Pág.)
+                </p>
                 <Download className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
@@ -322,10 +327,45 @@ export const PatientDocumentsPage = () => {
               </p>
             </div>
           ) : (
-            <DocumentsCard
-              documents={filteredDocuments}
-              isLoading={isLoading}
-            />
+            <div className="space-y-4">
+              <DocumentsCard
+                documents={filteredDocuments}
+                isLoading={isLoading}
+              />
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((old) => Math.max(0, old - 1))}
+                  disabled={page === 0 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Página {page + 1} de {documentsPage?.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((old) =>
+                      !documentsPage || old >= documentsPage.totalPages - 1
+                        ? old
+                        : old + 1
+                    )
+                  }
+                  disabled={
+                    !documentsPage ||
+                    page >= documentsPage.totalPages - 1 ||
+                    isLoading
+                  }
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -18,6 +18,8 @@ import type {
   PrescriptionUpdateData,
 } from "@/lib/schemas/prescription.schema";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
+import { keepPreviousData } from "@tanstack/react-query";
+import type { Page } from "@/types/pagination.types";
 
 export interface AppointmentWithDoctor extends Appointment {
   doctorName?: string;
@@ -39,20 +41,31 @@ export const appointmentKeys = {
     [...appointmentKeys.all, "patient", "latestPrescription"] as const,
   stats: () => [...appointmentKeys.all, "patient", "stats"] as const,
   latestHealthMetric: () => ["healthMetrics", "patient", "latest"] as const,
-  prescriptionsHistory: () =>
-    [...appointmentKeys.all, "patient", "prescriptionsHistory"] as const,
-  myDocuments: () => ["documents", "patient"] as const,
+  prescriptionsHistory: (page?: number, size?: number) =>
+    [
+      ...appointmentKeys.all,
+      "patient",
+      "prescriptionsHistory",
+      { page, size },
+    ] as const,
+  myDocuments: (page?: number, size?: number) =>
+    ["documents", "patient", { page, size }] as const,
+  adverseEffectReports: (page?: number, size?: number) =>
+    ["adverseEffectReports", { page, size }] as const,
   doctorDetails: (dateFilter?: string) =>
     [...appointmentKeys.doctor(), "details", dateFilter || "all"] as const,
 };
 
-export const useAppointments = () => {
-  return useRoleBasedQuery<Appointment[]>({
-    queryKey: appointmentKeys.all,
-    patientFn: PatientService.getMyAppointments,
-    doctorFn: DoctorService.getMyAppointmentsAsDoctor,
+export const useAppointments = (page = 0, size = 10) => {
+  return useRoleBasedQuery<Page<Appointment>>({
+    queryKey: [...appointmentKeys.all, { page, size }],
+
+    patientFn: () => PatientService.getMyAppointments(page, size),
+    doctorFn: () => DoctorService.getMyAppointmentsAsDoctor(page, size),
+
     options: {
       staleTime: 3 * 60 * 1000,
+      placeholderData: keepPreviousData,
     },
   });
 };
@@ -66,10 +79,10 @@ export const useDoctorAppointmentDetails = (
     staleTime: 1 * 60 * 1000,
   });
 };
-
-export const useAppointmentsWithDoctorNames = () => {
+export const useAppointmentsWithDoctorNames = (page = 0, size = 10) => {
   const { user } = useAppSelector((state) => state.auth);
-  const appointmentsQuery = useAppointments();
+
+  const appointmentsQuery = useAppointments(page, size);
 
   const doctorsQuery = useQuery({
     queryKey: appointmentKeys.doctors,
@@ -81,11 +94,13 @@ export const useAppointmentsWithDoctorNames = () => {
   const appointmentsWithDoctorNames: AppointmentWithDoctor[] = useMemo(() => {
     if (!appointmentsQuery.data) return [];
 
+    const appointmentsList = appointmentsQuery.data.content;
+
     if (user?.role === "DOCTOR" || !doctorsQuery.data) {
-      return appointmentsQuery.data;
+      return appointmentsList;
     }
 
-    return appointmentsQuery.data.map((appointment) => {
+    return appointmentsList.map((appointment) => {
       const doctor = doctorsQuery.data.find(
         (doc) => doc.userId === appointment.doctorId
       );
@@ -98,6 +113,8 @@ export const useAppointmentsWithDoctorNames = () => {
 
   return {
     data: appointmentsWithDoctorNames,
+    totalPages: appointmentsQuery.data?.totalPages,
+    totalElements: appointmentsQuery.data?.totalElements,
     isLoading:
       appointmentsQuery.isLoading ||
       (user?.role === "PATIENT" && doctorsQuery.isLoading),
@@ -294,10 +311,11 @@ export const useCreateHealthMetric = () => {
   });
 };
 
-export const useMyPrescriptionsHistory = () => {
+export const useMyPrescriptionsHistory = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: appointmentKeys.prescriptionsHistory(),
-    queryFn: PatientService.getMyPrescriptionsHistory,
+    queryKey: appointmentKeys.prescriptionsHistory(page, size),
+    queryFn: () => PatientService.getMyPrescriptionsHistory(page, size),
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -308,21 +326,26 @@ export const useCreateAdverseEffectReport = () => {
   });
 };
 
-export const useMyDocuments = () => {
+export const useMyDocuments = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: appointmentKeys.myDocuments(),
-    queryFn: AppointmentService.getMyDocuments,
+    queryKey: appointmentKeys.myDocuments(page, size),
+    queryFn: () => AppointmentService.getMyDocuments(page, size),
+    placeholderData: keepPreviousData,
   });
 };
 
 export const useDocumentsByPatientId = (
   patientId?: number,
+  page = 0,
+  size = 10,
   enabled: boolean = true
 ) => {
   return useQuery({
-    queryKey: [...appointmentKeys.myDocuments(), patientId],
-    queryFn: () => AppointmentService.getDocumentsByPatientId(patientId!),
+    queryKey: [...appointmentKeys.myDocuments(page, size), patientId],
+    queryFn: () =>
+      AppointmentService.getDocumentsByPatientId(patientId!, page, size),
     enabled: !!patientId && enabled,
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -332,9 +355,7 @@ export const useCreateMedicalDocument = () => {
     mutationFn: (data: MedicalDocumentCreateRequest) =>
       AppointmentService.createMedicalDocument(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: appointmentKeys.myDocuments(),
-      });
+      queryClient.invalidateQueries({ queryKey: ["documents", "patient"] });
     },
   });
 };
@@ -374,9 +395,10 @@ export const useDoctorPatientGroups = () => {
   });
 };
 
-export const useAdverseEffectReports = () => {
+export const useAdverseEffectReports = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: ["adverseEffectReports"],
-    queryFn: AppointmentService.getAdverseEffectReports,
+    queryKey: appointmentKeys.adverseEffectReports(page, size),
+    queryFn: () => AppointmentService.getAdverseEffectReports(page, size),
+    placeholderData: keepPreviousData,
   });
 };

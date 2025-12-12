@@ -1,9 +1,18 @@
+import { useState } from "react";
 import { useMyPrescriptionsHistory } from "@/services/queries/appointment-queries";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pill, Calendar, FileText, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Pill,
+  Calendar,
+  FileText,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Accordion,
@@ -15,7 +24,15 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const PatientPrescriptionsPage = () => {
-  const { data: prescriptions, isLoading } = useMyPrescriptionsHistory();
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+  const { data: prescriptionsPage, isLoading } = useMyPrescriptionsHistory(
+    page,
+    pageSize
+  );
+
+  // Lista de prescrições da página atual
+  const prescriptions = prescriptionsPage?.content || [];
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -41,7 +58,7 @@ export const PatientPrescriptionsPage = () => {
       </div>
 
       {/* Estatísticas rápidas */}
-      {!isLoading && prescriptions && prescriptions.length > 0 && (
+      {!isLoading && prescriptions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-3">
@@ -53,7 +70,9 @@ export const PatientPrescriptionsPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{prescriptions.length}</p>
+              <p className="text-2xl font-bold">
+                {prescriptionsPage?.totalElements || prescriptions.length}
+              </p>
             </CardContent>
           </Card>
 
@@ -61,7 +80,7 @@ export const PatientPrescriptionsPage = () => {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Medicamentos Prescritos
+                  Medicamentos (Pág.)
                 </p>
                 <Pill className="h-4 w-4 text-muted-foreground" />
               </div>
@@ -77,16 +96,18 @@ export const PatientPrescriptionsPage = () => {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Última Prescrição
+                  Mais Recente (Pág.)
                 </p>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                {format(new Date(prescriptions[0].createdAt), "dd/MM/yyyy", {
-                  locale: ptBR,
-                })}
+                {prescriptions[0]?.createdAt
+                  ? format(new Date(prescriptions[0].createdAt), "dd/MM/yy", {
+                      locale: ptBR,
+                    })
+                  : "-"}
               </p>
             </CardContent>
           </Card>
@@ -119,99 +140,137 @@ export const PatientPrescriptionsPage = () => {
               </p>
             </div>
           ) : (
-            <Accordion type="single" collapsible className="w-full">
-              {prescriptions.map((p) => (
-                <AccordionItem key={p.id} value={`item-${p.id}`}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center justify-between w-full pr-4">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Calendar className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-semibold">
-                            {format(
-                              new Date(p.createdAt),
-                              "dd 'de' MMMM 'de' yyyy",
-                              {
+            <div className="space-y-6">
+              <Accordion type="single" collapsible className="w-full">
+                {prescriptions.map((p) => (
+                  <AccordionItem key={p.id} value={`item-${p.id}`}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center justify-between w-full pr-4">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 bg-primary/10 rounded-lg">
+                            <Calendar className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-semibold">
+                              {format(
+                                new Date(p.createdAt),
+                                "dd 'de' MMMM 'de' yyyy",
+                                {
+                                  locale: ptBR,
+                                }
+                              )}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(p.createdAt), "HH:mm", {
                                 locale: ptBR,
-                              }
-                            )}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(p.createdAt), "HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </p>
+                              })}
+                            </p>
+                          </div>
                         </div>
+                        <Badge variant="secondary" className="ml-auto mr-2">
+                          {p.medicines.length}{" "}
+                          {p.medicines.length === 1
+                            ? "medicamento"
+                            : "medicamentos"}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="ml-auto mr-2">
-                        {p.medicines.length}{" "}
-                        {p.medicines.length === 1
-                          ? "medicamento"
-                          : "medicamentos"}
-                      </Badge>
-                    </div>
-                  </AccordionTrigger>
+                    </AccordionTrigger>
 
-                  <AccordionContent className="pt-4">
-                    <div className="space-y-4 pl-4">
-                      {/* Lista de medicamentos */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                          Medicamentos Prescritos
-                        </h4>
-                        {p.medicines.map((med, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
-                          >
-                            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                              <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <AccordionContent className="pt-4">
+                      <div className="space-y-4 pl-4">
+                        {/* Lista de medicamentos */}
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                            Medicamentos Prescritos
+                          </h4>
+                          {p.medicines.map((med, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
+                            >
+                              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                                <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <p className="font-semibold text-base">
+                                  {med.name}
+                                </p>
+                                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <strong>Dosagem:</strong> {med.dosage}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <strong>Frequência:</strong> {med.frequency}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1">
+                                    <strong>Duração:</strong> {med.duration}{" "}
+                                    dias
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex-1 space-y-1">
-                              <p className="font-semibold text-base">
-                                {med.name}
-                              </p>
-                              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <strong>Dosagem:</strong> {med.dosage}
-                                </span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <strong>Frequência:</strong> {med.frequency}
-                                </span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                  <strong>Duração:</strong> {med.duration} dias
-                                </span>
+                          ))}
+                        </div>
+
+                        {/* Notas adicionais */}
+                        {p.notes && (
+                          <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
+                            <div className="flex gap-2">
+                              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
+                                  Observações do Médico
+                                </p>
+                                <p className="text-sm text-blue-800 dark:text-blue-200">
+                                  {p.notes}
+                                </p>
                               </div>
                             </div>
                           </div>
-                        ))}
+                        )}
                       </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
 
-                      {/* Notas adicionais */}
-                      {p.notes && (
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
-                          <div className="flex gap-2">
-                            <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
-                                Observações do Médico
-                              </p>
-                              <p className="text-sm text-blue-800 dark:text-blue-200">
-                                {p.notes}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((old) => Math.max(0, old - 1))}
+                  disabled={page === 0 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Página {page + 1} de {prescriptionsPage?.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((old) =>
+                      !prescriptionsPage ||
+                      old >= prescriptionsPage.totalPages - 1
+                        ? old
+                        : old + 1
+                    )
+                  }
+                  disabled={
+                    !prescriptionsPage ||
+                    page >= prescriptionsPage.totalPages - 1 ||
+                    isLoading
+                  }
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

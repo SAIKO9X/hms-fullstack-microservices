@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { useSales } from "@/services/queries/pharmacy-queries";
-import { DollarSign, Plus, ShoppingCart, Users } from "lucide-react";
+import {
+  DollarSign,
+  Plus,
+  ShoppingCart,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { columns } from "@/features/admin/components/sales/columns";
@@ -11,17 +18,22 @@ import { ImportPrescriptionDialog } from "@/features/admin/components/sales/Impo
 
 export const AdminSalesPage = () => {
   const navigate = useNavigate();
-  const { data: sales, isLoading } = useSales();
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+  const { data: salesPage, isLoading } = useSales(page, pageSize);
   const [isImportOpen, setIsImportOpen] = useState(false);
 
+  const salesList = salesPage?.content || [];
+
   const stats = useMemo(() => {
-    if (!sales) return { totalRevenue: 0, totalSales: 0, uniqueCustomers: 0 };
+    if (!salesList)
+      return { totalRevenue: 0, totalSales: 0, uniqueCustomers: 0 };
     return {
-      totalRevenue: sales.reduce((acc, sale) => acc + sale.totalAmount, 0),
-      totalSales: sales.length,
-      uniqueCustomers: new Set(sales.map((s) => s.patientId)).size,
+      totalRevenue: salesList.reduce((acc, sale) => acc + sale.totalAmount, 0),
+      totalSales: salesPage?.totalElements || salesList.length,
+      uniqueCustomers: new Set(salesList.map((s) => s.patientId)).size,
     };
-  }, [sales]);
+  }, [salesList, salesPage]);
 
   const handleImportSuccess = (data: any) => {
     setIsImportOpen(false);
@@ -50,7 +62,7 @@ export const AdminSalesPage = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Faturamento Total
+              Faturamento (Pág.)
             </CardTitle>
             <DollarSign className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -80,7 +92,7 @@ export const AdminSalesPage = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Clientes Únicos
+              Clientes (Pág.)
             </CardTitle>
             <Users className="h-4 w-4 text-purple-500" />
           </CardHeader>
@@ -101,7 +113,41 @@ export const AdminSalesPage = () => {
           <CardTitle>Histórico de Vendas</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={sales || []} />
+          <div className="space-y-4">
+            <DataTable columns={columns} data={salesList} />
+
+            <div className="flex items-center justify-end space-x-2 py-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((old) => Math.max(0, old - 1))}
+                disabled={page === 0 || isLoading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </Button>
+              <div className="text-sm text-muted-foreground">
+                Página {page + 1} de {salesPage?.totalPages || 1}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setPage((old) =>
+                    !salesPage || old >= salesPage.totalPages - 1
+                      ? old
+                      : old + 1
+                  )
+                }
+                disabled={
+                  !salesPage || page >= salesPage.totalPages - 1 || isLoading
+                }
+              >
+                Próxima
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 

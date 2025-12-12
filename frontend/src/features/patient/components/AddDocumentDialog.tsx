@@ -79,18 +79,18 @@ export const AddDocumentDialog = ({
     },
   });
 
-  const { data: appointments } = useAppointments();
+  const { data: appointmentsPage } = useAppointments(0, 100);
   const createDocumentMutation = useCreateMedicalDocument();
+  const appointmentsList = appointmentsPage?.content || [];
 
-  const patientAppointments = appointments?.filter(
+  // Filtra as consultas do paciente específico
+  const patientAppointments = appointmentsList.filter(
     (app) => app.patientId === patientId
   );
 
   const onSubmit = async (data: DocumentFormData) => {
     try {
       const mediaResponse = await uploadFile(data.file);
-
-      // Incluir o patientId na chamada
       await createDocumentMutation.mutateAsync({
         patientId: patientId,
         appointmentId: data.appointmentId,
@@ -199,15 +199,21 @@ export const AddDocumentDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {patientAppointments?.map((app) => (
-                        <SelectItem key={app.id} value={String(app.id)}>
-                          Consulta de{" "}
-                          {format(
-                            new Date(app.appointmentDateTime),
-                            "dd/MM/yyyy"
-                          )}
+                      {patientAppointments.length > 0 ? (
+                        patientAppointments.map((app) => (
+                          <SelectItem key={app.id} value={String(app.id)}>
+                            Consulta de{" "}
+                            {format(
+                              new Date(app.appointmentDateTime),
+                              "dd/MM/yyyy"
+                            )}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>
+                          Nenhuma consulta encontrada para este paciente.
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

@@ -48,11 +48,14 @@ export const ImportPrescriptionDialog = ({
   const { data: patients = [], isLoading: isLoadingPatients } =
     usePatientsDropdown();
 
-  const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
-    queryKey: ["prescriptionsForPatient", selectedPatientId],
-    queryFn: () => getPrescriptionsByPatientId(selectedPatientId!),
-    enabled: !!selectedPatientId,
-  });
+  const { data: prescriptionsPage, isLoading: isLoadingPrescriptions } =
+    useQuery({
+      queryKey: ["prescriptionsForPatient", selectedPatientId],
+      queryFn: () => getPrescriptionsByPatientId(selectedPatientId!, 0, 20),
+      enabled: !!selectedPatientId,
+    });
+
+  const prescriptions = prescriptionsPage?.content || [];
 
   const handleImport = (prescription: Prescription) => {
     onSuccess(prescription);
@@ -133,9 +136,9 @@ export const ImportPrescriptionDialog = ({
             </p>
           )}
 
-          {prescriptions && (
+          {!isLoadingPrescriptions && prescriptionsPage && (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {prescriptions.length === 0 && selectedPatientId ? (
+              {prescriptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhuma prescrição encontrada para este paciente.
                 </p>
@@ -152,6 +155,9 @@ export const ImportPrescriptionDialog = ({
                         {format(new Date(p.createdAt), "dd/MM/yyyy", {
                           locale: ptBR,
                         })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.medicines.length} medicamento(s)
                       </p>
                     </div>
                     <Button size="sm" onClick={() => handleImport(p)}>

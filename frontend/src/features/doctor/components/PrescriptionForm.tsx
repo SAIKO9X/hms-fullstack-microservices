@@ -10,6 +10,7 @@ import {
   useCreatePrescription,
   useUpdatePrescription,
 } from "@/services/queries/appointment-queries";
+import { useMedicines } from "@/services/queries/pharmacy-queries";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,9 +26,6 @@ import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { Prescription } from "@/types/record.types";
 import { useEffect } from "react";
-// NOVAS IMPORTAÇÕES
-import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacy";
 import { Combobox } from "@/components/ui/combobox";
 
 interface PrescriptionFormProps {
@@ -49,17 +47,10 @@ export const PrescriptionForm = ({
   const updateMutation = useUpdatePrescription();
   const isEditing = !!existingPrescription;
   const isPending = createMutation.isPending || updateMutation.isPending;
-
-  // Busca os medicamentos em stock
-  const { data: stockMedicines = [] } = useQuery({
-    queryKey: ["medicines"],
-    queryFn: getAllMedicines,
-    staleTime: 5 * 60 * 1000, // Cache de 5 minutos
-  });
-
-  // Mapeia os medicamentos para o formato esperado pelo Combobox
+  const { data: medicinesPage } = useMedicines(0, 100);
+  const stockMedicines = medicinesPage?.content || [];
   const medicineOptions = stockMedicines.map((med) => ({
-    value: `${med.name} | ${med.dosage}`, // Usar um valor único para o select
+    value: `${med.name} | ${med.dosage}`,
     label: `${med.name} (${med.dosage})`,
   }));
 
@@ -139,14 +130,20 @@ export const PrescriptionForm = ({
                       options={medicineOptions}
                       value={field.value}
                       onValueChange={(selectedValue) => {
-                        // Quando um item é selecionado, separamos nome e dosagem
-                        const [name, dosage] = selectedValue.split(" | ");
-                        form.setValue(
-                          `medicines.${index}.name`,
-                          name || selectedValue
-                        );
-                        if (dosage) {
-                          form.setValue(`medicines.${index}.dosage`, dosage);
+                        if (selectedValue) {
+                          const parts = selectedValue.split(" | ");
+                          const name = parts[0];
+                          const dosage = parts[1];
+
+                          form.setValue(
+                            `medicines.${index}.name`,
+                            name || selectedValue
+                          );
+                          if (dosage) {
+                            form.setValue(`medicines.${index}.dosage`, dosage);
+                          }
+                        } else {
+                          form.setValue(`medicines.${index}.name`, "");
                         }
                       }}
                       placeholder="Selecione ou digite um medicamento"

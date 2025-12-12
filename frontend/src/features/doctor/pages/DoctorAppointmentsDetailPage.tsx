@@ -18,6 +18,8 @@ import {
   Eye,
   Download,
   MessageSquare,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Breadcrumb,
@@ -87,6 +89,8 @@ export const DoctorAppointmentsDetailPage = () => {
     "record" | "prescription" | null
   >(null);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [docPage, setDocPage] = useState(0);
+  const [docPageSize] = useState(5);
 
   const { data: appointments, isLoading: isLoadingAppointments } =
     useDoctorAppointmentDetails();
@@ -109,9 +113,15 @@ export const DoctorAppointmentsDetailPage = () => {
     (app: AppointmentDetail) => app.id === appointmentId
   );
 
-  const { data: documents, refetch: refetchDocuments } =
-    useDocumentsByPatientId(appointment?.patientId, !!appointment);
+  const { data: documentsPage, refetch: refetchDocuments } =
+    useDocumentsByPatientId(
+      appointment?.patientId,
+      docPage,
+      docPageSize,
+      !!appointment
+    );
 
+  const documents = documentsPage?.content || [];
   const isLoading =
     isLoadingAppointments || isLoadingRecord || isLoadingPrescription;
 
@@ -553,44 +563,81 @@ export const DoctorAppointmentsDetailPage = () => {
                   <p>Nenhum documento encontrado.</p>
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  {documents.map((doc: any) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
+                <div className="space-y-4">
+                  <div className="grid gap-3">
+                    {documents.map((doc: any) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-3 border rounded-lg bg-muted/20"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-blue-50 text-blue-600 rounded">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {doc.fileName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.fileType} •{" "}
+                              {format(new Date(doc.uploadedAt), "dd/MM/yyyy", {
+                                locale: ptBR,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="icon" asChild>
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </Button>
+                          <Button variant="ghost" size="icon" asChild>
+                            <a href={doc.fileUrl} download>
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDocPage((old) => Math.max(0, old - 1))}
+                      disabled={docPage === 0}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{doc.fileName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.fileType} •{" "}
-                            {format(new Date(doc.uploadedAt), "dd/MM/yyyy", {
-                              locale: ptBR,
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button variant="ghost" size="icon" asChild>
-                          <a href={doc.fileUrl} download>
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      </div>
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                    <div className="text-sm text-muted-foreground">
+                      Página {docPage + 1} de {documentsPage?.totalPages || 1}
                     </div>
-                  ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setDocPage((old) =>
+                          !documentsPage || old >= documentsPage.totalPages - 1
+                            ? old
+                            : old + 1
+                        )
+                      }
+                      disabled={
+                        !documentsPage ||
+                        docPage >= documentsPage.totalPages - 1
+                      }
+                    >
+                      Próxima
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>

@@ -2,12 +2,13 @@ import { useState, useMemo } from "react";
 import {
   Plus,
   Archive,
-  AlertTriangle,
   Search,
   Filter,
   CheckCircle,
   Check,
   Package,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   useInventory,
@@ -40,6 +41,9 @@ import { InventoryDetailDialog } from "@/features/admin/components/inventory/Inv
 type StatusFilter = "all" | "expiring" | "expired" | "lowStock" | "depleted";
 
 export const AdminInventoryPage = () => {
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] =
     useState<MedicineInventory | null>(null);
@@ -51,21 +55,25 @@ export const AdminInventoryPage = () => {
     variant: "success" | "error";
   } | null>(null);
 
-  const { data: inventory, isLoading, error } = useInventory();
+  const {
+    data: inventoryPage,
+    isLoading,
+    error,
+  } = useInventory(page, pageSize);
   const deleteInventoryMutation = useDeleteInventoryItem();
-
+  const inventoryList = inventoryPage?.content || [];
   const handleViewDetails = (inventoryItem: MedicineInventory) => {
     setSelectedInventory(inventoryItem);
     setIsDetailOpen(true);
   };
 
   const filteredInventory = useMemo(() => {
-    if (!inventory) return [];
+    if (!inventoryList) return [];
 
     const now = new Date();
     const thirtyDaysFromNow = new Date(new Date().setDate(now.getDate() + 30));
 
-    return inventory.filter((item) => {
+    return inventoryList.filter((item) => {
       // Filtro de busca por texto
       const searchMatch =
         item.medicineName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,27 +97,27 @@ export const AdminInventoryPage = () => {
           return true;
       }
     });
-  }, [inventory, searchTerm, statusFilter]);
+  }, [inventoryList, searchTerm, statusFilter]);
 
   const stats = useMemo(() => {
-    if (!inventory)
+    if (!inventoryList)
       return { totalItems: 0, nearExpiry: 0, inStock: 0, lowStock: 0 };
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
     return {
-      totalItems: inventory.length,
-      nearExpiry: inventory.filter(
+      totalItems: inventoryPage?.totalElements || inventoryList.length,
+      nearExpiry: inventoryList.filter(
         (item) =>
           new Date(item.expiryDate) < thirtyDaysFromNow &&
           new Date(item.expiryDate) > now
       ).length,
-      inStock: inventory.reduce((acc, item) => acc + item.quantity, 0),
-      lowStock: inventory.filter(
+      inStock: inventoryList.reduce((acc, item) => acc + item.quantity, 0),
+      lowStock: inventoryList.filter(
         (item) => item.quantity > 0 && item.quantity < 10
       ).length,
     };
-  }, [inventory]);
+  }, [inventoryList, inventoryPage]);
 
   const handleEdit = (inventoryItem: MedicineInventory) => {
     setSelectedInventory(inventoryItem);
@@ -188,7 +196,7 @@ export const AdminInventoryPage = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
-                Total em Estoque
+                Total em Estoque (Pág)
               </CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
@@ -201,14 +209,14 @@ export const AdminInventoryPage = () => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                unidades de medicamentos
+                unidades nesta página
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
-                Lotes Ativos
+                Total Registros
               </CardTitle>
               <Archive className="h-4 w-4 text-blue-500" />
             </CardHeader>
@@ -221,43 +229,7 @@ export const AdminInventoryPage = () => {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                lotes diferentes no sistema
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Próximos da Validade
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  stats.nearExpiry
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                lotes vencendo em 30 dias
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Estoque Baixo
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoading ? <Skeleton className="h-8 w-16" /> : stats.lowStock}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                lotes com menos de 10 unidades
+                lotes totais no sistema
               </p>
             </CardContent>
           </Card>
@@ -344,14 +316,51 @@ export const AdminInventoryPage = () => {
               </p>
             </div>
           ) : (
-            <DataTable
-              columns={columns({
-                onEdit: handleEdit,
-                onDelete: handleDelete,
-                onViewDetails: handleViewDetails,
-              })}
-              data={filteredInventory}
-            />
+            <div className="space-y-4">
+              <DataTable
+                columns={columns({
+                  onEdit: handleEdit,
+                  onDelete: handleDelete,
+                  onViewDetails: handleViewDetails,
+                })}
+                data={filteredInventory}
+              />
+
+              {/* Controles de Paginação */}
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((old) => Math.max(0, old - 1))}
+                  disabled={page === 0 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Página {page + 1} de {inventoryPage?.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((old) =>
+                      !inventoryPage || old >= inventoryPage.totalPages - 1
+                        ? old
+                        : old + 1
+                    )
+                  }
+                  disabled={
+                    !inventoryPage ||
+                    page >= inventoryPage.totalPages - 1 ||
+                    isLoading
+                  }
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

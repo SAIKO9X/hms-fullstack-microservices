@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PharmacyService } from "@/services";
-import type { Medicine } from "@/types/medicine.types";
 import type {
   DirectSaleFormData,
   InventoryFormData,
   MedicineFormData,
 } from "@/services/pharmacy";
+import { keepPreviousData } from "@tanstack/react-query";
 
 export const pharmacyKeys = {
-  medicines: ["medicines"] as const,
-  inventory: ["inventory"] as const,
-  sales: ["sales"] as const,
+  medicines: (page?: number, size?: number) =>
+    ["medicines", { page, size }] as const,
+  inventory: (page?: number, size?: number) =>
+    ["inventory", { page, size }] as const,
+  sales: (page?: number, size?: number) => ["sales", { page, size }] as const,
   stats: ["pharmacyStats"] as const,
 };
 
@@ -21,7 +23,8 @@ export const useAddMedicine = () => {
     mutationFn: (medicineData: MedicineFormData) =>
       PharmacyService.addMedicine(medicineData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      // Invalida todas as queries de medicines, independente da página
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -32,32 +35,25 @@ export const useUpdateMedicine = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: MedicineFormData }) =>
       PharmacyService.updateMedicine(id, data),
-    onSuccess: (updatedMedicine) => {
-      queryClient.setQueryData(
-        pharmacyKeys.medicines,
-        (oldData: Medicine[] | undefined) =>
-          oldData
-            ? oldData.map((m) =>
-                m.id === updatedMedicine.id ? updatedMedicine : m
-              )
-            : []
-      );
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
 
-export const useMedicines = () => {
+export const useMedicines = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: pharmacyKeys.medicines,
-    queryFn: PharmacyService.getAllMedicines,
+    queryKey: pharmacyKeys.medicines(page, size),
+    queryFn: () => PharmacyService.getAllMedicines(page, size),
+    placeholderData: keepPreviousData, // Mantém os dados antigos enquanto carrega a próxima página
   });
 };
 
-export const useInventory = () => {
+export const useInventory = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: pharmacyKeys.inventory,
-    queryFn: PharmacyService.getAllInventory,
+    queryKey: pharmacyKeys.inventory(page, size),
+    queryFn: () => PharmacyService.getAllInventory(page, size),
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -68,8 +64,8 @@ export const useAddInventoryItem = () => {
     mutationFn: (data: InventoryFormData) =>
       PharmacyService.addInventoryItem(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.inventory });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -81,8 +77,8 @@ export const useUpdateInventoryItem = () => {
     mutationFn: ({ id, data }: { id: number; data: InventoryFormData }) =>
       PharmacyService.updateInventoryItem(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.inventory });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -93,8 +89,8 @@ export const useDeleteInventoryItem = () => {
   return useMutation({
     mutationFn: (id: number) => PharmacyService.deleteInventoryItem(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.inventory });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -106,9 +102,9 @@ export const useCreateDirectSale = () => {
     mutationFn: (data: DirectSaleFormData) =>
       PharmacyService.createDirectSale(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.sales });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.inventory });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
@@ -120,17 +116,18 @@ export const useCreateSaleFromPrescription = () => {
     mutationFn: (prescriptionId: number) =>
       PharmacyService.createSaleFromPrescription(prescriptionId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.sales });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.inventory });
-      queryClient.invalidateQueries({ queryKey: pharmacyKeys.medicines });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
 };
 
-export const useSales = () => {
+export const useSales = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: pharmacyKeys.sales,
-    queryFn: PharmacyService.getAllSales,
+    queryKey: pharmacyKeys.sales(page, size),
+    queryFn: () => PharmacyService.getAllSales(page, size),
+    placeholderData: keepPreviousData,
   });
 };
 
@@ -138,6 +135,6 @@ export const usePharmacyStats = () => {
   return useQuery({
     queryKey: pharmacyKeys.stats,
     queryFn: PharmacyService.getPharmacyStats,
-    staleTime: 5 * 60 * 1000, // Cache de 5 minutos para não sobrecarregar o backend
+    staleTime: 5 * 60 * 1000,
   });
 };

@@ -12,10 +12,11 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function AdverseEffectsCard() {
-  const { data: reports, isLoading } = useAdverseEffectReports();
-
+  // apenas os mais recentes.
+  const { data: reportsPage, isLoading } = useAdverseEffectReports(0, 10);
+  const reports = reportsPage?.content || [];
   const unreviewedReports =
-    reports?.filter((report) => report.status === "REPORTED") || [];
+    reports.filter((report) => report.status === "REPORTED") || [];
 
   return (
     <Card className="h-full shadow-sm">

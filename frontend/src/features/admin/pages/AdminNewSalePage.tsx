@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Trash, Plus, FileInput } from "lucide-react";
-import { getAllMedicines } from "@/services/pharmacy";
-import { useCreateDirectSale } from "@/services/queries/pharmacy-queries";
+import {
+  useMedicines,
+  useCreateDirectSale,
+} from "@/services/queries/pharmacy-queries";
 import { usePatientsDropdown } from "@/services/queries/profile-queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,13 +43,9 @@ export const AdminNewSalePage = () => {
   const navigate = useNavigate();
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [notification, setNotification] = useState<NotificationState>(null);
-
-  const { data: medicines = [] } = useQuery({
-    queryKey: ["medicines"],
-    queryFn: getAllMedicines,
-  });
+  const { data: medicinesPage } = useMedicines(0, 100);
+  const medicines = medicinesPage?.content || [];
   const { data: patients = [] } = usePatientsDropdown();
-
   const createSaleMutation = useCreateDirectSale();
 
   const onSubmit = async (data: SaleFormData) => {

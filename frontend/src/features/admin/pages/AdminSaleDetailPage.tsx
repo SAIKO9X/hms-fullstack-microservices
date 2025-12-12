@@ -27,12 +27,27 @@ const formatCurrency = (amount: number) =>
 export const AdminSaleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const saleId = Number(id);
-  const { data: sales, isLoading } = useSales();
+  const { data: salesPage, isLoading } = useSales(0, 100);
+  const salesList = salesPage?.content || [];
+  const sale = salesList.find((s) => s.id === saleId);
 
-  const sale = sales?.find((s) => s.id === saleId);
+  if (isLoading)
+    return <div className="p-8">Carregando detalhes da venda...</div>;
 
-  if (isLoading) return <div>Carregando detalhes da venda...</div>;
-  if (!sale) return <div>Venda não encontrada!</div>;
+  if (!sale)
+    return (
+      <div className="container mx-auto py-8">
+        <div className="p-8 border rounded-lg bg-muted/20 text-center">
+          <h3 className="font-semibold mb-2">Venda não encontrada</h3>
+          <p className="text-muted-foreground mb-4">
+            Não foi possível encontrar a venda #{saleId} nos registos recentes.
+          </p>
+          <Link to="/admin/sales" className="text-primary hover:underline">
+            Voltar à lista
+          </Link>
+        </div>
+      </div>
+    );
 
   return (
     <div className="container mx-auto py-8 space-y-6">

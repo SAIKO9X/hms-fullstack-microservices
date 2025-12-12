@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, Filter, Package, Check } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getAllMedicines } from "@/services/pharmacy";
+import {
+  Plus,
+  Search,
+  Filter,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+} from "lucide-react";
+import { useMedicines } from "@/services/queries/pharmacy-queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
@@ -33,22 +40,23 @@ import { cn } from "@/utils/utils";
 type StockFilter = "all" | "lowStock";
 
 export const AdminMedicinesPage = () => {
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
-
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   const {
-    data: medicines,
+    data: medicinesPage,
     isLoading,
     error,
-  } = useQuery({
-    queryKey: ["medicines"],
-    queryFn: getAllMedicines,
-  });
+  } = useMedicines(page, pageSize);
+
+  const medicinesList = medicinesPage?.content || [];
 
   const handleEdit = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
@@ -60,11 +68,11 @@ export const AdminMedicinesPage = () => {
     setIsDialogOpen(true);
   };
 
-  // Filter medicines based on search term
+  // Filtro medicines baseado em searchTerm e stockFilter
   const filteredMedicines = useMemo(() => {
-    if (!medicines) return [];
+    if (!medicinesList) return [];
 
-    return medicines.filter((medicine) => {
+    return medicinesList.filter((medicine) => {
       // Filtro de busca por texto
       const searchMatch =
         medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,14 +88,14 @@ export const AdminMedicinesPage = () => {
         return (medicine.totalStock || 0) < 10;
       }
 
-      return true; // Retorna true se o filtro for "all"
+      return true;
     });
-  }, [medicines, searchTerm, stockFilter]);
+  }, [medicinesList, searchTerm, stockFilter]);
 
   const stats = {
-    total: medicines?.length || 0,
-    categories: new Set(medicines?.map((m) => m.category)).size || 0,
-    lowStock: medicines?.filter((m) => (m.totalStock || 0) < 10).length || 0,
+    total: medicinesPage?.totalElements || medicinesList.length || 0,
+    categories: new Set(medicinesList.map((m) => m.category)).size || 0,
+    lowStock: medicinesList.filter((m) => (m.totalStock || 0) < 10).length || 0,
   };
 
   if (error) {
@@ -180,7 +188,7 @@ export const AdminMedicinesPage = () => {
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500"></div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Estoque Baixo
+                Estoque Baixo (Pág)
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge
@@ -198,9 +206,7 @@ export const AdminMedicinesPage = () => {
               <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {isLoading ? <Skeleton className="h-8 w-16" /> : stats.lowStock}
               </div>
-              <p className="text-xs text-muted-foreground">
-                medicamentos com estoque baixo
-              </p>
+              <p className="text-xs text-muted-foreground">nesta página</p>
             </CardContent>
           </Card>
         </div>
@@ -286,7 +292,6 @@ export const AdminMedicinesPage = () => {
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
-            // Estado de Carregamento (Skeleton)
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center space-x-4 p-4">
@@ -299,7 +304,6 @@ export const AdminMedicinesPage = () => {
               ))}
             </div>
           ) : filteredMedicines.length === 0 ? (
-            // Estado Vazio
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Package className="h-16 w-16 text-muted-foreground/30 mb-4" />
               <h3 className="text-lg font-medium text-muted-foreground">
@@ -312,11 +316,46 @@ export const AdminMedicinesPage = () => {
               </p>
             </div>
           ) : (
-            // Estado com Dados (DataTable)
-            <DataTable
-              columns={columns({ onEdit: handleEdit })}
-              data={filteredMedicines}
-            />
+            <div className="space-y-4">
+              <DataTable
+                columns={columns({ onEdit: handleEdit })}
+                data={filteredMedicines}
+              />
+
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((old) => Math.max(0, old - 1))}
+                  disabled={page === 0 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Página {page + 1} de {medicinesPage?.totalPages || 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setPage((old) =>
+                      !medicinesPage || old >= medicinesPage.totalPages - 1
+                        ? old
+                        : old + 1
+                    )
+                  }
+                  disabled={
+                    !medicinesPage ||
+                    page >= medicinesPage.totalPages - 1 ||
+                    isLoading
+                  }
+                >
+                  Próxima
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
