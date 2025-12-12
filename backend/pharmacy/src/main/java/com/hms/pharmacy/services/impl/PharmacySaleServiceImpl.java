@@ -2,14 +2,9 @@ package com.hms.pharmacy.services.impl;
 
 import com.hms.pharmacy.clients.AppointmentFeignClient;
 import com.hms.pharmacy.clients.ProfileFeignClient;
-import com.hms.pharmacy.dto.request.DirectSaleRequest;
-import com.hms.pharmacy.dto.request.PharmacySaleRequest;
-import com.hms.pharmacy.dto.request.PrescriptionReceiveRequest;
-import com.hms.pharmacy.dto.request.SaleItemRequest;
-import com.hms.pharmacy.dto.response.DailyRevenueDto;
-import com.hms.pharmacy.dto.response.PatientProfileResponse;
-import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
-import com.hms.pharmacy.dto.response.PharmacySaleResponse;
+import com.hms.pharmacy.clients.UserFeignClient;
+import com.hms.pharmacy.dto.request.*;
+import com.hms.pharmacy.dto.response.*;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.entities.PharmacySale;
 import com.hms.pharmacy.entities.PharmacySaleItem;
@@ -19,6 +14,7 @@ import com.hms.pharmacy.repositories.PharmacySaleRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.PharmacySaleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,6 +35,8 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   private final MedicineInventoryService inventoryService;
   private final ProfileFeignClient profileFeignClient;
   private final AppointmentFeignClient appointmentFeignClient;
+  private final RabbitTemplate rabbitTemplate;
+  private final UserFeignClient userFeignClient;
 
   @Override
   @Transactional
@@ -56,6 +54,13 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       throw new NoSuchElementException("Não foi possível obter os dados do paciente com ID " + request.patientId() + ". O serviço de perfis pode estar indisponível ou a requisição foi negada.");
     }
 
+    String patientEmail = null;
+    try {
+      UserResponse user = userFeignClient.getUserById(request.patientId());
+      patientEmail = user.email();
+    } catch (Exception e) {
+      System.err.println("Falha ao buscar e-mail do usuário: " + e.getMessage());
+    }
 
     PharmacySale sale = new PharmacySale();
     sale.setOriginalPrescriptionId(request.originalPrescriptionId());
@@ -89,6 +94,32 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     sale.setTotalAmount(totalAmount);
 
     PharmacySale savedSale = saleRepository.save(sale);
+
+    if (patientEmail != null) {
+      try {
+        String emailBody = String.format(
+          "<h1>Olá, %s!</h1><p>Sua compra foi realizada com sucesso.</p><p>Valor Total: R$ %s</p>",
+          savedSale.getBuyerName(),
+          savedSale.getTotalAmount().toString()
+        );
+
+        // Usa o e-mail vindo do User Service
+        EmailRequest emailRequest = new EmailRequest(
+          patientEmail,
+          "Comprovante de Compra - HMS Pharmacy",
+          emailBody
+        );
+
+        rabbitTemplate.convertAndSend("internal.exchange", "notification.email", emailRequest);
+        System.out.println("Solicitação de e-mail enviada para: " + patientEmail);
+
+      } catch (Exception e) {
+        System.err.println("Erro ao enviar notificação de venda: " + e.getMessage());
+      }
+    } else {
+      System.err.println("Notificação ignorada: E-mail do paciente não encontrado.");
+    }
+
     return PharmacySaleResponse.fromEntity(savedSale);
   }
 
