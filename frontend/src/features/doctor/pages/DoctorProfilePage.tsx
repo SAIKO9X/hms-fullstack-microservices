@@ -176,8 +176,8 @@ export const DoctorProfilePage = () => {
       {isProfileIncomplete && (
         <CustomNotification
           variant="info"
-          title="Complete seu Perfil"
-          description="Seu perfil foi criado com sucesso! Complete suas informações profissionais para uma experiência completa."
+          title="Complete seu Perfil - Clique em Editar Perfil"
+          description="Seu perfil foi criado com sucesso! Complete suas informações profissionais para acessar todas as funcionalidades."
           dismissible={false}
         />
       )}

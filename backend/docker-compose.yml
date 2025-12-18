@@ -320,14 +320,23 @@ services:
   # FRONTEND
   # ====================================================
   frontend:
-    build: ../frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
     container_name: frontend
     ports:
-      - "5173:80"
+      - "5173:5173"
     depends_on:
       - gateway
     networks:
       - hms-network
+    volumes:
+      - ../frontend:/app 
+      - /app/node_modules  # protege node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=http://localhost:9000
+    command: pnpm run dev
 
 volumes:
   user-mysql-data:

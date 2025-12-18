@@ -3,7 +3,7 @@ import { AuthLayout } from "@/features/auth/layouts/AuthLayout";
 import { PatientDashboard } from "@/features/patient/layouts/PatientLayout";
 import { DoctorDashboard } from "@/features/doctor/layouts/DoctorLayout";
 import { AuthPage } from "@/features/auth/pages/AuthPage";
-import { LandingPage } from "@/pages/LandingPage";
+import { LandingPage } from "@/components/shared/LandingPage";
 import { PrivateRoute } from "./PrivateRoute";
 import { PublicRoute } from "./PublicRoute";
 import { RoleBasedGuard } from "./RoleBasedGuard";

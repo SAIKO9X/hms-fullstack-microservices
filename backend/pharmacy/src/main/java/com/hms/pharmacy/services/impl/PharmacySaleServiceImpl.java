@@ -112,7 +112,6 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
         rabbitTemplate.convertAndSend("internal.exchange", "notification.email", emailRequest);
         System.out.println("Solicitação de e-mail enviada para: " + patientEmail);
-
       } catch (Exception e) {
         System.err.println("Erro ao enviar notificação de venda: " + e.getMessage());
       }

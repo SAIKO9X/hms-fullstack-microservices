@@ -17,12 +17,11 @@ export const useProfileStatus = () => {
 
   if (user?.role === "PATIENT") {
     const p = profile as PatientProfile;
-    // Verifica campos vitais para o funcionamento do sistema
-    // Ex: Sem CPF e Telefone, o sistema não consegue gerar receitas/agendamentos corretamente
+    // bloqueio básico: CPF, Telefone, Gênero e Tipo Sanguíneo
     isComplete = Boolean(p.cpf && p.phoneNumber && p.gender && p.bloodGroup);
   } else if (user?.role === "DOCTOR") {
     const d = profile as DoctorProfile;
-    // Para médicos, CRM e Especialização serão obrigatórios
+    // médicos: CRM e Especialização serão obrigatórios
     isComplete = Boolean(d.crmNumber && d.specialization && d.department);
   } else if (user?.role === "ADMIN") {
     isComplete = true;

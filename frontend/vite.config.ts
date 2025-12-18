@@ -14,6 +14,9 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    watch: {
+      usePolling: true, // força o Vite a verificar mudanças de arquivo constantemente
+    },
   },
   define: {
     // Algumas bibliotecas (como sockjs-client) usam 'global' que é do Node.js

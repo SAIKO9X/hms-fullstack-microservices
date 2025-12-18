@@ -52,7 +52,6 @@ export const PatientProfilePage = () => {
     }
   };
 
-  // Verificar se o usuário é paciente
   if (user?.role !== "PATIENT") {
     return (
       <div className="text-center p-10 text-red-500">
@@ -61,12 +60,10 @@ export const PatientProfilePage = () => {
     );
   }
 
-  // Estado de Carregamento Inicial
   if (isLoading) {
     return <div className="text-center p-10">Carregando perfil...</div>;
   }
 
-  // Estado de Erro
   if (isError) {
     return (
       <div className="container mx-auto p-4 text-center">
@@ -81,7 +78,7 @@ export const PatientProfilePage = () => {
     );
   }
 
-  // Perfil não encontrado
+  // perfil não encontrado
   if (status === "succeeded" && !profile) {
     return (
       <div className="container mx-auto p-4">
@@ -94,10 +91,10 @@ export const PatientProfilePage = () => {
     );
   }
 
-  // Verificar se profile é do tipo PatientProfile
+  // verifica se profile é do tipo PatientProfile
   const patientProfile = profile as PatientProfile;
 
-  // Verificar se o perfil está incompleto
+  // verifica se o perfil está incompleto
   const isProfileIncomplete =
     patientProfile &&
     !patientProfile.phoneNumber &&
@@ -152,9 +149,7 @@ export const PatientProfilePage = () => {
     if (!file) return;
 
     try {
-      // 1. Envia para o media-service
       const mediaResponse = await uploadFile(file);
-      // 2. Envia a URL para o profile-service
       await updatePictureMutation.mutateAsync(mediaResponse.url);
 
       setActionNotification({
@@ -177,8 +172,8 @@ export const PatientProfilePage = () => {
       {isProfileIncomplete && (
         <CustomNotification
           variant="info"
-          title="Complete seu Perfil"
-          description="Seu perfil foi criado com sucesso! Complete suas informações pessoais para uma experiência completa."
+          title="Complete seu Perfil - Clique em 'Editar Perfil'"
+          description="Seu perfil foi criado com sucesso! Complete suas informações pessoais para poder usar todos os recursos disponíveis."
           dismissible={false}
         />
       )}
