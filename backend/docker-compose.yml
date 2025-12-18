@@ -320,23 +320,20 @@ services:
   # FRONTEND
   # ====================================================
   frontend:
+    container_name: frontend
     build:
       context: ../frontend
       dockerfile: Dockerfile.dev
-    container_name: frontend
     ports:
       - "5173:5173"
-    depends_on:
-      - gateway
-    networks:
-      - hms-network
     volumes:
-      - ../frontend:/app 
-      - /app/node_modules  # protege node_modules
+      - ../frontend:/app:z # o :z é o para rodar no SELinux
+      - /app/node_modules # isola as dependências do container
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - VITE_API_URL=http://localhost:9000
-    command: pnpm run dev
+    command: pnpm run dev --host
+    networks:
+      - hms-network
 
 volumes:
   user-mysql-data:

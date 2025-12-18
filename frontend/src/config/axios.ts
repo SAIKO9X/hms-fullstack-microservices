@@ -6,6 +6,7 @@ import type { AppStore } from "@/store/store";
 
 const api = axios.create({
   baseURL: "http://localhost:9000",
+  withCredentials: true,
 });
 
 // Função para verificar se o token está expirado
