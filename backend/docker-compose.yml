@@ -246,9 +246,14 @@ services:
       - DB_USER=${MYSQL_PHARMACY_USER}
       - DB_PASSWORD=${MYSQL_PHARMACY_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - mysql-pharmacy
       - eureka-server
+      - rabbitmq
     networks:
       - hms-network
 
