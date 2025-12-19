@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificação HMS</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f7; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background-color: #2563eb; color: #ffffff; padding: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; color: #333333; line-height: 1.6; }
+        .content h1 { color: #2563eb; margin-top: 0; }
+        .footer { background-color: #f4f4f7; padding: 20px; text-align: center; color: #888888; font-size: 12px; }
+        .button { display: inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>HMS - Sistema Hospitalar</h1>
+    </div>
+
+    <div class="content">
+        <div th:utext="${messageBody}"></div>
+
+        <br>
+        <p>Atenciosamente,<br>Equipe HMS</p>
+    </div>
+
+    <div class="footer">
+        <p>Este é um e-mail automático, por favor não responda.</p>
+        <p>&copy; 2025 HMS System. Todos os direitos reservados.</p>
+    </div>
+</div>
+</body>
+</html>

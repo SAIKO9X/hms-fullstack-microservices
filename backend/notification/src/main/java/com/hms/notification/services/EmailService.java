@@ -7,6 +7,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+
+import java.nio.charset.StandardCharsets;
 
 @Service
 @Slf4j
@@ -14,21 +18,33 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
   private final JavaMailSender javaMailSender;
+  private final SpringTemplateEngine templateEngine; // thymeleaf
 
   public void sendEmail(String to, String subject, String body) {
     try {
-      log.info("Enviando e-mail para: {}", to);
+      log.info("Processando template de e-mail para: {}", to);
 
       MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+      MimeMessageHelper helper = new MimeMessageHelper(
+        mimeMessage,
+        MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+        StandardCharsets.UTF_8.name()
+      );
 
-      helper.setText(body, true); // envia como HTML
+      Context context = new Context();
+      context.setVariable("messageBody", body);
+      context.setVariable("subject", subject);
+
+      // processa o template "email-template.html"
+      String htmlContent = templateEngine.process("email-template", context);
+
       helper.setTo(to);
       helper.setSubject(subject);
       helper.setFrom("sistema@hms.com");
+      helper.setText(htmlContent, true); // true indica que é HTML
 
       javaMailSender.send(mimeMessage);
-      log.info("E-mail enviado com sucesso!");
+      log.info("E-mail com template enviado com sucesso!");
 
     } catch (MessagingException e) {
       log.error("Falha ao enviar e-mail", e);
