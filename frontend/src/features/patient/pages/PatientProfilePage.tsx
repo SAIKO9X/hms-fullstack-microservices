@@ -309,12 +309,14 @@ export const PatientProfilePage = () => {
       </div>
 
       {/* --- DIALOG DE EDIÇÃO --- */}
-      <EditProfileDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        profile={patientProfile}
-        onSave={handleSaveProfile}
-      />
+      {patientProfile && (
+        <EditProfileDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          profile={patientProfile}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   );
 };

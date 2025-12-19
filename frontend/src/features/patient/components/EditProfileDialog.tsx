@@ -85,17 +85,17 @@ export const EditProfileDialog = ({
   const fromYear = currentYear - 100;
   const toYear = currentYear;
 
-  const getSanitizedValues = (data: PatientProfile) => ({
-    cpf: data.cpf || "",
-    dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-    phoneNumber: data.phoneNumber || "",
-    gender: data.gender || "OTHER",
-    bloodGroup: data.bloodGroup || undefined,
-    address: data.address || "",
-    emergencyContactName: data.emergencyContactName || "",
-    emergencyContactPhone: data.emergencyContactPhone || "",
-    allergies: data.allergies || "",
-    chronicDiseases: data.chronicDiseases || "",
+  const getSanitizedValues = (data?: PatientProfile) => ({
+    cpf: data?.cpf || "",
+    dateOfBirth: data?.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+    phoneNumber: data?.phoneNumber || "",
+    gender: data?.gender || "OTHER",
+    bloodGroup: data?.bloodGroup || undefined,
+    address: data?.address || "",
+    emergencyContactName: data?.emergencyContactName || "",
+    emergencyContactPhone: data?.emergencyContactPhone || "",
+    allergies: data?.allergies || "",
+    chronicDiseases: data?.chronicDiseases || "",
   });
 
   const form = useForm<PatientProfileFormData>({

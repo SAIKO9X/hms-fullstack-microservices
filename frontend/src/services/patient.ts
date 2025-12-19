@@ -11,7 +11,7 @@ export const getMyAppointments = async (
   size = 10
 ): Promise<Page<Appointment>> => {
   const { data } = await api.get(
-    `/patient/appointments?page=${page}&size=${size}`
+    `/appointments/patient?page=${page}&size=${size}`
   );
   return data;
 };
@@ -20,14 +20,14 @@ export const getMyAppointments = async (
 export const createAppointment = async (
   appointmentData: AppointmentFormData
 ): Promise<Appointment> => {
-  const { data } = await api.post("/patient/appointments", appointmentData);
+  const { data } = await api.post("/appointments/patient", appointmentData);
   return data;
 };
 
 // Buscar a próxima consulta do paciente logado
 export const getNextAppointment = async (): Promise<Appointment | null> => {
   try {
-    const { data } = await api.get("/patient/appointments/next");
+    const { data } = await api.get("/appointments/patient/next");
     return data;
   } catch (error: any) {
     if (error.response?.status === 404) return null;
@@ -37,7 +37,7 @@ export const getNextAppointment = async (): Promise<Appointment | null> => {
 
 // Buscar estatísticas de agendamentos do paciente logado
 export const getAppointmentStats = async (): Promise<AppointmentStats> => {
-  const { data } = await api.get("/patient/appointments/stats");
+  const { data } = await api.get("/appointments/patient/stats");
   return data;
 };
 
