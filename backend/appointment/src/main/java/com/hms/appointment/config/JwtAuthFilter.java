@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -29,6 +31,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @NonNull HttpServletResponse response,
     @NonNull FilterChain filterChain
   ) throws ServletException, IOException {
+
     final String authHeader = request.getHeader("Authorization");
 
     if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -36,23 +39,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       return;
     }
 
-    final String jwt = authHeader.substring(7);
-    final String userEmail = jwtService.extractUsername(jwt);
+    try {
+      final String jwt = authHeader.substring(7);
+      final String userEmail = jwtService.extractUsername(jwt);
 
-    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-      // Extrai a 'role' diretamente do token
-      String role = jwtService.extractClaim(jwt, claims -> claims.get("role", String.class));
-      var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+      if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // Extrai a role do token
+        String role = jwtService.extractClaim(jwt, claims -> claims.get("role", String.class));
+        var authority = new SimpleGrantedAuthority("ROLE_" + role);
+        var authorities = Collections.singletonList(authority);
 
-      // Cria o objeto de autenticação com base nos dados do token, sem consultar o BD
-      UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-        userEmail,
-        null,
-        authorities
-      );
-      authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-      SecurityContextHolder.getContext().setAuthentication(authToken);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+          userEmail,
+          null,
+          authorities
+        );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+      }
+    } catch (Exception e) {
+      log.error("Error processing JWT token", e);
     }
+
     filterChain.doFilter(request, response);
   }
 }

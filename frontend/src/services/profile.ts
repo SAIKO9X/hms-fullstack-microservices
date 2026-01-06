@@ -4,6 +4,7 @@ import type {
   DoctorProfileFormData,
 } from "@/lib/schemas/profile.schema";
 import type { DoctorProfile } from "@/types/doctor.types";
+import type { Page } from "@/types/pagination.types";
 import type { PatientProfile } from "@/types/patient.types";
 import type {
   DoctorRatingStats,
@@ -42,13 +43,23 @@ export const getPatientsForDropdown = async (): Promise<
   return data;
 };
 
-export const getAllPatients = async (): Promise<PatientProfile[]> => {
-  const { data } = await api.get("/profile/patients/all");
+export const getAllPatients = async (
+  page = 0,
+  size = 10
+): Promise<Page<PatientProfile>> => {
+  const { data } = await api.get(
+    `/profile/patients/all?page=${page}&size=${size}`
+  );
   return data;
 };
 
-export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
-  const { data } = await api.get("/profile/doctors/all");
+export const getAllDoctors = async (
+  page = 0,
+  size = 10
+): Promise<Page<DoctorProfile>> => {
+  const { data } = await api.get(
+    `/profile/doctors/all?page=${page}&size=${size}`
+  );
   return data;
 };
 

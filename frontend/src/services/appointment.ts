@@ -22,8 +22,6 @@ import type { HealthMetric } from "@/types/health.types";
 import type { Page } from "@/types/pagination.types";
 import type { AppointmentRecord, Prescription } from "@/types/record.types";
 
-// === ROTAS COMPARTILHADAS (acessíveis por pacientes e médicos) ===
-
 // Buscar uma consulta específica por ID
 export const getAppointmentById = async (id: number): Promise<Appointment> => {
   const { data } = await api.get(`/appointments/${id}`);

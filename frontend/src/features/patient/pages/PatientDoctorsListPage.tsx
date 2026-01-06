@@ -20,10 +20,10 @@ export const PatientDoctorsListPage = () => {
 
   const { data: doctors, isLoading } = useQuery({
     queryKey: ["all-doctors"],
-    queryFn: getAllDoctors,
+    queryFn: () => getAllDoctors(),
   });
 
-  const filteredDoctors = doctors?.filter(
+  const filteredDoctors = doctors?.content?.filter(
     (doc) =>
       doc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.specialization?.toLowerCase().includes(searchTerm.toLowerCase())

@@ -54,7 +54,6 @@ public class PrescriptionController {
     return prescriptionService.updatePrescription(id, request, doctorId);
   }
 
-  // === ALTERADO PARA PAGINAÇÃO ===
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
   public Page<PrescriptionResponse> getPrescriptionsByPatientId(
