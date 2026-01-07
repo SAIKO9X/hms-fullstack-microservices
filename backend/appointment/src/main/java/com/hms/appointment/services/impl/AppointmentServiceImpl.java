@@ -4,12 +4,16 @@ import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.Appointment;
+import com.hms.appointment.entities.DoctorReadModel;
+import com.hms.appointment.entities.PatientReadModel;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
+import com.hms.appointment.repositories.DoctorReadModelRepository;
+import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -31,15 +35,18 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   private final AppointmentRepository appointmentRepository;
   private final ProfileFeignClient profileFeignClient;
+  private final DoctorReadModelRepository doctorReadModelRepository;
+  private final PatientReadModelRepository patientReadModelRepository;
 
   @Override
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
-    if (!profileFeignClient.patientProfileExists(patientId)) {
-      throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não existe.");
+    if (!patientReadModelRepository.existsById(patientId)) {
+      throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não encontrado na base sincronizada.");
     }
-    if (!profileFeignClient.doctorProfileExists(request.doctorId())) {
-      throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não existe.");
+
+    if (!doctorReadModelRepository.existsById(request.doctorId())) {
+      throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado na base sincronizada.");
     }
 
     if (appointmentRepository.existsByDoctorIdAndAppointmentDateTime(request.doctorId(), request.appointmentDateTime())) {
@@ -60,7 +67,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional(readOnly = true)
   public AppointmentResponse getAppointmentById(Long appointmentId, Long requesterId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
-    // Validação de segurança, o requisitante é o paciente ou o doutor da consulta
+
     if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
       throw new SecurityException("Acesso negado. Você não faz parte desta consulta.");
     }
@@ -93,12 +100,10 @@ public class AppointmentServiceImpl implements AppointmentService {
       end = LocalDate.now().atTime(23, 59, 59);
       appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
     } else if ("week".equalsIgnoreCase(dateFilter)) {
-      // Lógica para a semana
       start = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
       end = LocalDate.now().with(DayOfWeek.SUNDAY).atTime(23, 59, 59);
       appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
     } else if ("month".equalsIgnoreCase(dateFilter)) {
-      // Lógica para o mês
       start = LocalDate.now().withDayOfMonth(1).atStartOfDay();
       end = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth()).atTime(23, 59, 59);
       appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
@@ -110,18 +115,23 @@ public class AppointmentServiceImpl implements AppointmentService {
       return new ArrayList<>();
     }
 
-    DoctorProfileResponse doctor = profileFeignClient.getDoctorProfile(doctorId);
+    DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
+      .orElse(new DoctorReadModel(doctorId, null, "Médico (Sincronizando)", "N/A"));
 
     List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
+
+    // Ajustar Depois: buscar todos os pacientes de uma vez (bulk fetch)
     for (Appointment appointment : appointments) {
-      PatientProfileResponse patient = profileFeignClient.getPatientProfile(appointment.getPatientId());
+      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
+        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A"));
+
       appointmentDetails.add(new AppointmentDetailResponse(
         appointment.getId(),
         appointment.getPatientId(),
-        patient.name(),
-        patient.phoneNumber(),
+        patient.getFullName(),
+        patient.getPhoneNumber(),
         appointment.getDoctorId(),
-        doctor.name(),
+        doctor.getFullName(),
         appointment.getAppointmentDateTime(),
         appointment.getReason(),
         appointment.getStatus()
@@ -167,7 +177,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
-    // Validação de segurança e negócio: só o doutor da consulta pode completá-la
     if (!appointment.getDoctorId().equals(doctorId)) {
       throw new SecurityException("Apenas o doutor responsável pode completar a consulta.");
     }
@@ -182,25 +191,25 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Transactional(readOnly = true)
   public AppointmentDetailResponse getAppointmentDetailsById(Long appointmentId, Long requesterId) {
-    // Busca o agendamento local
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
-    // (Validação de segurança)
+
     if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
       throw new SecurityException("Acesso negado.");
     }
 
-    // Busca os dados externos (agregação)
-    PatientProfileResponse patient = profileFeignClient.getPatientProfile(appointment.getPatientId());
-    DoctorProfileResponse doctor = profileFeignClient.getDoctorProfile(appointment.getDoctorId());
+    PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
+      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A"));
 
-    // Monta a resposta final
+    DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
+      .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico Desconhecido", "N/A"));
+
     return new AppointmentDetailResponse(
       appointment.getId(),
       appointment.getPatientId(),
-      patient.name(),
-      patient.phoneNumber(),
+      patient.getFullName(),
+      patient.getPhoneNumber(),
       appointment.getDoctorId(),
-      doctor.name(),
+      doctor.getFullName(),
       appointment.getAppointmentDateTime(),
       appointment.getReason(),
       appointment.getStatus()
@@ -214,7 +223,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       .findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
         patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now())
       .map(AppointmentResponse::fromEntity)
-      .orElse(null); // Retorna nulo se não houver próximas consultas
+      .orElse(null);
   }
 
   @Override
@@ -230,14 +239,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   public DoctorDashboardStatsResponse getDoctorDashboardStats(Long doctorId) {
-    // Contar consultas de hoje
     long appointmentsToday = appointmentRepository.countAppointmentsForToday(doctorId);
 
-    // Contar concluídas na semana
     LocalDateTime startOfWeek = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
     long completedThisWeek = appointmentRepository.countCompletedAppointmentsSince(doctorId, startOfWeek);
 
-    // Obter distribuição por status
     Map<AppointmentStatus, Long> statusDistribution = appointmentRepository.countAppointmentsByStatus(doctorId)
       .stream()
       .collect(Collectors.toMap(
@@ -245,10 +251,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         row -> (Long) row[1]
       ));
 
-    // Adiciona status que não têm consultas com contagem zero
     Arrays.stream(AppointmentStatus.values())
       .forEach(status -> statusDistribution.putIfAbsent(status, 0L));
-
 
     return new DoctorDashboardStatsResponse(appointmentsToday, completedThisWeek, statusDistribution);
   }
@@ -273,7 +277,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         String groupName = entry.getKey();
         List<String> keywords = entry.getValue();
 
-        // Set para garantir que cada paciente seja contado apenas uma vez
         Set<Long> uniquePatientIds = new HashSet<>();
         for (String keyword : keywords) {
           uniquePatientIds.addAll(
@@ -292,7 +295,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   public List<DailyActivityDto> getDailyActivityStats() {
     LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
 
-    // Contar consultas por dia
     List<Object[]> appointmentCounts = appointmentRepository.countAppointmentsFromDateGroupedByDay(thirtyDaysAgo);
     Map<LocalDate, Long> appointmentsByDay = appointmentCounts.stream()
       .collect(Collectors.toMap(
@@ -300,7 +302,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         row -> (Long) row[1]
       ));
 
-    // Contar novos pacientes por dia (primeira consulta nos últimos 30 dias)
     List<Object[]> firstAppointments = appointmentRepository.findFirstAppointmentDateForPatients(thirtyDaysAgo);
     Map<LocalDate, Long> newPatientsByDay = firstAppointments.stream()
       .collect(Collectors.groupingBy(
@@ -308,7 +309,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         Collectors.counting()
       ));
 
-    // Gerar a lista de DTOs para os últimos 30 dias
     return IntStream.range(0, 30)
       .mapToObj(i -> LocalDate.now().minusDays(i))
       .map(date -> new DailyActivityDto(

@@ -1,8 +1,10 @@
 package com.hms.profile.services.impl;
 
 import com.hms.profile.clients.AppointmentFeignClient;
+import com.hms.profile.config.RabbitMQConfig;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
+import com.hms.profile.dto.request.DoctorEvent;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
@@ -13,6 +15,8 @@ import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.DoctorService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -24,10 +28,12 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorServiceImpl implements DoctorService {
 
   private final DoctorRepository doctorRepository;
   private final AppointmentFeignClient appointmentFeignClient;
+  private final RabbitTemplate rabbitTemplate; // Injeção do RabbitMQ
 
   @Override
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
@@ -40,7 +46,12 @@ public class DoctorServiceImpl implements DoctorService {
     newDoctor.setCrmNumber(request.crmNumber());
     newDoctor.setName(request.name());
 
-    return DoctorResponse.fromEntity(doctorRepository.save(newDoctor));
+    Doctor savedDoctor = doctorRepository.save(newDoctor);
+
+    // Publicar Evento de Criação
+    publishDoctorEvent(savedDoctor, "CREATED");
+
+    return DoctorResponse.fromEntity(savedDoctor);
   }
 
   @Override
@@ -81,7 +92,12 @@ public class DoctorServiceImpl implements DoctorService {
       doctorToUpdate.setBiography(request.biography());
     }
 
-    return DoctorResponse.fromEntity(doctorRepository.save(doctorToUpdate));
+    Doctor updatedDoctor = doctorRepository.save(doctorToUpdate);
+
+    // Publicar Evento de Atualização
+    publishDoctorEvent(updatedDoctor, "UPDATED");
+
+    return DoctorResponse.fromEntity(updatedDoctor);
   }
 
   @Override
@@ -114,7 +130,10 @@ public class DoctorServiceImpl implements DoctorService {
     Doctor doctor = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     doctor.setProfilePictureUrl(pictureUrl);
-    doctorRepository.save(doctor);
+
+    Doctor savedDoctor = doctorRepository.save(doctor);
+    // Opcional: Publicar evento se a foto for relevante para o cache do consumidor
+    publishDoctorEvent(savedDoctor, "UPDATED");
   }
 
   @Override
@@ -166,11 +185,35 @@ public class DoctorServiceImpl implements DoctorService {
       doctor.setYearsOfExperience(request.yearsOfExperience());
     }
 
-    doctorRepository.save(doctor);
+    Doctor savedDoctor = doctorRepository.save(doctor);
+
+    // Publicar Evento de Atualização (Admin)
+    publishDoctorEvent(savedDoctor, "UPDATED");
   }
 
   @Override
   public long countAllDoctors() {
     return doctorRepository.count();
+  }
+
+  // Método Auxiliar para RabbitMQ
+  private void publishDoctorEvent(Doctor doctor, String eventType) {
+    try {
+      DoctorEvent event = new DoctorEvent(
+        doctor.getId(),
+        doctor.getUserId(),
+        doctor.getName(),
+        doctor.getSpecialization(),
+        eventType
+      );
+
+      String routingKey = "doctor." + eventType.toLowerCase();
+
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, routingKey, event);
+      log.info("Evento publicado no RabbitMQ: {} para o médico {}", routingKey, doctor.getName());
+
+    } catch (Exception e) {
+      log.error("Falha ao publicar evento do médico no RabbitMQ", e);
+    }
   }
 }

@@ -2,6 +2,7 @@ package com.hms.profile.services.impl;
 
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
+import com.hms.profile.dto.request.PatientEvent;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;
@@ -13,6 +14,8 @@ import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,9 +26,11 @@ import java.util.List;
 @Service
 @Transactional
 @RequiredArgsConstructor
+@Slf4j
 public class PatientServiceImpl implements PatientService {
 
   private final PatientRepository patientRepository;
+  private final RabbitTemplate rabbitTemplate;
 
   @Override
   public PatientResponse createPatientProfile(PatientCreateRequest request) {
@@ -39,6 +44,7 @@ public class PatientServiceImpl implements PatientService {
     newPatient.setName(request.name());
 
     Patient savedPatient = patientRepository.save(newPatient);
+    publishPatientEvent(savedPatient, "CREATED");
 
     return PatientResponse.fromEntity(savedPatient);
   }
@@ -47,7 +53,7 @@ public class PatientServiceImpl implements PatientService {
   @Transactional(readOnly = true)
   public PatientResponse getPatientProfileById(Long profileId) {
     return patientRepository.findById(profileId)
-      .map(PatientResponse::fromEntity) // Mapeamento usando o método de fábrica
+      .map(PatientResponse::fromEntity)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado com o ID: " + profileId));
   }
 
@@ -97,6 +103,8 @@ public class PatientServiceImpl implements PatientService {
 
     Patient updatedPatient = patientRepository.save(patientToUpdate);
 
+    publishPatientEvent(updatedPatient, "UPDATED");
+
     return PatientResponse.fromEntity(updatedPatient);
   }
 
@@ -122,7 +130,9 @@ public class PatientServiceImpl implements PatientService {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
     patient.setProfilePictureUrl(pictureUrl);
-    patientRepository.save(patient);
+
+    Patient savedPatient = patientRepository.save(patient);
+    publishPatientEvent(savedPatient, "UPDATED");
   }
 
   @Override
@@ -151,14 +161,14 @@ public class PatientServiceImpl implements PatientService {
     }
     if (request.bloodGroup() != null) {
       try {
-        patient.setBloodGroup(BloodGroup.valueOf(request.bloodGroup())); // Conversão String -> Enum
+        patient.setBloodGroup(BloodGroup.valueOf(request.bloodGroup()));
       } catch (IllegalArgumentException e) {
         System.err.println("Valor inválido para BloodGroup recebido: " + request.bloodGroup());
       }
     }
     if (request.gender() != null) {
       try {
-        patient.setGender(Gender.valueOf(request.gender())); // Conversão String -> Enum
+        patient.setGender(Gender.valueOf(request.gender()));
       } catch (IllegalArgumentException e) {
         System.err.println("Valor inválido para Gender recebido: " + request.gender());
       }
@@ -173,11 +183,33 @@ public class PatientServiceImpl implements PatientService {
       patient.setAllergies(request.allergies());
     }
 
-    patientRepository.save(patient);
+    Patient savedPatient = patientRepository.save(patient);
+    publishPatientEvent(savedPatient, "UPDATED");
   }
 
   @Override
   public long countAllPatients() {
     return patientRepository.count();
+  }
+
+  // --- Método Auxiliar para RabbitMQ ---
+  private void publishPatientEvent(Patient patient, String eventType) {
+    try {
+      PatientEvent event = new PatientEvent(
+        patient.getId(),
+        patient.getUserId(),
+        patient.getName(),
+        patient.getPhoneNumber(),
+        eventType
+      );
+
+      // Routing key: patient.created ou patient.updated
+      String routingKey = "patient." + eventType.toLowerCase();
+      String exchangeName = "hms.exchange";
+      rabbitTemplate.convertAndSend(exchangeName, routingKey, event);
+      log.info("Evento publicado no RabbitMQ: {} para o paciente {}", routingKey, patient.getName());
+    } catch (Exception e) {
+      log.error("Falha ao publicar evento do paciente no RabbitMQ", e);
+    }
   }
 }
