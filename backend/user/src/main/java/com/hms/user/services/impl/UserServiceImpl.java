@@ -1,8 +1,11 @@
 package com.hms.user.services.impl;
 
-import com.hms.user.clients.ProfileFeignClient;
 import com.hms.user.dto.event.UserCreatedEvent;
-import com.hms.user.dto.request.*;
+import com.hms.user.dto.event.UserUpdatedEvent;
+import com.hms.user.dto.request.AdminCreateUserRequest;
+import com.hms.user.dto.request.AdminUpdateUserRequest;
+import com.hms.user.dto.request.LoginRequest;
+import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.dto.response.UserResponse;
 import com.hms.user.entities.User;
@@ -35,7 +38,6 @@ public class UserServiceImpl implements UserService {
   private final PasswordEncoder encoder;
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
-  private final ProfileFeignClient profileFeignClient;
   private final RabbitTemplate rabbitTemplate;
 
   @Value("${application.rabbitmq.exchange}")
@@ -43,6 +45,9 @@ public class UserServiceImpl implements UserService {
 
   @Value("${application.rabbitmq.user-created-routing-key}")
   private String userCreatedRoutingKey;
+
+  @Value("${application.rabbitmq.user-updated-routing-key:user.event.updated}")
+  private String userUpdatedRoutingKey;
 
   @Override
   @Transactional
@@ -171,7 +176,7 @@ public class UserServiceImpl implements UserService {
     if (request.email() != null && !request.email().isBlank()) {
       Optional<User> userWithNewEmail = userRepository.findByEmail(request.email());
       if (userWithNewEmail.isPresent() && !userWithNewEmail.get().getId().equals(userId)) {
-        throw new UserAlreadyExistsException("O e-mail '" + request.email() + "' já está em uso por outro utilizador.");
+        throw new UserAlreadyExistsException("O e-mail '" + request.email() + "' já está em uso.");
       }
       user.setEmail(request.email());
     }
@@ -182,36 +187,7 @@ public class UserServiceImpl implements UserService {
 
     userRepository.save(user);
 
-    if (user.getRole() == UserRole.PATIENT) {
-      AdminPatientUpdateRequest patientRequest = new AdminPatientUpdateRequest(
-        request.name(),
-        request.cpf(),
-        request.phoneNumber(),
-        request.address(),
-        request.emergencyContactName(),
-        request.emergencyContactPhone(),
-        request.bloodGroup(),
-        request.gender(),
-        request.dateOfBirth(),
-        request.chronicDiseases(),
-        request.allergies()
-      );
-      profileFeignClient.adminUpdatePatient(user.getId(), patientRequest);
-
-    } else if (user.getRole() == UserRole.DOCTOR) {
-      AdminDoctorUpdateRequest doctorRequest = new AdminDoctorUpdateRequest(
-        request.name(),
-        request.crmNumber(),
-        request.specialization(),
-        request.department(),
-        request.phoneNumber(),
-        request.biography(),
-        request.qualifications(),
-        request.dateOfBirth(),
-        request.yearsOfExperience()
-      );
-      profileFeignClient.adminUpdateDoctor(user.getId(), doctorRequest);
-    }
+    publishUserUpdatedEvent(user, request);
   }
 
   // Método auxiliar para publicar o evento
@@ -230,6 +206,43 @@ public class UserServiceImpl implements UserService {
       log.info("Evento de criação de usuário enviado para fila: ID {}", user.getId());
     } catch (Exception e) {
       log.error("Erro ao enviar evento de criação de usuário para o RabbitMQ", e);
+    }
+  }
+
+  // Método auxiliar para publicar o evento de atualização
+  private void publishUserUpdatedEvent(User user, AdminUpdateUserRequest req) {
+    try {
+      UserUpdatedEvent event = new UserUpdatedEvent(
+        user.getId(),
+        user.getName(),
+        user.getEmail(),
+        user.getRole(),
+
+        req.phoneNumber(),
+        req.dateOfBirth(),
+
+        req.cpf(),
+        req.address(),
+        req.emergencyContactName(),
+        req.emergencyContactPhone(),
+        req.bloodGroup(),
+        req.gender(),
+        req.chronicDiseases(),
+        req.allergies(),
+
+        req.crmNumber(),
+        req.specialization(),
+        req.department(),
+        req.biography(),
+        req.qualifications(),
+        req.yearsOfExperience()
+      );
+
+      rabbitTemplate.convertAndSend(exchange, userUpdatedRoutingKey, event);
+      log.info("Evento de atualização de usuário enviado: ID {}, Role {}", user.getId(), user.getRole());
+
+    } catch (Exception e) {
+      log.error("Erro ao publicar atualização de usuário para ID {}: {}", user.getId(), e.getMessage(), e);
     }
   }
 }
