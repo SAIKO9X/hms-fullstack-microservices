@@ -1,6 +1,7 @@
 package com.hms.user.services.impl;
 
 import com.hms.user.clients.ProfileFeignClient;
+import com.hms.user.dto.event.UserCreatedEvent;
 import com.hms.user.dto.request.*;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.dto.response.UserResponse;
@@ -12,6 +13,9 @@ import com.hms.user.repositories.UserRepository;
 import com.hms.user.services.JwtService;
 import com.hms.user.services.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +28,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
   private final UserRepository userRepository;
@@ -31,8 +36,16 @@ public class UserServiceImpl implements UserService {
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
   private final ProfileFeignClient profileFeignClient;
+  private final RabbitTemplate rabbitTemplate;
+
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
+
+  @Value("${application.rabbitmq.user-created-routing-key}")
+  private String userCreatedRoutingKey;
 
   @Override
+  @Transactional
   public UserResponse createUser(UserRequest request) {
     if (userRepository.findByEmail(request.email()).isPresent()) {
       throw new UserAlreadyExistsException("Um usuário com o email: '" + request.email() + "' já foi cadastrado.");
@@ -41,23 +54,16 @@ public class UserServiceImpl implements UserService {
     User user = request.toEntity();
     user.setPassword(encoder.encode(user.getPassword()));
     User savedUser = userRepository.save(user);
+    String cpf = null;
+    String crm = null;
 
-    try {
-      if (savedUser.getRole() == UserRole.PATIENT) {
-        profileFeignClient.createPatientProfile(new PatientCreateRequest(savedUser.getId(), request.cpfOuCrm(), savedUser.getName()));
-      } else if (savedUser.getRole() == UserRole.DOCTOR) {
-        profileFeignClient.createDoctorProfile(
-          new DoctorCreateRequest(savedUser.getId(), request.cpfOuCrm(), savedUser.getName())
-        );
-      }
-    } catch (Exception e) {
-      // AÇÃO DE COMPENSAÇÃO - se a criação do perfil falhou, desfaz a criação do usuário!
-      System.err.println("Falha ao criar perfil. Iniciando rollback manual para o usuário: " + savedUser.getId());
-      userRepository.deleteById(savedUser.getId());
-
-      // Lança a exceção original
-      throw new RuntimeException("Falha na comunicação com o serviço de perfil. O usuário não foi criado. Causa: " + e.getMessage(), e);
+    if (savedUser.getRole() == UserRole.PATIENT) {
+      cpf = request.cpfOuCrm();
+    } else if (savedUser.getRole() == UserRole.DOCTOR) {
+      crm = request.cpfOuCrm();
     }
+
+    publishUserCreatedEvent(savedUser, cpf, crm);
 
     return UserResponse.fromEntity(savedUser);
   }
@@ -129,36 +135,25 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public UserResponse adminCreateUser(AdminCreateUserRequest request) {
-    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-      throw new UserAlreadyExistsException("O email " + request.getEmail() + " já está em uso.");
+    if (userRepository.findByEmail(request.email()).isPresent()) {
+      throw new UserAlreadyExistsException("O email " + request.email() + " já está em uso.");
     }
 
     User newUser = new User();
-    newUser.setName(request.getName());
-    newUser.setEmail(request.getEmail());
-    newUser.setPassword(encoder.encode(request.getPassword()));
-    newUser.setRole(request.getRole());
+    newUser.setName(request.name());
+    newUser.setEmail(request.email());
+    newUser.setPassword(encoder.encode(request.password()));
+    newUser.setRole(request.role());
     newUser.setActive(true);
 
     User savedUser = userRepository.save(newUser);
+    String cpf = request.cpf();
+    String crm = request.crmNumber();
 
-    try {
-      if (request.getRole() == UserRole.PATIENT) {
-        profileFeignClient.createPatientProfile(
-          new PatientCreateRequest(savedUser.getId(), request.getCpf(), savedUser.getName())
-        );
-      } else if (request.getRole() == UserRole.DOCTOR) {
-        profileFeignClient.createDoctorProfile(
-          new DoctorCreateRequest(savedUser.getId(), request.getCrmNumber(), savedUser.getName())
-        );
-      }
-    } catch (Exception e) {
-      throw new RuntimeException("Falha na comunicação com o serviço de perfil. O utilizador não foi criado. Causa: " + e.getMessage(), e);
-    }
+    publishUserCreatedEvent(savedUser, cpf, crm);
 
     return UserResponse.fromEntity(savedUser);
   }
-
 
   @Override
   @Transactional(readOnly = true)
@@ -173,7 +168,6 @@ public class UserServiceImpl implements UserService {
     User user = userRepository.findById(userId)
       .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o ID: " + userId));
 
-    // Validação de e-mail
     if (request.email() != null && !request.email().isBlank()) {
       Optional<User> userWithNewEmail = userRepository.findByEmail(request.email());
       if (userWithNewEmail.isPresent() && !userWithNewEmail.get().getId().equals(userId)) {
@@ -217,6 +211,25 @@ public class UserServiceImpl implements UserService {
         request.yearsOfExperience()
       );
       profileFeignClient.adminUpdateDoctor(user.getId(), doctorRequest);
+    }
+  }
+
+  // Método auxiliar para publicar o evento
+  private void publishUserCreatedEvent(User user, String cpf, String crm) {
+    try {
+      UserCreatedEvent event = new UserCreatedEvent(
+        user.getId(),
+        user.getName(),
+        user.getEmail(),
+        user.getRole(),
+        cpf,
+        crm
+      );
+
+      rabbitTemplate.convertAndSend(exchange, userCreatedRoutingKey, event);
+      log.info("Evento de criação de usuário enviado para fila: ID {}", user.getId());
+    } catch (Exception e) {
+      log.error("Erro ao enviar evento de criação de usuário para o RabbitMQ", e);
     }
   }
 }

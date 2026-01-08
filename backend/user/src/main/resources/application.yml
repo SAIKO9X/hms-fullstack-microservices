@@ -8,6 +8,9 @@ services:
 spring:
   application:
     name: user-service
+    rabbitmq:
+      exchange: internal.exchange
+      user-created-routing-key: user.event.created
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_user_db}
     username: ${DB_USER:mysql_user}
