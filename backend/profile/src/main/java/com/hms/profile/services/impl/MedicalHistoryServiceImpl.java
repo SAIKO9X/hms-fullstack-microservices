@@ -8,6 +8,7 @@ import com.hms.profile.entities.Doctor;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.MedicalHistoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MedicalHistoryServiceImpl implements MedicalHistoryService {
@@ -33,13 +35,13 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
     return fetchAndProcessHistory(patientProfileId);
   }
 
-
   private MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
     List<AppointmentResponse> appointmentsFromService;
+
     try {
       appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
     } catch (Exception e) {
-      System.err.println("Erro ao buscar histórico de consultas para o paciente ID " + patientProfileId + ": " + e.getMessage());
+      log.error("Erro ao buscar histórico de consultas (Feign) para o paciente ID {}: {}", patientProfileId, e.getMessage());
       return new MedicalHistoryResponse(Collections.emptyList());
     }
 
@@ -58,14 +60,14 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
       .collect(Collectors.toMap(Doctor::getUserId, Function.identity()));
 
     List<AppointmentHistoryDto> appointmentHistories = appointmentsFromService.stream().map(app -> {
-      // Usa o userId do médico para buscar no mapa
       Doctor doctor = doctorsMap.get(app.doctorId());
       String doctorName = (doctor != null) ? doctor.getName() : "Médico Desconhecido";
+
       return new AppointmentHistoryDto(
         app.id(),
         app.appointmentDateTime(),
         app.reason(),
-        app.status().name(), // Converte o Enum para String
+        app.status().name(),
         doctorName
       );
     }).collect(Collectors.toList());

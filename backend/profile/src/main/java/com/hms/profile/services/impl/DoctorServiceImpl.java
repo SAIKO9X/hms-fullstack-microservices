@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -136,13 +137,23 @@ public class DoctorServiceImpl implements DoctorService {
   @Transactional(readOnly = true)
   public List<DoctorStatusResponse> getDoctorsWithStatus() {
     List<Doctor> doctors = doctorRepository.findAll();
-    List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
+    List<Long> activeDoctorIds;
+
+    try {
+      activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
+    } catch (Exception e) {
+      // Se o serviço de appointment estiver fora, assume que ninguém está em consulta para garantir que a lista de médicos ainda seja exibida.
+      log.warn("Não foi possível buscar status dos médicos (Feign): {}. Assumindo todos como 'Disponível'.", e.getMessage());
+      activeDoctorIds = Collections.emptyList();
+    }
+
+    List<Long> finalActiveDoctorIds = activeDoctorIds;
 
     return doctors.stream().map(doctor -> new DoctorStatusResponse(
       doctor.getId(),
       doctor.getName(),
       doctor.getSpecialization(),
-      activeDoctorIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
+      finalActiveDoctorIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
       doctor.getProfilePictureUrl()
     )).collect(Collectors.toList());
   }
