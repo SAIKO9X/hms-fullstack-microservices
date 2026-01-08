@@ -1,10 +1,9 @@
 package com.hms.profile.services.impl;
 
 import com.hms.profile.clients.AppointmentFeignClient;
-import com.hms.profile.config.RabbitMQConfig;
+import com.hms.profile.dto.event.DoctorEvent;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
-import com.hms.profile.dto.request.DoctorEvent;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
@@ -17,6 +16,7 @@ import com.hms.profile.services.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,9 +31,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DoctorServiceImpl implements DoctorService {
 
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
+
   private final DoctorRepository doctorRepository;
   private final AppointmentFeignClient appointmentFeignClient;
-  private final RabbitTemplate rabbitTemplate; // Injeção do RabbitMQ
+  private final RabbitTemplate rabbitTemplate;
 
   @Override
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
@@ -47,10 +50,7 @@ public class DoctorServiceImpl implements DoctorService {
     newDoctor.setName(request.name());
 
     Doctor savedDoctor = doctorRepository.save(newDoctor);
-
-    // Publicar Evento de Criação
     publishDoctorEvent(savedDoctor, "CREATED");
-
     return DoctorResponse.fromEntity(savedDoctor);
   }
 
@@ -93,10 +93,7 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     Doctor updatedDoctor = doctorRepository.save(doctorToUpdate);
-
-    // Publicar Evento de Atualização
     publishDoctorEvent(updatedDoctor, "UPDATED");
-
     return DoctorResponse.fromEntity(updatedDoctor);
   }
 
@@ -132,7 +129,6 @@ public class DoctorServiceImpl implements DoctorService {
     doctor.setProfilePictureUrl(pictureUrl);
 
     Doctor savedDoctor = doctorRepository.save(doctor);
-    // Opcional: Publicar evento se a foto for relevante para o cache do consumidor
     publishDoctorEvent(savedDoctor, "UPDATED");
   }
 
@@ -208,10 +204,8 @@ public class DoctorServiceImpl implements DoctorService {
       );
 
       String routingKey = "doctor." + eventType.toLowerCase();
-
-      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, routingKey, event);
-      log.info("Evento publicado no RabbitMQ: {} para o médico {}", routingKey, doctor.getName());
-
+      rabbitTemplate.convertAndSend(exchange, routingKey, event);
+      log.info("Evento publicado no RabbitMQ: Exchange='{}', Key='{}', Médico='{}'", exchange, routingKey, doctor.getName());
     } catch (Exception e) {
       log.error("Falha ao publicar evento do médico no RabbitMQ", e);
     }

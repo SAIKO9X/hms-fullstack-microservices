@@ -1,8 +1,8 @@
 package com.hms.profile.services.impl;
 
+import com.hms.profile.dto.event.PatientEvent;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
-import com.hms.profile.dto.request.PatientEvent;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;

@@ -12,6 +12,10 @@ eureka:
 spring:
   application:
     name: profile-service
+    rabbitmq:
+      exchange: internal.exchange
+      user-created-queue: profile.user-created.queue
+      user-created-routing-key: user.event.created
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_profile_db}
     username: ${DB_USER:mysql_profile_user}

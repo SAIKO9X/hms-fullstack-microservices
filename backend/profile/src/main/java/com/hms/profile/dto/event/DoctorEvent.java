@@ -1,4 +1,4 @@
-package com.hms.profile.dto.request;
+package com.hms.profile.dto.event;
 
 import java.io.Serializable;
 
