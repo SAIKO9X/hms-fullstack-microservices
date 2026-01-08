@@ -37,3 +37,11 @@ application:
       expiration: ${JWT_EXPIRATION:86400000}
   storage:
     upload-dir: ${UPLOAD_DIR:uploads} # Pode ser mapeado via volume no futuro se quiser persistência fora do container
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin

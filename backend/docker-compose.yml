@@ -1,8 +1,14 @@
 services:
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - hms-network
   # ====================================================
   # INFRAESTRUTURA
   # ====================================================
-
   eureka-server:
     build: ./eureka-server
     container_name: eureka-server
@@ -16,7 +22,7 @@ services:
     networks:
       - hms-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -49,7 +55,7 @@ services:
     networks:
       - hms-network
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
+      test: [ "CMD", "rabbitmqctl", "status" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -57,7 +63,6 @@ services:
   # ====================================================
   # BANCOS DE DADOS
   # ====================================================
-
   mysql-user:
     image: mysql:8.0
     container_name: ms-user-db
@@ -173,7 +178,6 @@ services:
   # ====================================================
   # MICROSSERVIÇOS
   # ====================================================
-
   user-service:
     build: ./user
     container_name: user-service

@@ -38,3 +38,11 @@ eureka:
   instance:
     hostname: ${HOSTNAME:localhost}
     prefer-ip-address: true
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin
