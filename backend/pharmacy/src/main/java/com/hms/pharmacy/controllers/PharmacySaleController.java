@@ -38,6 +38,13 @@ public class PharmacySaleController {
     return saleService.createDirectSale(request);
   }
 
+  @PostMapping("/from-prescription")
+  @ResponseStatus(HttpStatus.CREATED)
+  @PreAuthorize("hasRole('ADMIN')")
+  public PharmacySaleResponse createSaleFromPrescription(@RequestBody ProcessPrescriptionRequest request) {
+    return saleService.processPrescriptionAndCreateSale(request.prescriptionId());
+  }
+
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
@@ -59,17 +66,15 @@ public class PharmacySaleController {
     return saleService.getAllSales(pageable);
   }
 
-  @PostMapping("/from-prescription")
-  @ResponseStatus(HttpStatus.CREATED)
-  @PreAuthorize("hasRole('ADMIN')")
-  public PharmacySaleResponse createSaleFromPrescription(@RequestBody Long prescriptionId) {
-    return saleService.processPrescriptionAndCreateSale(prescriptionId);
-  }
-
   @GetMapping("/stats/financial")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
   public PharmacyFinancialStatsResponse getFinancialStats() {
     return saleService.getFinancialStatsLast30Days();
+  }
+
+
+  // DTO para processar prescrição (garante JSON válido)
+  public record ProcessPrescriptionRequest(Long prescriptionId) {
   }
 }

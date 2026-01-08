@@ -1,20 +1,28 @@
 package com.hms.pharmacy.services.impl;
 
-import com.hms.pharmacy.clients.AppointmentFeignClient;
-import com.hms.pharmacy.clients.ProfileFeignClient;
-import com.hms.pharmacy.clients.UserFeignClient;
-import com.hms.pharmacy.dto.request.*;
-import com.hms.pharmacy.dto.response.*;
-import com.hms.pharmacy.entities.Medicine;
-import com.hms.pharmacy.entities.PharmacySale;
-import com.hms.pharmacy.entities.PharmacySaleItem;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.pharmacy.dto.request.DirectSaleRequest;
+import com.hms.pharmacy.dto.request.EmailRequest;
+import com.hms.pharmacy.dto.request.PharmacySaleRequest;
+import com.hms.pharmacy.dto.request.SaleItemRequest;
+import com.hms.pharmacy.dto.response.DailyRevenueDto;
+import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
+import com.hms.pharmacy.dto.response.PharmacySaleResponse;
+import com.hms.pharmacy.entities.*;
 import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
+import com.hms.pharmacy.repositories.PatientReadModelRepository;
 import com.hms.pharmacy.repositories.PharmacySaleRepository;
+import com.hms.pharmacy.repositories.PrescriptionCopyRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.PharmacySaleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,6 +34,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PharmacySaleServiceImpl implements PharmacySaleService {
@@ -33,40 +42,41 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   private final PharmacySaleRepository saleRepository;
   private final MedicineRepository medicineRepository;
   private final MedicineInventoryService inventoryService;
-  private final ProfileFeignClient profileFeignClient;
-  private final AppointmentFeignClient appointmentFeignClient;
   private final RabbitTemplate rabbitTemplate;
-  private final UserFeignClient userFeignClient;
+  private final PrescriptionCopyRepository prescriptionCopyRepository;
+  private final ObjectMapper objectMapper;
+  private final PatientReadModelRepository patientReadModelRepository;
+
+
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
 
   @Override
   @Transactional
   public PharmacySaleResponse createSale(PharmacySaleRequest request) {
-    // Validação para evitar vendas duplicadas para a mesma prescrição
     if (request.originalPrescriptionId() != null && saleRepository.existsByOriginalPrescriptionId(request.originalPrescriptionId())) {
       throw new IllegalStateException("Já existe uma venda para esta prescrição.");
     }
 
-    PatientProfileResponse patient;
-    try {
-      patient = profileFeignClient.getPatientProfileByUserId(request.patientId());
-    } catch (Exception e) {
-      System.err.println("Falha ao buscar perfil do paciente via Feign. Causa: " + e.getMessage());
-      throw new NoSuchElementException("Não foi possível obter os dados do paciente com ID " + request.patientId() + ". O serviço de perfis pode estar indisponível ou a requisição foi negada.");
-    }
+    PatientReadModel patient = patientReadModelRepository.findById(request.patientId())
+      .orElseGet(() -> {
+        // Fallback se a sincronização falhar ou não tiver ocorrido
+        log.warn("Paciente ID {} não encontrado no ReadModel da Farmácia. Usando dados genéricos.", request.patientId());
+        PatientReadModel unknown = new PatientReadModel();
+        unknown.setUserId(request.patientId());
+        unknown.setName("Paciente (Não Sincronizado)");
+        unknown.setPhoneNumber("N/A");
+        unknown.setEmail(null);
+        return unknown;
+      });
 
-    String patientEmail = null;
-    try {
-      UserResponse user = userFeignClient.getUserById(request.patientId());
-      patientEmail = user.email();
-    } catch (Exception e) {
-      System.err.println("Falha ao buscar e-mail do usuário: " + e.getMessage());
-    }
+    String patientEmail = patient.getEmail();
 
     PharmacySale sale = new PharmacySale();
     sale.setOriginalPrescriptionId(request.originalPrescriptionId());
-    sale.setPatientId(patient.userId());
-    sale.setBuyerName(patient.name());
-    sale.setBuyerContact(patient.phoneNumber());
+    sale.setPatientId(request.patientId());
+    sale.setBuyerName(patient.getName());
+    sale.setBuyerContact(patient.getPhoneNumber());
 
     BigDecimal totalAmount = BigDecimal.ZERO;
     List<PharmacySaleItem> saleItems = new ArrayList<>();
@@ -95,29 +105,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
     PharmacySale savedSale = saleRepository.save(sale);
 
-    if (patientEmail != null) {
-      try {
-        String emailBody = String.format(
-          "<h1>Olá, %s!</h1><p>Sua compra foi realizada com sucesso.</p><p>Valor Total: R$ %s</p>",
-          savedSale.getBuyerName(),
-          savedSale.getTotalAmount().toString()
-        );
-
-        // Usa o e-mail vindo do User Service
-        EmailRequest emailRequest = new EmailRequest(
-          patientEmail,
-          "Comprovante de Compra - HMS Pharmacy",
-          emailBody
-        );
-
-        rabbitTemplate.convertAndSend("internal.exchange", "notification.email", emailRequest);
-        System.out.println("Solicitação de e-mail enviada para: " + patientEmail);
-      } catch (Exception e) {
-        System.err.println("Erro ao enviar notificação de venda: " + e.getMessage());
-      }
-    } else {
-      System.err.println("Notificação ignorada: E-mail do paciente não encontrado.");
-    }
+    sendEmailNotification(patientEmail, savedSale);
 
     return PharmacySaleResponse.fromEntity(savedSale);
   }
@@ -146,28 +134,60 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   @Override
   @Transactional
   public PharmacySaleResponse processPrescriptionAndCreateSale(Long prescriptionId) {
-    PrescriptionReceiveRequest prescriptionRequest = appointmentFeignClient.getPrescriptionForPharmacy(prescriptionId);
+    if (prescriptionId == null) {
+      throw new IllegalArgumentException("O ID da prescrição é obrigatório.");
+    }
 
-    List<SaleItemRequest> saleItems = prescriptionRequest.items().stream()
+    // Busca na Tabela Local
+    PrescriptionCopy prescription = prescriptionCopyRepository.findById(prescriptionId)
+      .orElseThrow(() -> new IllegalArgumentException("Receita não encontrada ou ainda não sincronizada na Farmácia. ID: " + prescriptionId));
+
+    if (prescription.getValidUntil().isBefore(LocalDate.now())) {
+      throw new IllegalArgumentException("Esta receita expirou em: " + prescription.getValidUntil());
+    }
+
+    if (prescription.isProcessed()) {
+      throw new IllegalArgumentException("Esta receita já foi utilizada.");
+    }
+
+    List<PrescriptionItemDto> prescriptionItems;
+    try {
+      prescriptionItems = objectMapper.readValue(
+        prescription.getItemsJson(),
+        new TypeReference<List<PrescriptionItemDto>>() {
+        }
+      );
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Erro ao processar os itens da receita armazenada.", e);
+    }
+
+    // Mapeia Itens da Receita -> Itens de Venda
+    List<SaleItemRequest> saleItems = prescriptionItems.stream()
       .map(item -> {
-        // Buscara o medicamento pelo nome e dosagem para encontrar o ID interno da farmácia
         Medicine medicine = medicineRepository
           .findByNameIgnoreCaseAndDosageIgnoreCase(item.medicineName(), item.dosage())
           .orElseThrow(() -> new MedicineNotFoundException(
-            "Medicamento '" + item.medicineName() + " " + item.dosage() + "' não encontrado no estoque."
+            "Medicamento '" + item.medicineName() + " " + item.dosage() + "' prescrito não encontrado no estoque."
           ));
 
-        return new SaleItemRequest(medicine.getId(), item.quantity());
+        int quantityToSell = (item.durationDays() != null && item.durationDays() > 0) ? item.durationDays() : 1;
+
+        return new SaleItemRequest(medicine.getId(), quantityToSell);
       })
       .collect(Collectors.toList());
 
     PharmacySaleRequest saleRequest = new PharmacySaleRequest(
-      prescriptionRequest.originalPrescriptionId(),
-      prescriptionRequest.patientId(),
+      prescriptionId,
+      prescription.getPatientId(),
       saleItems
     );
 
-    return createSale(saleRequest);
+    PharmacySaleResponse response = createSale(saleRequest);
+
+    prescription.setProcessed(true);
+    prescriptionCopyRepository.save(prescription);
+
+    return response;
   }
 
   @Override
@@ -188,7 +208,6 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
     List<PharmacySale> sales = saleRepository.findBySaleDateBetween(startDate, endDate);
 
-    // Calcula a receita total
     BigDecimal totalRevenue = sales.stream()
       .map(PharmacySale::getTotalAmount)
       .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -203,13 +222,49 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     for (int i = 0; i <= 30; i++) {
       LocalDate date = LocalDate.now().minusDays(i);
       BigDecimal amount = salesByDate.getOrDefault(date, BigDecimal.ZERO);
-
       dailyBreakdown.add(new DailyRevenueDto(date, amount));
     }
 
-    //  Irá ordenar pela data crescente
     dailyBreakdown.sort(Comparator.comparing(DailyRevenueDto::date));
 
     return new PharmacyFinancialStatsResponse(totalRevenue, dailyBreakdown);
+  }
+
+  // Método auxiliar para enviar notificação por e-mail via RabbitMQ
+  private void sendEmailNotification(String patientEmail, PharmacySale savedSale) {
+    if (patientEmail != null) {
+      try {
+        String emailBody = String.format(
+          "<h1>Olá, %s!</h1><p>Sua compra na Farmácia foi realizada com sucesso.</p><p>Valor Total: R$ %s</p><p>Protocolo: %s</p>",
+          savedSale.getBuyerName(),
+          savedSale.getTotalAmount().toString(),
+          savedSale.getId()
+        );
+
+        EmailRequest emailRequest = new EmailRequest(
+          patientEmail,
+          "Comprovante de Compra - HMS Pharmacy",
+          emailBody
+        );
+
+        rabbitTemplate.convertAndSend(exchange, "notification.email", emailRequest);
+        log.info("Solicitação de e-mail enviada para: {}", patientEmail);
+      } catch (Exception e) {
+        log.error("Erro ao enviar notificação de venda: {}", e.getMessage());
+      }
+    } else {
+      log.warn("Notificação ignorada: E-mail do paciente não encontrado.");
+    }
+  }
+
+  // Record auxiliar para desserializar o JSON salvo na PrescriptionCopy
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private record PrescriptionItemDto(
+    String medicineName,
+    String dosage,
+    String frequency,
+    Integer durationDays,
+    String instructions
+  ) {
   }
 }

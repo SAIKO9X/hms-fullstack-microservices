@@ -27,6 +27,10 @@ spring:
         format_sql: true
 
 application:
+  rabbitmq:
+    exchange: hms.exchange
+    prescription-queue: pharmacy.prescription.sync.queue
+    prescription-routing-key: prescription.issued
   security:
     jwt:
       secret-key: ${JWT_SECRET}
