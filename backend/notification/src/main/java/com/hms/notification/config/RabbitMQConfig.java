@@ -1,9 +1,6 @@
 package com.hms.notification.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -11,6 +8,9 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class RabbitMQConfig {
@@ -25,6 +25,31 @@ public class RabbitMQConfig {
   private String routingKey;
 
   public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
+  public static final String REMINDER_QUEUE = "notification.reminder.queue";
+  public static final String WAITLIST_QUEUE = "notification.waitlist.queue";
+  public static final String DELAYED_EXCHANGE = "delayed.exchange";
+
+  @Bean
+  public TopicExchange exchange() {
+    return new TopicExchange(exchange);
+  }
+
+  @Bean
+  public CustomExchange delayedExchange() {
+    Map<String, Object> args = new HashMap<>();
+    args.put("x-delayed-type", "topic");
+    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
+  }
+
+  @Bean
+  public Queue notificationQueue() {
+    return new Queue(notificationQueue, true);
+  }
+
+  @Bean
+  public Binding binding(Queue notificationQueue, TopicExchange exchange) {
+    return BindingBuilder.bind(notificationQueue).to(exchange).with(routingKey);
+  }
 
   @Bean
   public Queue appointmentNotificationQueue() {
@@ -39,21 +64,30 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public Queue notificationQueue() {
-    return new Queue(notificationQueue, true);
+  public Queue reminderQueue() {
+    return new Queue(REMINDER_QUEUE, true);
   }
 
   @Bean
-  public TopicExchange exchange() {
-    return new TopicExchange(exchange);
+  public Binding reminderBinding() {
+    // Liga a fila de lembrete à Delayed Exchange
+    return BindingBuilder.bind(reminderQueue())
+      .to(delayedExchange())
+      .with("appointment.reminder")
+      .noargs();
+  }
+
+  // Fila de Waitlist
+  @Bean
+  public Queue waitlistQueue() {
+    return new Queue(WAITLIST_QUEUE, true);
   }
 
   @Bean
-  public Binding binding(Queue queue, TopicExchange exchange) {
-    return BindingBuilder
-      .bind(queue)
-      .to(exchange)
-      .with(routingKey);
+  public Binding waitlistBinding() {
+    return BindingBuilder.bind(waitlistQueue())
+      .to(exchange())
+      .with("appointment.waitlist.available");
   }
 
   @Bean

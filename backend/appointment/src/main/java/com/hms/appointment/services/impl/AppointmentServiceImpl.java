@@ -1,11 +1,15 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.config.RabbitMQConfig;
+import com.hms.appointment.dto.event.AppointmentEvent;
 import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
+import com.hms.appointment.dto.event.WaitlistNotificationEvent;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.DoctorReadModel;
 import com.hms.appointment.entities.PatientReadModel;
+import com.hms.appointment.entities.WaitlistEntry;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
@@ -14,6 +18,7 @@ import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.PatientReadModelRepository;
+import com.hms.appointment.repositories.WaitlistRepository;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
@@ -40,6 +46,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final AppointmentRepository appointmentRepository;
   private final DoctorReadModelRepository doctorReadModelRepository;
   private final PatientReadModelRepository patientReadModelRepository;
+  private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
 
   @Value("${application.rabbitmq.exchange}")
@@ -51,11 +58,11 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
     if (!patientReadModelRepository.existsById(patientId)) {
-      throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não encontrado na base sincronizada.");
+      throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não encontrado.");
     }
 
     if (!doctorReadModelRepository.existsById(request.doctorId())) {
-      throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado na base sincronizada.");
+      throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado.");
     }
 
     if (appointmentRepository.existsByDoctorIdAndAppointmentDateTime(request.doctorId(), request.appointmentDateTime())) {
@@ -72,6 +79,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
     publishStatusEvent(savedAppointment, "SCHEDULED", null);
+
+    scheduleReminder(savedAppointment);
 
     return AppointmentResponse.fromEntity(savedAppointment);
   }
@@ -167,10 +176,16 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new SchedulingConflictException("O doutor já possui uma consulta agendada para este novo horário.");
     }
 
+    LocalDateTime oldDate = appointment.getAppointmentDateTime();
+
     appointment.setAppointmentDateTime(newDateTime);
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
     publishStatusEvent(savedAppointment, "RESCHEDULED", "Nova data: " + newDateTime);
+
+    checkAndNotifyWaitlist(savedAppointment.getDoctorId(), oldDate);
+
+    scheduleReminder(savedAppointment);
 
     return AppointmentResponse.fromEntity(savedAppointment);
   }
@@ -179,6 +194,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse cancelAppointment(Long appointmentId, Long requesterId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+
     if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
       throw new SecurityException("Acesso negado.");
     }
@@ -190,6 +206,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
     publishStatusEvent(savedAppointment, "CANCELED", "Cancelado pelo usuário");
+
+    checkAndNotifyWaitlist(appointment.getDoctorId(), appointment.getAppointmentDateTime());
 
     return AppointmentResponse.fromEntity(savedAppointment);
   }
@@ -356,6 +374,46 @@ public class AppointmentServiceImpl implements AppointmentService {
       .collect(Collectors.toList());
   }
 
+  // Adicione este método na classe AppointmentServiceImpl
+
+  @Override
+  @Transactional
+  public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
+    // só faz sentido entrar na fila se estiver cheio
+    boolean isSlotTaken = appointmentRepository.existsByDoctorIdAndAppointmentDateTime(
+      request.doctorId(),
+      request.appointmentDateTime()
+    );
+
+    if (!isSlotTaken) {
+      throw new InvalidUpdateException("Este horário está disponível. Você pode agendá-lo diretamente.");
+    }
+
+    // o paciente já está na fila para este médico/data
+    boolean alreadyInQueue = waitlistRepository.existsByPatientIdAndDoctorIdAndDate(
+      patientId,
+      request.doctorId(),
+      request.appointmentDateTime().toLocalDate()
+    );
+
+    if (alreadyInQueue) {
+      throw new InvalidUpdateException("Você já está na fila de espera para este dia.");
+    }
+
+    PatientReadModel patient = patientReadModelRepository.findById(patientId)
+      .orElseThrow(() -> new ProfileNotFoundException("Paciente não encontrado."));
+
+    WaitlistEntry entry = new WaitlistEntry();
+    entry.setDoctorId(request.doctorId());
+    entry.setPatientId(patientId);
+    entry.setPatientName(patient.getFullName());
+    entry.setPatientEmail(patient.getEmail());
+    entry.setDate(request.appointmentDateTime().toLocalDate());
+
+    waitlistRepository.save(entry);
+    log.info("Paciente {} entrou na fila de espera para o médico ID {}", patientId, request.doctorId());
+  }
+
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
     return appointmentRepository.findById(appointmentId)
       .orElseThrow(() -> new AppointmentNotFoundException("Agendamento com ID " + appointmentId + " não encontrado."));
@@ -386,6 +444,85 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     } catch (Exception e) {
       log.error("Erro ao publicar evento de agendamento", e);
+    }
+  }
+
+  private void scheduleReminder(Appointment appointment) {
+    try {
+      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId()).orElse(null);
+      DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId()).orElse(null);
+
+      if (patient == null || doctor == null) return;
+
+      // 24 horas antes da consulta
+      long delay = calculateDelay(appointment.getAppointmentDateTime());
+
+      if (delay > 0) {
+        AppointmentEvent event = new AppointmentEvent(
+          appointment.getId(),
+          appointment.getPatientId(),
+          patient.getEmail(),
+          doctor.getFullName(),
+          appointment.getAppointmentDateTime()
+        );
+
+        rabbitTemplate.convertAndSend(
+          RabbitMQConfig.DELAYED_EXCHANGE,
+          RabbitMQConfig.REMINDER_ROUTING_KEY,
+          event,
+          message -> {
+            message.getMessageProperties().setHeader("x-delay", delay);
+            return message;
+          }
+        );
+        log.info("Lembrete agendado para consulta ID: {} com delay de {} ms", appointment.getId(), delay);
+      }
+    } catch (Exception e) {
+      log.error("Falha ao agendar lembrete", e);
+    }
+  }
+
+  private long calculateDelay(LocalDateTime appointmentTime) {
+    LocalDateTime reminderTime = appointmentTime.minusHours(24);
+    LocalDateTime now = LocalDateTime.now();
+
+    // Se a consulta é em menos de 24h, não agendar lembrete (ou agendar para daqui a pouco se quiser)
+    if (now.isAfter(reminderTime)) {
+      return -1;
+    }
+
+    return Duration.between(now, reminderTime).toMillis();
+  }
+
+  // Lógica de Waitlist
+  private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime slotDateTime) {
+    try {
+      // Verificar se há alguém na fila para ESTE médico e ESTA data
+      Optional<WaitlistEntry> entryOpt = waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(
+        doctorId,
+        slotDateTime.toLocalDate()
+      );
+
+      if (entryOpt.isPresent()) {
+        WaitlistEntry entry = entryOpt.get();
+
+        DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
+          .orElse(new DoctorReadModel(doctorId, null, "Médico", "Geral"));
+
+        WaitlistNotificationEvent event = new WaitlistNotificationEvent(
+          entry.getPatientEmail(),
+          entry.getPatientName(),
+          doctor.getFullName(),
+          slotDateTime
+        );
+
+        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, event);
+        log.info("Notificação de Waitlist enviada para paciente: {}", entry.getPatientEmail());
+
+        waitlistRepository.delete(entry);
+      }
+    } catch (Exception e) {
+      log.error("Erro ao processar fila de espera para médico ID: {}", doctorId, e);
     }
   }
 }

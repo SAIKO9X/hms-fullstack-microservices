@@ -1,9 +1,11 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AppointmentUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +45,15 @@ public class AppointmentController {
     Long requesterId = getUserIdFromToken(token);
     LocalDateTime newDateTime = request.appointmentDateTime();
     return appointmentService.rescheduleAppointment(id, newDateTime, requesterId);
+  }
+
+  @PostMapping("/waitlist")
+  @ResponseStatus(HttpStatus.CREATED)
+  public void joinWaitlist(
+    @RequestHeader("X-User-Id") Long patientId,
+    @RequestBody @Valid AppointmentCreateRequest request
+  ) {
+    appointmentService.joinWaitlist(patientId, request);
   }
 
   private Long getUserIdFromToken(String token) {

@@ -34,6 +34,7 @@ application:
   rabbitmq:
     exchange: internal.exchange
     prescription-issued-routing-key: prescription.issued
+    appointment-status-routing-key: appointment.status.changed
   security:
     jwt:
       secret-key: ${JWT_SECRET}

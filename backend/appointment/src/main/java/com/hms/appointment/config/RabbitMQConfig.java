@@ -1,9 +1,6 @@
 package com.hms.appointment.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -12,10 +9,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Configuration
 public class RabbitMQConfig {
 
-  public static final String EXCHANGE_NAME = "hms.exchange";
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
 
   // Fila de Médicos
   public static final String DOCTOR_QUEUE = "appointment.doctor.sync.queue";
@@ -33,9 +34,20 @@ public class RabbitMQConfig {
   @Value("${application.rabbitmq.appointment-status-routing-key:appointment.status.changed}")
   private String appointmentStatusRoutingKey;
 
+  public static final String DELAYED_EXCHANGE = "delayed.exchange";
+  public static final String REMINDER_ROUTING_KEY = "appointment.reminder";
+  public static final String WAITLIST_ROUTING_KEY = "appointment.waitlist.available";
+
   @Bean
   public TopicExchange exchange() {
-    return new TopicExchange(EXCHANGE_NAME);
+    return new TopicExchange(exchange);
+  }
+
+  @Bean
+  public CustomExchange delayedExchange() {
+    Map<String, Object> args = new HashMap<>();
+    args.put("x-delayed-type", "topic");
+    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
   }
 
   // --- CONFIGURAÇÃO MÉDICO ---

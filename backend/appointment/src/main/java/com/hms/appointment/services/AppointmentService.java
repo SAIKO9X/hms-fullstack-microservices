@@ -40,5 +40,7 @@ public interface AppointmentService {
 
   List<AppointmentResponse> getAppointmentsByPatientId(Long patientId);
 
+  void joinWaitlist(Long patientId, AppointmentCreateRequest request);
+
   long countAllAppointmentsForToday();
 }

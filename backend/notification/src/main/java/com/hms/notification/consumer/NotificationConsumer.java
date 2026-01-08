@@ -1,7 +1,9 @@
 package com.hms.notification.consumer;
 
 import com.hms.notification.config.RabbitMQConfig;
+import com.hms.notification.dto.event.AppointmentEvent;
 import com.hms.notification.dto.event.AppointmentStatusChangedEvent;
+import com.hms.notification.dto.event.WaitlistNotificationEvent;
 import com.hms.notification.dto.request.EmailRequest;
 import com.hms.notification.services.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,32 @@ public class NotificationConsumer {
       request.subject(),
       request.body()
     );
+  }
+
+  @RabbitListener(queues = RabbitMQConfig.REMINDER_QUEUE)
+  public void handleAppointmentReminder(AppointmentEvent event) {
+    log.info("Processando lembrete de consulta para: {}", event.patientEmail());
+
+    String subject = "Lembrete: Sua consulta é amanhã!";
+    String content = String.format("""
+      <h1>Lembrete de Consulta</h1>
+      <p>Olá,</p>
+      <p>Este é um lembrete de que você tem uma consulta agendada com <b>Dr. %s</b> em <b>%s</b>.</p>
+      <p>Por favor, chegue com 15 minutos de antecedência.</p>
+      """, event.doctorName(), event.appointmentDateTime());
+  }
+
+  @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
+  public void handleWaitlistNotification(WaitlistNotificationEvent event) {
+    log.info("Notificando paciente da fila de espera: {}", event.email());
+
+    String subject = "Vaga Disponível com Dr. " + event.doctorName();
+    String content = String.format("""
+      <h1>Boa Notícia!</h1>
+      <p>Olá %s,</p>
+      <p>Surgiu uma vaga com <b>Dr. %s</b> para o dia <b>%s</b>.</p>
+      <p>Acesse o sistema agora para confirmar este horário antes que seja ocupado.</p>
+      """, event.patientName(), event.doctorName(), event.availableDateTime());
   }
 
   @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_NOTIFICATION_QUEUE)
