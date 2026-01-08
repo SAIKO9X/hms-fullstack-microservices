@@ -44,7 +44,7 @@ services:
       - hms-network
 
   rabbitmq:
-    image: rabbitmq:3.12-management
+    build: ./rabbitmq
     container_name: rabbitmq
     ports:
       - "5672:5672" # Porta padrão AMQP
