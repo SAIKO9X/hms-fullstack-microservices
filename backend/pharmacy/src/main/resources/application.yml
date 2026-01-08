@@ -28,7 +28,7 @@ spring:
 
 application:
   rabbitmq:
-    exchange: hms.exchange
+    exchange: internal.exchange
     prescription-queue: pharmacy.prescription.sync.queue
     prescription-routing-key: prescription.issued
   security:
