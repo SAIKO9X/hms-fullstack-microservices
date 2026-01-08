@@ -1,6 +1,9 @@
 package com.hms.notification.config;
 
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -20,6 +23,20 @@ public class RabbitMQConfig {
 
   @Value("${application.rabbitmq.routing-key}")
   private String routingKey;
+
+  public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
+
+  @Bean
+  public Queue appointmentNotificationQueue() {
+    return new Queue(APPOINTMENT_NOTIFICATION_QUEUE, true);
+  }
+
+  @Bean
+  public Binding appointmentBinding(TopicExchange exchange) {
+    return BindingBuilder.bind(appointmentNotificationQueue())
+      .to(exchange)
+      .with("appointment.status.changed");
+  }
 
   @Bean
   public Queue notificationQueue() {
