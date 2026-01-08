@@ -1,5 +1,6 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.dto.event.PrescriptionIssuedEvent;
 import com.hms.appointment.dto.request.MedicineRequest;
 import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
@@ -14,6 +15,9 @@ import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -22,13 +26,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PrescriptionServiceImpl implements PrescriptionService {
 
   private final PrescriptionRepository prescriptionRepository;
   private final AppointmentRepository appointmentRepository;
+  private final RabbitTemplate rabbitTemplate;
+
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
+
+  @Value("${application.rabbitmq.prescription-issued-routing-key}")
+  private String prescriptionIssuedRoutingKey;
 
   @Override
   @Transactional
@@ -51,7 +62,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     List<Medicine> medicines = mapToMedicineEntities(request.medicines());
     newPrescription.setMedicines(medicines);
 
-    return PrescriptionResponse.fromEntity(prescriptionRepository.save(newPrescription));
+    Prescription savedPrescription = prescriptionRepository.save(newPrescription);
+
+    publishPrescriptionEvent(savedPrescription);
+
+    return PrescriptionResponse.fromEntity(savedPrescription);
   }
 
   @Override
@@ -125,5 +140,40 @@ public class PrescriptionServiceImpl implements PrescriptionService {
       med.setDuration(dto.duration());
       return med;
     }).collect(Collectors.toList());
+  }
+
+  private void publishPrescriptionEvent(Prescription prescription) {
+    try {
+      List<Medicine> medicines = prescription.getMedicines() != null ? prescription.getMedicines() : List.of();
+
+      // Medicines -> Event Items
+      List<PrescriptionIssuedEvent.PrescriptionItemEvent> itemEvents = medicines.stream()
+        .map(item -> new PrescriptionIssuedEvent.PrescriptionItemEvent(
+          item.getName(),
+          item.getDosage(),
+          item.getFrequency(),
+          item.getDuration()
+        )).toList();
+
+      // Validade (Lógica de Negócio: Data da criação + 30 dias)
+      java.time.LocalDate validUntilDate = (prescription.getCreatedAt() != null)
+        ? prescription.getCreatedAt().toLocalDate().plusDays(30)
+        : java.time.LocalDate.now().plusDays(30);
+
+      PrescriptionIssuedEvent event = new PrescriptionIssuedEvent(
+        prescription.getId(),
+        prescription.getAppointment().getPatientId(),
+        prescription.getAppointment().getDoctorId(),
+        validUntilDate,
+        prescription.getNotes(),
+        itemEvents
+      );
+
+      rabbitTemplate.convertAndSend(exchange, prescriptionIssuedRoutingKey, event);
+      log.info("Evento de prescrição emitida enviado para fila: Prescription ID {}", prescription.getId());
+
+    } catch (Exception e) {
+      log.error("Erro ao enviar evento de prescrição para o RabbitMQ", e);
+    }
   }
 }

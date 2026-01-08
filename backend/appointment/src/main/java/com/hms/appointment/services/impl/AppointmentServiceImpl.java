@@ -1,6 +1,6 @@
 package com.hms.appointment.services.impl;
 
-import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.Appointment;
@@ -16,6 +16,9 @@ import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -29,14 +32,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppointmentServiceImpl implements AppointmentService {
 
   private final AppointmentRepository appointmentRepository;
-  private final ProfileFeignClient profileFeignClient;
   private final DoctorReadModelRepository doctorReadModelRepository;
   private final PatientReadModelRepository patientReadModelRepository;
+  private final RabbitTemplate rabbitTemplate;
+
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
+
+  private final String statusRoutingKey = "appointment.status.changed";
 
   @Override
   @Transactional
@@ -60,7 +69,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     appointment.setReason(request.reason());
     appointment.setStatus(AppointmentStatus.SCHEDULED);
 
-    return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    Appointment savedAppointment = appointmentRepository.save(appointment);
+
+    publishStatusEvent(savedAppointment, "SCHEDULED", null);
+
+    return AppointmentResponse.fromEntity(savedAppointment);
   }
 
   @Override
@@ -120,10 +133,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
 
-    // Ajustar Depois: buscar todos os pacientes de uma vez (bulk fetch)
     for (Appointment appointment : appointments) {
       PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A"));
+        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null));
 
       appointmentDetails.add(new AppointmentDetailResponse(
         appointment.getId(),
@@ -144,6 +156,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+
     if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
       throw new SecurityException("Acesso negado.");
     }
@@ -155,7 +168,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     appointment.setAppointmentDateTime(newDateTime);
-    return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    Appointment savedAppointment = appointmentRepository.save(appointment);
+
+    publishStatusEvent(savedAppointment, "RESCHEDULED", "Nova data: " + newDateTime);
+
+    return AppointmentResponse.fromEntity(savedAppointment);
   }
 
   @Override
@@ -170,7 +187,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     appointment.setStatus(AppointmentStatus.CANCELED);
-    return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    Appointment savedAppointment = appointmentRepository.save(appointment);
+
+    publishStatusEvent(savedAppointment, "CANCELED", "Cancelado pelo usuário");
+
+    return AppointmentResponse.fromEntity(savedAppointment);
   }
 
   @Override
@@ -186,6 +207,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     appointment.setStatus(AppointmentStatus.COMPLETED);
     appointment.setNotes(notes);
+
     return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
   }
 
@@ -198,7 +220,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A"));
+      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null));
 
     DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
       .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico Desconhecido", "N/A"));
@@ -337,5 +359,33 @@ public class AppointmentServiceImpl implements AppointmentService {
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
     return appointmentRepository.findById(appointmentId)
       .orElseThrow(() -> new AppointmentNotFoundException("Agendamento com ID " + appointmentId + " não encontrado."));
+  }
+
+  // Método Auxiliar para publicar eventos de status de agendamento
+  private void publishStatusEvent(Appointment appointment, String statusOverride, String notes) {
+    try {
+      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
+        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente", null, "email@exemplo.com"));
+
+      DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
+        .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico", "Geral"));
+
+      AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
+        appointment.getId(),
+        appointment.getPatientId(),
+        patient.getEmail(), // Email do ReadModel
+        patient.getFullName(),
+        doctor.getFullName(),
+        appointment.getAppointmentDateTime(),
+        statusOverride != null ? statusOverride : appointment.getStatus().name(),
+        notes
+      );
+
+      rabbitTemplate.convertAndSend(exchange, statusRoutingKey, event);
+      log.info("Evento de status de agendamento publicado: {}", statusOverride);
+
+    } catch (Exception e) {
+      log.error("Erro ao publicar evento de agendamento", e);
+    }
   }
 }

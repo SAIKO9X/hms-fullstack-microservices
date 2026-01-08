@@ -1,7 +1,7 @@
 package com.hms.appointment.listener;
 
 import com.hms.appointment.config.RabbitMQConfig;
-import com.hms.appointment.dto.request.DoctorEvent;
+import com.hms.appointment.dto.event.DoctorEvent;
 import com.hms.appointment.entities.DoctorReadModel;
 import com.hms.appointment.repositories.DoctorReadModelRepository;
 import lombok.RequiredArgsConstructor;
