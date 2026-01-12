@@ -6,9 +6,6 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      default-filters:
-        - name: TokenFilter
-
       # Configuração Global de CORS
       globalcors:
         cors-configurations:
@@ -31,45 +28,57 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/auth/**, /users/**
+          filters:
+            - name: TokenFilter
 
         # Rota para o Profile-Service
         - id: profile-service-route
           uri: lb://profile-service
           predicates:
             - Path=/profile/**
+          filters:
+            - name: TokenFilter
 
         # Rota para o Appointment-Service
         - id: appointment-service-route
           uri: lb://appointment-service
           predicates:
             - Path=/patient/**, /doctor/**, /appointments/**, /records/**, /prescriptions/**, /health-metrics/**, /documents/**, /adverse-effects/**, /admin/**
+          filters:
+            - name: TokenFilter
 
         # Rota para o Pharmacy-Service
         - id: pharmacy-service-route
           uri: lb://pharmacy-service
           predicates:
             - Path=/pharmacy/**
+          filters:
+            - name: TokenFilter
 
         # Rota para o Media-Service
         - id: media-service-route
           uri: lb://media-service
           predicates:
             - Path=/media/**
+          filters:
+            - name: TokenFilter
 
         # Rota para o Chat WebSocket
-        # lb:ws:// para balanceamento de carga em WebSockets
         - id: chat-websocket-route
           uri: lb:ws://chat-service
           predicates:
             - Path=/chat/ws/**
           filters:
             - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
+            - name: TokenFilter
 
-        # Rota para o Chat REST
+              # Rota para o Chat REST
         - id: chat-rest-route
           uri: lb://chat-service
           predicates:
             - Path=/chat/**
+          filters:
+            - name: TokenFilter
 
 application:
   security:
@@ -82,21 +91,22 @@ eureka:
       defaultZone: ${EUREKA_URI}
   instance:
     hostname: localhost
+    prefer-ip-address: true
 
 management:
   endpoints:
     web:
       exposure:
-        include: "health, info, prometheus, metrics"
+        include: health,info,prometheus,metrics
   metrics:
     tags:
       application: ${spring.application.name}
     distribution:
       percentiles-histogram:
-        "[http.server.requests]": true # Gera gráficos de latência
+        http.server.requests: true
   tracing:
     sampling:
       probability: 1.0
   zipkin:
     tracing:
-      endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin
+      endpoint: "http://zipkin:9411/api/v2/spans"
