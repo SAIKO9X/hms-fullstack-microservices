@@ -7,6 +7,7 @@ import com.hms.profile.dto.response.MedicalHistoryResponse;
 import com.hms.profile.entities.Doctor;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.MedicalHistoryService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,27 +36,20 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
     return fetchAndProcessHistory(patientProfileId);
   }
 
-  private MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
-    List<AppointmentResponse> appointmentsFromService;
-
-    try {
-      appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
-    } catch (Exception e) {
-      log.error("Erro ao buscar histórico de consultas (Feign) para o paciente ID {}: {}", patientProfileId, e.getMessage());
-      return new MedicalHistoryResponse(Collections.emptyList());
-    }
+  @CircuitBreaker(name = "appointmentService", fallbackMethod = "fetchHistoryFallback")
+  public MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
+    // A chamada Feign pode lançar exceção, o CircuitBreaker vai capturar
+    List<AppointmentResponse> appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
 
     if (appointmentsFromService == null || appointmentsFromService.isEmpty()) {
       return new MedicalHistoryResponse(Collections.emptyList());
     }
 
-    // Extrai os IDs dos médicos para uma busca otimizada
     List<Long> doctorIds = appointmentsFromService.stream()
       .map(AppointmentResponse::doctorId)
       .distinct()
       .collect(Collectors.toList());
 
-    // Busca todos os médicos necessários numa única query
     Map<Long, Doctor> doctorsMap = doctorRepository.findAllByUserIdIn(doctorIds).stream()
       .collect(Collectors.toMap(Doctor::getUserId, Function.identity()));
 
@@ -73,5 +67,12 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
     }).collect(Collectors.toList());
 
     return new MedicalHistoryResponse(appointmentHistories);
+  }
+
+  // Método de fallback para Circuit Breaker
+  public MedicalHistoryResponse fetchHistoryFallback(Long patientProfileId, Exception e) {
+    log.error("Falha ao buscar histórico de consultas (Circuit Breaker): {}", e.getMessage());
+    // Retorna lista vazia, mas o sistema continua funcionando
+    return new MedicalHistoryResponse(Collections.emptyList());
   }
 }

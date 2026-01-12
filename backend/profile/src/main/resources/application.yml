@@ -50,3 +50,16 @@ management:
   zipkin:
     tracing:
       endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      appointmentService: # nome da instância usada na anotação
+        registerHealthIndicator: true
+        slidingWindowSize: 10 # analisa as últimas 10 chamadas
+        minimumNumberOfCalls: 5 # só ativa depois de pelo menos 5 chamadas
+        permittredNumberOfCallsInHalfOpenState: 3 # tenta 3 vezes para ver se voltou
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s # espera 5s antes de tentar de novo
+        failureRateThreshold: 50 # abre o circuito se 50% falharem
+        eventConsumerBufferSize: 10

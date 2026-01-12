@@ -13,6 +13,7 @@ import com.hms.profile.exceptions.ProfileAlreadyExistsException;
 import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.DoctorService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -129,27 +130,23 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional(readOnly = true)
+  @CircuitBreaker(name = "appointmentService", fallbackMethod = "getDoctorsWithStatusFallback")
   public List<DoctorStatusResponse> getDoctorsWithStatus() {
     List<Doctor> doctors = doctorRepository.findAll();
-    List<Long> activeDoctorIds;
 
-    try {
-      activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
-    } catch (Exception e) {
-      // Se o serviço de appointment estiver fora, assume que ninguém está em consulta para garantir que a lista de médicos ainda seja exibida.
-      log.warn("Não foi possível buscar status dos médicos (Feign): {}. Assumindo todos como 'Disponível'.", e.getMessage());
-      activeDoctorIds = Collections.emptyList();
-    }
+    // se falhar, vai para o fallback.
+    List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
 
-    List<Long> finalActiveDoctorIds = activeDoctorIds;
+    return mapDoctorsToStatusResponse(doctors, activeDoctorIds);
+  }
 
-    return doctors.stream().map(doctor -> new DoctorStatusResponse(
-      doctor.getId(),
-      doctor.getName(),
-      doctor.getSpecialization(),
-      finalActiveDoctorIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
-      doctor.getProfilePictureUrl()
-    )).collect(Collectors.toList());
+  // Método de fallback para Circuit Breaker
+  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
+    log.warn("Circuit Breaker aberto ou erro no Appointment Service: {}. Retornando status padrão.", e.getMessage());
+
+    List<Doctor> doctors = doctorRepository.findAll();
+    // No fallback, assumimos lista vazia de IDs ativos
+    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 
   @Override
@@ -177,6 +174,17 @@ public class DoctorServiceImpl implements DoctorService {
   @Override
   public long countAllDoctors() {
     return doctorRepository.count();
+  }
+
+  // Método auxiliar para evitar duplicação de código no original e no fallback
+  private List<DoctorStatusResponse> mapDoctorsToStatusResponse(List<Doctor> doctors, List<Long> activeIds) {
+    return doctors.stream().map(doctor -> new DoctorStatusResponse(
+      doctor.getId(),
+      doctor.getName(),
+      doctor.getSpecialization(),
+      activeIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
+      doctor.getProfilePictureUrl()
+    )).collect(Collectors.toList());
   }
 
   // Método Auxiliar para RabbitMQ
