@@ -39,11 +39,23 @@ application:
     exchange: internal.exchange
     user-created-queue: profile.user-created.queue
     user-created-routing-key: user.event.created
+    user-updated-queue: profile.user-updated.queue
+    user-updated-routing-key: user.event.updated
   security:
     jwt:
       secret-key: ${JWT_SECRET}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: "health, info, prometheus, metrics"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true # Gera gráficos de latência
   tracing:
     sampling:
       probability: 1.0

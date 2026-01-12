@@ -13,6 +13,16 @@ eureka:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: "health, info, prometheus, metrics"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true # Gera gráficos de latência
   tracing:
     sampling:
       probability: 1.0

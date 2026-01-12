@@ -18,28 +18,51 @@ public class RabbitMQConfig {
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
+  // user created
   @Value("${application.rabbitmq.user-created-queue}")
   private String userCreatedQueue;
 
   @Value("${application.rabbitmq.user-created-routing-key}")
   private String userCreatedRoutingKey;
 
+  // user updated
+  @Value("${application.rabbitmq.user-updated-queue}")
+  private String userUpdatedQueue;
+
+  @Value("${application.rabbitmq.user-updated-routing-key}")
+  private String userUpdatedRoutingKey;
+
   @Bean
   public TopicExchange exchange() {
     return new TopicExchange(exchange);
   }
 
+  // create
   @Bean
   public Queue userCreatedQueue() {
     return new Queue(userCreatedQueue, true);
   }
 
   @Bean
-  public Binding binding() {
+  public Binding bindingUserCreated() {
     return BindingBuilder
       .bind(userCreatedQueue())
       .to(exchange())
       .with(userCreatedRoutingKey);
+  }
+
+  // update
+  @Bean
+  public Queue userUpdatedQueue() {
+    return new Queue(userUpdatedQueue, true);
+  }
+
+  @Bean
+  public Binding bindingUserUpdated() {
+    return BindingBuilder
+      .bind(userUpdatedQueue())
+      .to(exchange())
+      .with(userUpdatedRoutingKey);
   }
 
   @Bean

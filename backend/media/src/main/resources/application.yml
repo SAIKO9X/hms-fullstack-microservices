@@ -39,6 +39,16 @@ application:
     upload-dir: ${UPLOAD_DIR:uploads} # Pode ser mapeado via volume no futuro se quiser persistência fora do container
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: "health, info, prometheus, metrics"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true # Gera gráficos de latência
   tracing:
     sampling:
       probability: 1.0

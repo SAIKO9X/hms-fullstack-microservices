@@ -49,9 +49,31 @@ application:
       expiration: ${JWT_EXPIRATION:86400000}
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: "health, info, prometheus, metrics"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true # Gera gráficos de latência
   tracing:
     sampling:
       probability: 1.0
   zipkin:
     tracing:
       endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      profileService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
