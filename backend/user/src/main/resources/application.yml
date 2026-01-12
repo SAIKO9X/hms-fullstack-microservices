@@ -52,16 +52,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health, info, prometheus, metrics"
+        include: health,info,prometheus,metrics
   metrics:
     tags:
       application: ${spring.application.name}
     distribution:
       percentiles-histogram:
-        "[http.server.requests]": true # Gera gráficos de latência
+        http.server.requests: true
   tracing:
     sampling:
       probability: 1.0
   zipkin:
     tracing:
-      endpoint: "http://zipkin:9411/api/v2/spans" # URL do container Zipkin
+      endpoint: "http://zipkin:9411/api/v2/spans"

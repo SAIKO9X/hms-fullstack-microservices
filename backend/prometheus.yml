@@ -1,11 +1,53 @@
 global:
-  scrape_interval: 10s # Coleta métricas a cada 10s
-  evaluation_interval: 10s
+  scrape_interval: 5s
+  evaluation_interval: 5s
 
 scrape_configs:
-  - job_name: 'hms_services'
+  - job_name: 'hms-monitoring'
     metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s
     static_configs:
-      - targets: [ 'gateway:9000', 'user-service:8081', 'profile-service:8082', 'appointment-service:8083', 'pharmacy-service:8084' ]
+      # Gateway (Porta 9000)
+      - targets: [ 'gateway:9000' ]
         labels:
-          application: 'HMS Microservices'
+          application: 'Gateway Service'
+
+      # User Service (Porta 8081)
+      - targets: [ 'user-service:8081' ]
+        labels:
+          application: 'User Service'
+
+      # Profile Service (Porta 8082)
+      - targets: [ 'profile-service:8082' ]
+        labels:
+          application: 'Profile Service'
+
+      # Appointment Service (Porta 8083)
+      - targets: [ 'appointment-service:8083' ]
+        labels:
+          application: 'Appointment Service'
+
+      # Pharmacy Service (Porta 8084)
+      - targets: [ 'pharmacy-service:8084' ]
+        labels:
+          application: 'Pharmacy Service'
+
+      # Media Service (Porta 8085)
+      - targets: [ 'media-service:8085' ]
+        labels:
+          application: 'Media Service'
+
+      # Chat Service (Porta 8086)
+      - targets: [ 'chat-service:8086' ]
+        labels:
+          application: 'Chat Service'
+
+      # Notification Service (Porta 8087)
+      - targets: [ 'notification-service:8087' ]
+        labels:
+          application: 'Notification Service'
+
+      # Eureka Server
+      - targets: [ 'eureka-server:8761' ]
+        labels:
+          application: 'Eureka Server'

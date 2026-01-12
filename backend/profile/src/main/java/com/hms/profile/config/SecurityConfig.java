@@ -24,7 +24,7 @@ public class SecurityConfig {
     http
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
-        .requestMatchers(HttpMethod.POST, "/profile/patients", "/profile/doctors").permitAll()
+        .requestMatchers(HttpMethod.POST, "/profile/patients", "/profile/doctors", "/actuator/**").permitAll()
         .requestMatchers(
           "/profile/patients",
           "/profile/doctors"

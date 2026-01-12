@@ -23,7 +23,7 @@ public class SecurityConfig {
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
         // Todas as requisições para /media/** exigem autenticação
-        .requestMatchers(HttpMethod.GET, "/media/**").permitAll()
+        .requestMatchers(HttpMethod.GET, "/media/**", "/actuator/**").permitAll()
         // Exige autenticação para fazer UPLOAD de novas imagens
         .requestMatchers(HttpMethod.POST, "/media/upload").authenticated()
         .anyRequest().authenticated()

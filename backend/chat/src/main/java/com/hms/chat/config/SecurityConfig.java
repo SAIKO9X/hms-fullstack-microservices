@@ -30,7 +30,7 @@ public class SecurityConfig {
       // Ativa a configuração de CORS definida no Bean abaixo
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/ws/**").permitAll() // Permite o handshake inicial (HTTP)
+        .requestMatchers("/ws/**", "/actuator/**").permitAll() // Permite o handshake inicial (HTTP)
         .requestMatchers("/chat/**").authenticated()
         .anyRequest().authenticated()
       )

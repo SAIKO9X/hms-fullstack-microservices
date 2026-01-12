@@ -12,8 +12,8 @@ services:
     restart: always
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 5
 
   zipkin:
@@ -37,10 +37,11 @@ services:
     networks:
       - hms-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
-      interval: 30s
-      timeout: 10s
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 120s
 
   gateway:
     build: ./gateway
@@ -52,21 +53,28 @@ services:
       - EUREKA_URI=http://eureka-server:8761/eureka/
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URI=${FRONTEND_URI}
-      # Configuração Redis para Rate Limiting
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9000/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   rabbitmq:
     build: ./rabbitmq
     container_name: rabbitmq
     ports:
-      - "5672:5672" # Porta padrão AMQP
-      - "15672:15672" # Interface de Gestão Web
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -96,6 +104,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-profile:
     image: mysql:8.0
@@ -112,6 +125,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-appointment:
     image: mysql:8.0
@@ -128,6 +146,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-pharmacy:
     image: mysql:8.0
@@ -144,6 +167,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-media:
     image: mysql:8.0
@@ -160,6 +188,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-chat:
     image: mysql:8.0
@@ -176,6 +209,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mysql-notification:
     image: mysql:8.0
@@ -192,6 +230,11 @@ services:
     networks:
       - hms-network
     restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # ====================================================
   # MICROSSERVIÇOS
@@ -213,11 +256,20 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
-      - mysql-user
-      - eureka-server
-      - profile-service
+      mysql-user:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   profile-service:
     build: ./profile
@@ -234,10 +286,20 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
-      - mysql-profile
-      - eureka-server
+      mysql-profile:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   appointment-service:
     build: ./appointment
@@ -256,11 +318,20 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
-      - mysql-appointment
-      - eureka-server
-      - profile-service
+      mysql-appointment:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      profile-service:
+        condition: service_started # Avoid circular dependency
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   pharmacy-service:
     build: ./pharmacy
@@ -281,11 +352,20 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
     depends_on:
-      - mysql-pharmacy
-      - eureka-server
-      - rabbitmq
+      mysql-pharmacy:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8084/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   media-service:
     build: ./media
@@ -300,10 +380,18 @@ services:
       - DB_PASSWORD=${MYSQL_MEDIA_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
-      - mysql-media
-      - eureka-server
+      mysql-media:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   chat-service:
     build: ./chat
@@ -318,10 +406,18 @@ services:
       - DB_PASSWORD=${MYSQL_CHAT_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
-      - mysql-chat
-      - eureka-server
+      mysql-chat:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8086/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   notification-service:
     build: ./notification
@@ -334,22 +430,29 @@ services:
       - DB_NAME=${MYSQL_NOTIFICATION_DB}
       - DB_USER=${MYSQL_NOTIFICATION_USER}
       - DB_PASSWORD=${MYSQL_NOTIFICATION_PASSWORD}
-      # Configuração RabbitMQ
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=guest
       - SPRING_RABBITMQ_PASSWORD=guest
-      # Configuração E-mail
       - SPRING_MAIL_HOST=${MAIL_HOST}
       - SPRING_MAIL_PORT=${MAIL_PORT}
       - SPRING_MAIL_USERNAME=${MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD}
     depends_on:
-      - mysql-notification
-      - eureka-server
-      - rabbitmq
+      mysql-notification:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8087/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   # ====================================================
   # MONITORAMENTO
@@ -364,7 +467,22 @@ services:
     networks:
       - hms-network
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      profile-service:
+        condition: service_healthy
+      appointment-service:
+        condition: service_healthy
+      pharmacy-service:
+        condition: service_healthy
+      media-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:latest
@@ -372,7 +490,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin # senha padrão do admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
       - hms-network
     depends_on:
@@ -389,13 +507,16 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ../frontend:/app:z # o :z é o para rodar no SELinux
-      - /app/node_modules # isola as dependências do container
+      - ../frontend:/app:z
+      - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
     command: pnpm run dev --host
     networks:
       - hms-network
+    depends_on:
+      gateway:
+        condition: service_healthy
 
 volumes:
   user-mysql-data:
