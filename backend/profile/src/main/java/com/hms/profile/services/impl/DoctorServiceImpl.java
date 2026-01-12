@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -57,6 +60,7 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "doctorsByUserId", key = "#userId") // Cacheia a leitura
   public DoctorResponse getDoctorProfileByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
       .map(DoctorResponse::fromEntity)
@@ -64,34 +68,22 @@ public class DoctorServiceImpl implements DoctorService {
   }
 
   @Override
+  @CachePut(value = "doctorsByUserId", key = "#userId")
   public DoctorResponse updateDoctorProfile(Long userId, DoctorUpdateRequest request) {
     Doctor doctorToUpdate = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil de doutor não encontrado para o usuário com ID: " + userId));
 
-    if (request.name() != null && !request.name().isBlank()) {
-      doctorToUpdate.setName(request.name());
-    }
-    if (request.dateOfBirth() != null) {
-      doctorToUpdate.setDateOfBirth(request.dateOfBirth());
-    }
-    if (request.specialization() != null && !request.specialization().isBlank()) {
+    if (request.name() != null && !request.name().isBlank()) doctorToUpdate.setName(request.name());
+    if (request.dateOfBirth() != null) doctorToUpdate.setDateOfBirth(request.dateOfBirth());
+    if (request.specialization() != null && !request.specialization().isBlank())
       doctorToUpdate.setSpecialization(request.specialization());
-    }
-    if (request.department() != null && !request.department().isBlank()) {
+    if (request.department() != null && !request.department().isBlank())
       doctorToUpdate.setDepartment(request.department());
-    }
-    if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+    if (request.phoneNumber() != null && !request.phoneNumber().isBlank())
       doctorToUpdate.setPhoneNumber(request.phoneNumber());
-    }
-    if (request.yearsOfExperience() > 0) {
-      doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
-    }
-    if (request.qualifications() != null) {
-      doctorToUpdate.setQualifications(request.qualifications());
-    }
-    if (request.biography() != null) {
-      doctorToUpdate.setBiography(request.biography());
-    }
+    if (request.yearsOfExperience() > 0) doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
+    if (request.qualifications() != null) doctorToUpdate.setQualifications(request.qualifications());
+    if (request.biography() != null) doctorToUpdate.setBiography(request.biography());
 
     Doctor updatedDoctor = doctorRepository.save(doctorToUpdate);
     publishDoctorEvent(updatedDoctor, "UPDATED");
@@ -117,6 +109,7 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "doctors", key = "#id")
   public DoctorResponse getDoctorProfileById(Long id) {
     return doctorRepository.findById(id)
       .map(DoctorResponse::fromEntity)
@@ -124,6 +117,7 @@ public class DoctorServiceImpl implements DoctorService {
   }
 
   @Override
+  @CacheEvict(value = "doctorsByUserId", key = "#userId")
   public void updateProfilePicture(Long userId, String pictureUrl) {
     Doctor doctor = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
@@ -160,41 +154,23 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "doctorsByUserId", key = "#userId")
   public void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest request) {
     Doctor doctor = doctorRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil do médico não encontrado para o ID de usuário: " + userId));
 
-    if (request.name() != null && !request.name().isBlank()) {
-      doctor.setName(request.name());
-    }
-    if (request.crmNumber() != null) {
-      doctor.setCrmNumber(request.crmNumber());
-    }
-    if (request.specialization() != null) {
-      doctor.setSpecialization(request.specialization());
-    }
-    if (request.department() != null) {
-      doctor.setDepartment(request.department());
-    }
-    if (request.phoneNumber() != null) {
-      doctor.setPhoneNumber(request.phoneNumber());
-    }
-    if (request.biography() != null) {
-      doctor.setBiography(request.biography());
-    }
-    if (request.qualifications() != null) {
-      doctor.setQualifications(request.qualifications());
-    }
-    if (request.dateOfBirth() != null) {
-      doctor.setDateOfBirth(request.dateOfBirth());
-    }
-    if (request.yearsOfExperience() != null) {
-      doctor.setYearsOfExperience(request.yearsOfExperience());
-    }
+    if (request.name() != null && !request.name().isBlank()) doctor.setName(request.name());
+    if (request.crmNumber() != null) doctor.setCrmNumber(request.crmNumber());
+    if (request.specialization() != null) doctor.setSpecialization(request.specialization());
+    if (request.department() != null) doctor.setDepartment(request.department());
+    if (request.phoneNumber() != null) doctor.setPhoneNumber(request.phoneNumber());
+    if (request.biography() != null) doctor.setBiography(request.biography());
+    if (request.qualifications() != null) doctor.setQualifications(request.qualifications());
+    if (request.dateOfBirth() != null) doctor.setDateOfBirth(request.dateOfBirth());
+    if (request.yearsOfExperience() != null) doctor.setYearsOfExperience(request.yearsOfExperience());
 
     Doctor savedDoctor = doctorRepository.save(doctor);
 
-    // Publicar Evento de Atualização (Admin)
     publishDoctorEvent(savedDoctor, "UPDATED");
   }
 

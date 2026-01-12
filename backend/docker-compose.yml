@@ -1,4 +1,21 @@
 services:
+  # ====================================================
+  # INFRAESTRUTURA
+  # ====================================================
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - hms-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   zipkin:
     image: openzipkin/zipkin
     container_name: zipkin
@@ -6,9 +23,7 @@ services:
       - "9411:9411"
     networks:
       - hms-network
-  # ====================================================
-  # INFRAESTRUTURA
-  # ====================================================
+
   eureka-server:
     build: ./eureka-server
     container_name: eureka-server
@@ -37,6 +52,9 @@ services:
       - EUREKA_URI=http://eureka-server:8761/eureka/
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URI=${FRONTEND_URI}
+      # Configuração Redis para Rate Limiting
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       eureka-server:
         condition: service_started
@@ -192,6 +210,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - PROFILE_URI=http://profile-service:8082
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - mysql-user
       - eureka-server
@@ -211,6 +231,8 @@ services:
       - DB_USER=${MYSQL_PROFILE_USER}
       - DB_PASSWORD=${MYSQL_PROFILE_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - mysql-profile
       - eureka-server
@@ -231,6 +253,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - PROFILE_URI=http://profile-service:8082
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - mysql-appointment
       - eureka-server
@@ -254,6 +278,8 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=guest
       - SPRING_RABBITMQ_PASSWORD=guest
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - mysql-pharmacy
       - eureka-server

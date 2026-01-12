@@ -26,6 +26,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.util.Optional;
 
@@ -75,6 +79,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "users", key = "#id")
   public UserResponse getUserById(Long id) {
     User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
     return UserResponse.fromEntity(user);
@@ -89,6 +94,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
+  @CachePut(value = "users", key = "#id")
   public UserResponse updateUser(Long id, UserRequest request) {
     User userToUpdate = userRepository.findById(id)
       .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
@@ -130,6 +136,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "users", key = "#id")
   public void updateUserStatus(Long id, boolean active) {
     User userToUpdate = userRepository.findById(id)
       .orElseThrow(() -> new UserNotFoundException("Utilizador com ID " + id + " não encontrado."));
@@ -169,6 +176,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "users", key = "#userId")
   public void adminUpdateUser(Long userId, AdminUpdateUserRequest request) {
     User user = userRepository.findById(userId)
       .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o ID: " + userId));

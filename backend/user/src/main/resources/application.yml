@@ -21,11 +21,20 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+    cache:
+      type: redis
+      redis:
+        time-to-live: 600000 # 10 minutos
 
 application:
   rabbitmq:
     exchange: internal.exchange
     user-created-routing-key: user.event.created
+    user-updated-routing-key: user.event.updated
   security:
     jwt:
       secret-key: ${JWT_SECRET}

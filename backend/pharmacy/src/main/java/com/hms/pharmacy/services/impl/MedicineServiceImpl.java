@@ -9,6 +9,8 @@ import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.services.MedicineService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class MedicineServiceImpl implements MedicineService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "medicines", key = "#medicineId")
   public MedicineResponse updateMedicine(Long medicineId, MedicineRequest request) {
     Medicine existingMedicine = medicineRepository.findById(medicineId)
       .orElseThrow(() -> new MedicineNotFoundException("Medicamento com ID " + medicineId + " não encontrado."));
@@ -54,6 +57,7 @@ public class MedicineServiceImpl implements MedicineService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "medicines", key = "#medicineId")
   public MedicineResponse getMedicineById(Long medicineId) {
     return medicineRepository.findById(medicineId)
       .map(MedicineResponse::fromEntity)
@@ -76,6 +80,7 @@ public class MedicineServiceImpl implements MedicineService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "medicines", key = "#medicineId")
   public Integer addStock(Long medicineId, Integer quantity) {
     if (quantity <= 0) {
       throw new IllegalArgumentException("A quantidade a adicionar deve ser positiva.");
@@ -87,6 +92,7 @@ public class MedicineServiceImpl implements MedicineService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "medicines", key = "#medicineId")
   public Integer removeStock(Long medicineId, Integer quantity) {
     if (quantity <= 0) {
       throw new IllegalArgumentException("A quantidade a remover deve ser positiva.");
@@ -105,9 +111,7 @@ public class MedicineServiceImpl implements MedicineService {
       .orElseThrow(() -> new MedicineNotFoundException("Medicamento com ID " + medicineId + " não encontrado."));
   }
 
-  /**
-   * Método auxiliar para mapear os dados de um MedicineRequest para uma entidade Medicine.
-   */
+  // Método auxiliar para mapear os dados de um MedicineRequest para uma entidade Medicine.
   private void mapRequestToEntity(MedicineRequest request, Medicine medicine) {
     medicine.setName(request.name());
     medicine.setDosage(request.dosage());

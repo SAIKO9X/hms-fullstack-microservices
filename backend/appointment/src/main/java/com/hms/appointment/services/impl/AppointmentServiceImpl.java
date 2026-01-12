@@ -52,8 +52,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
-  private final String statusRoutingKey = "appointment.status.changed";
-
   @Override
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
@@ -374,8 +372,6 @@ public class AppointmentServiceImpl implements AppointmentService {
       .collect(Collectors.toList());
   }
 
-  // Adicione este método na classe AppointmentServiceImpl
-
   @Override
   @Transactional
   public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
@@ -439,6 +435,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         notes
       );
 
+      String statusRoutingKey = "appointment.status.changed";
       rabbitTemplate.convertAndSend(exchange, statusRoutingKey, event);
       log.info("Evento de status de agendamento publicado: {}", statusOverride);
 

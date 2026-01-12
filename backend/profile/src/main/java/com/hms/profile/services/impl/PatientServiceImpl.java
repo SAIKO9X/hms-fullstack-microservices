@@ -16,6 +16,9 @@ import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,6 +54,7 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "patients", key = "#profileId")
   public PatientResponse getPatientProfileById(Long profileId) {
     return patientRepository.findById(profileId)
       .map(PatientResponse::fromEntity)
@@ -59,6 +63,7 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "patientsByUserId", key = "#userId")
   public PatientResponse getPatientProfileByUserId(Long userId) {
     return patientRepository.findByUserId(userId)
       .map(PatientResponse::fromEntity)
@@ -66,43 +71,26 @@ public class PatientServiceImpl implements PatientService {
   }
 
   @Override
+  @CachePut(value = "patientsByUserId", key = "#userId")
   public PatientResponse updatePatientProfile(Long userId, PatientUpdateRequest request) {
     Patient patientToUpdate = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
 
-    if (request.name() != null && !request.name().isBlank()) {
-      patientToUpdate.setName(request.name());
-    }
-    if (request.gender() != null) {
-      patientToUpdate.setGender(request.gender());
-    }
-    if (request.dateOfBirth() != null) {
-      patientToUpdate.setDateOfBirth(request.dateOfBirth());
-    }
-    if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+    if (request.name() != null && !request.name().isBlank()) patientToUpdate.setName(request.name());
+    if (request.gender() != null) patientToUpdate.setGender(request.gender());
+    if (request.dateOfBirth() != null) patientToUpdate.setDateOfBirth(request.dateOfBirth());
+    if (request.phoneNumber() != null && !request.phoneNumber().isBlank())
       patientToUpdate.setPhoneNumber(request.phoneNumber());
-    }
-    if (request.bloodGroup() != null) {
-      patientToUpdate.setBloodGroup(request.bloodGroup());
-    }
-    if (request.address() != null && !request.address().isBlank()) {
-      patientToUpdate.setAddress(request.address());
-    }
-    if (request.emergencyContactName() != null && !request.emergencyContactName().isBlank()) {
+    if (request.bloodGroup() != null) patientToUpdate.setBloodGroup(request.bloodGroup());
+    if (request.address() != null && !request.address().isBlank()) patientToUpdate.setAddress(request.address());
+    if (request.emergencyContactName() != null && !request.emergencyContactName().isBlank())
       patientToUpdate.setEmergencyContactName(request.emergencyContactName());
-    }
-    if (request.emergencyContactPhone() != null && !request.emergencyContactPhone().isBlank()) {
+    if (request.emergencyContactPhone() != null && !request.emergencyContactPhone().isBlank())
       patientToUpdate.setEmergencyContactPhone(request.emergencyContactPhone());
-    }
-    if (request.allergies() != null) {
-      patientToUpdate.setAllergies(request.allergies());
-    }
-    if (request.chronicDiseases() != null) {
-      patientToUpdate.setChronicDiseases(request.chronicDiseases());
-    }
+    if (request.allergies() != null) patientToUpdate.setAllergies(request.allergies());
+    if (request.chronicDiseases() != null) patientToUpdate.setChronicDiseases(request.chronicDiseases());
 
     Patient updatedPatient = patientRepository.save(patientToUpdate);
-
     publishPatientEvent(updatedPatient, "UPDATED");
 
     return PatientResponse.fromEntity(updatedPatient);
@@ -126,6 +114,7 @@ public class PatientServiceImpl implements PatientService {
   }
 
   @Override
+  @CacheEvict(value = "patientsByUserId", key = "#userId") // Remove do cache para forçar recarga na próxima leitura
   public void updateProfilePicture(Long userId, String pictureUrl) {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
@@ -137,51 +126,34 @@ public class PatientServiceImpl implements PatientService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "patientsByUserId", key = "#userId")
   public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest request) {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado para o ID de usuário: " + userId));
 
-    if (request.name() != null && !request.name().isBlank()) {
-      patient.setName(request.name());
-    }
-    if (request.cpf() != null) {
-      patient.setCpf(request.cpf());
-    }
-    if (request.phoneNumber() != null) {
-      patient.setPhoneNumber(request.phoneNumber());
-    }
-    if (request.address() != null) {
-      patient.setAddress(request.address());
-    }
-    if (request.emergencyContactName() != null) {
-      patient.setEmergencyContactName(request.emergencyContactName());
-    }
-    if (request.emergencyContactPhone() != null) {
-      patient.setEmergencyContactPhone(request.emergencyContactPhone());
-    }
+    if (request.name() != null && !request.name().isBlank()) patient.setName(request.name());
+    if (request.cpf() != null) patient.setCpf(request.cpf());
+    if (request.phoneNumber() != null) patient.setPhoneNumber(request.phoneNumber());
+    if (request.address() != null) patient.setAddress(request.address());
+    if (request.emergencyContactName() != null) patient.setEmergencyContactName(request.emergencyContactName());
+    if (request.emergencyContactPhone() != null) patient.setEmergencyContactPhone(request.emergencyContactPhone());
     if (request.bloodGroup() != null) {
       try {
         patient.setBloodGroup(BloodGroup.valueOf(request.bloodGroup()));
       } catch (IllegalArgumentException e) {
-        System.err.println("Valor inválido para BloodGroup recebido: " + request.bloodGroup());
+        log.error("Valor inválido para BloodGroup: {}", request.bloodGroup());
       }
     }
     if (request.gender() != null) {
       try {
         patient.setGender(Gender.valueOf(request.gender()));
       } catch (IllegalArgumentException e) {
-        System.err.println("Valor inválido para Gender recebido: " + request.gender());
+        log.error("Valor inválido para Gender: {}", request.gender());
       }
     }
-    if (request.dateOfBirth() != null) {
-      patient.setDateOfBirth(request.dateOfBirth());
-    }
-    if (request.chronicDiseases() != null) {
-      patient.setChronicDiseases(request.chronicDiseases());
-    }
-    if (request.allergies() != null) {
-      patient.setAllergies(request.allergies());
-    }
+    if (request.dateOfBirth() != null) patient.setDateOfBirth(request.dateOfBirth());
+    if (request.chronicDiseases() != null) patient.setChronicDiseases(request.chronicDiseases());
+    if (request.allergies() != null) patient.setAllergies(request.allergies());
 
     Patient savedPatient = patientRepository.save(patient);
     publishPatientEvent(savedPatient, "UPDATED");
@@ -192,7 +164,7 @@ public class PatientServiceImpl implements PatientService {
     return patientRepository.count();
   }
 
-  // --- Método Auxiliar para RabbitMQ ---
+  // Método Auxiliar para RabbitMQ
   private void publishPatientEvent(Patient patient, String eventType) {
     try {
       PatientEvent event = new PatientEvent(
