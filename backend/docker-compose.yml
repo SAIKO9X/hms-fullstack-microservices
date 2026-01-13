@@ -255,12 +255,18 @@ services:
       - PROFILE_URI=http://profile-service:8082
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       mysql-user:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - hms-network
@@ -285,12 +291,18 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       mysql-profile:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - hms-network
@@ -317,13 +329,19 @@ services:
       - PROFILE_URI=http://profile-service:8082
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       mysql-appointment:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
       profile-service:
-        condition: service_started # Avoid circular dependency
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - hms-network
     healthcheck:
