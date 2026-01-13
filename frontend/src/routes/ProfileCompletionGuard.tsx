@@ -1,12 +1,12 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useProfileStatus } from "@/hooks/use-profile-check";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const ProfileCompletionGuard = () => {
   const location = useLocation();
-  const { isComplete, isLoading, role } = useProfileStatus();
+  const { isComplete, isLoading, role, isError } = useProfileStatus(); // Pegue o isError
 
-  // loading enquanto o React Query busca os dados
   if (isLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-background">
@@ -18,11 +18,28 @@ export const ProfileCompletionGuard = () => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 text-center">
+        <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+        <h2 className="text-xl font-semibold mb-2">
+          Aguardando Criação do Perfil
+        </h2>
+        <p className="text-muted-foreground max-w-md mb-6">
+          Sua conta foi criada, mas estamos finalizando a configuração do seu
+          perfil. Isso pode levar alguns segundos devido ao processamento do
+          sistema.
+        </p>
+        <Button onClick={() => window.location.reload()}>
+          Tentar Novamente
+        </Button>
+      </div>
+    );
+  }
+
   const profileUrl = role === "DOCTOR" ? "/doctor/profile" : "/patient/profile";
-  // verifica se o usuário está na página de perfil (para evitar loop infinito)
   const isAtProfilePage = location.pathname === profileUrl;
 
-  // redireciona para a página de perfil caso não esteja completo
   if (!isComplete) {
     if (!isAtProfilePage) {
       return (

@@ -101,6 +101,7 @@ public class DoctorController {
 
   private Long getUserIdFromToken(String token) {
     String jwt = token.substring(7);
-    return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));
+    // Extrai como Number e converte para longValue() para evitar erro de cast Integer -> Long
+    return jwtService.extractClaim(jwt, claims -> claims.get("userId", Number.class).longValue());
   }
 }
