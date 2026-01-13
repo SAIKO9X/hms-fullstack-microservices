@@ -21,12 +21,10 @@ import { CustomNotification } from "../../../components/notifications/CustomNoti
 import { RegisterFormSchema } from "@/lib/schemas/auth.schema";
 import { registerUser } from "@/services/auth";
 import { maskCPF } from "@/utils/masks";
+import { useNavigate } from "react-router";
 
-interface RegisterFormProps {
-  onRegisterSuccess: (message: string) => void;
-}
-
-export const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
+export const RegisterForm = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,8 +51,9 @@ export const RegisterForm = ({ onRegisterSuccess }: RegisterFormProps) => {
     try {
       const { confirmPassword, ...dataToSend } = values;
       await registerUser(dataToSend);
-      onRegisterSuccess("Conta criada com sucesso! Por favor, faça o login.");
-      form.reset();
+
+      // redireciona direto para a verificação de conta
+      navigate(`/auth/verify?email=${encodeURIComponent(values.email)}`);
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro desconhecido.");
     } finally {

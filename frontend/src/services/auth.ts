@@ -28,3 +28,17 @@ export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
     );
   }
 };
+
+// Verifica a conta do usuário
+export const verifyAccount = async (email: string, code: string) => {
+  try {
+    const response = await api.post(`/auth/verify`, null, {
+      params: { email, code },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.errorMessage || "Código inválido ou expirado."
+    );
+  }
+};

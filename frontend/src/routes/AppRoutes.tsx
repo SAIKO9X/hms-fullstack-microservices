@@ -34,6 +34,7 @@ import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPati
 import { ProfileCompletionGuard } from "./ProfileCompletionGuard";
 import { PatientDoctorsListPage } from "@/features/patient/pages/PatientDoctorsListPage";
 import { PatientViewDoctorProfilePage } from "@/features/patient/pages/PatientViewDoctorProfilePage";
+import VerifyAccountPage from "@/features/auth/pages/VerifyAccountPage";
 
 export const AppRoutes = () => {
   return (
@@ -45,6 +46,7 @@ export const AppRoutes = () => {
       <Route element={<PublicRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/verify" element={<VerifyAccountPage />} />
         </Route>
       </Route>
 

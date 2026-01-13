@@ -19,7 +19,7 @@ import type { NotificationState } from "@/features/auth/pages/AuthPage";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser } from "@/store/slices/authSlice";
-import { useRoleRedirect } from "@/hooks/use-redirect";
+import { useLocation, useNavigate } from "react-router";
 
 interface LoginFormProps {
   notification: NotificationState;
@@ -31,10 +31,11 @@ export const LoginForm = ({
   setNotification,
 }: LoginFormProps) => {
   const dispatch = useAppDispatch();
-  const { redirectBasedOnRole } = useRoleRedirect();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
 
-  const { status, error, user } = useAppSelector((state) => state.auth);
+  const { status, error } = useAppSelector((state) => state.auth);
 
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -42,10 +43,16 @@ export const LoginForm = ({
   });
 
   useEffect(() => {
-    if (status === "succeeded" && user) {
-      redirectBasedOnRole(user);
+    if (location.state?.message) {
+      setNotification({
+        type: "success",
+        message: location.state.message,
+      });
+
+      // limpa o estado para que a mensagem não apareça se o usuário der F5
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [status, user, redirectBasedOnRole]);
+  }, [location, setNotification, navigate]);
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     dispatch(loginUser(values));
