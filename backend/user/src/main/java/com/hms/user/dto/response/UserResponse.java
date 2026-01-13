@@ -3,13 +3,15 @@ package com.hms.user.dto.response;
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;
 
+import java.io.Serializable;
+
 public record UserResponse(
   Long id,
   String name,
   String email,
   UserRole role,
   boolean active
-) {
+) implements Serializable {
   public static UserResponse fromEntity(User user) {
     return new UserResponse(
       user.getId(),

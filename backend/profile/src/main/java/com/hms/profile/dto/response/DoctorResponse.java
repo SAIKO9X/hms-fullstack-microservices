@@ -2,6 +2,7 @@ package com.hms.profile.dto.response;
 
 import com.hms.profile.entities.Doctor;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 public record DoctorResponse(
@@ -17,7 +18,8 @@ public record DoctorResponse(
   String qualifications,
   String biography,
   String profilePictureUrl
-) {
+) implements Serializable {
+
   public static DoctorResponse fromEntity(Doctor doctor) {
     return new DoctorResponse(
       doctor.getId(),

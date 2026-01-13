@@ -4,6 +4,7 @@ import com.hms.profile.entities.Patient;
 import com.hms.profile.enums.BloodGroup;
 import com.hms.profile.enums.Gender;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 public record PatientResponse(
@@ -21,7 +22,8 @@ public record PatientResponse(
   String allergies,
   String chronicDiseases,
   String profilePictureUrl
-) {
+) implements Serializable {
+
   public static PatientResponse fromEntity(Patient patient) {
     return new PatientResponse(
       patient.getId(),

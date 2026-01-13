@@ -4,6 +4,7 @@ import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.enums.MedicineCategory;
 import com.hms.pharmacy.enums.MedicineType;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -17,7 +18,7 @@ public record MedicineResponse(
   BigDecimal unitPrice,
   Integer totalStock,
   LocalDateTime createdAt
-) {
+) implements Serializable {
   public static MedicineResponse fromEntity(Medicine medicine) {
     return new MedicineResponse(
       medicine.getId(),
