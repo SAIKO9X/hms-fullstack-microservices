@@ -24,8 +24,8 @@ public class SecurityConfig {
     http
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
-        // Permite todos os pedidos OPTIONS
-        .requestMatchers(HttpMethod.OPTIONS, "/**", "/actuator/**").permitAll()
+        .requestMatchers("/actuator/**").permitAll()
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
         .requestMatchers("/patient/**").hasRole("PATIENT")
         .requestMatchers("/doctor/**").hasRole("DOCTOR")
         .requestMatchers("/admin/**").hasRole("ADMIN")

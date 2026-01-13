@@ -23,7 +23,8 @@ public class SecurityConfig {
     http
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
-        .requestMatchers("/pharmacy/**", "/actuator/**").authenticated()
+        .requestMatchers("/actuator/**").permitAll()
+        .requestMatchers("/pharmacy/**").authenticated()
         .anyRequest().authenticated()
       )
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
