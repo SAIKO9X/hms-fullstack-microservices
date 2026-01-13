@@ -22,4 +22,10 @@ public class AuthController {
   public AuthResponse login(@Valid @RequestBody LoginRequest request) {
     return userService.login(request);
   }
+
+  @PostMapping("/verify")
+  @ResponseStatus(HttpStatus.OK)
+  public void verifyAccount(@RequestParam String email, @RequestParam String code) {
+    userService.verifyAccount(email, code);
+  }
 }

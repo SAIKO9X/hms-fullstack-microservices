@@ -19,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,12 +29,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +63,13 @@ public class UserServiceImpl implements UserService {
 
     User user = request.toEntity();
     user.setPassword(encoder.encode(user.getPassword()));
+
+    user.setActive(false);
+
+    String code = String.format("%06d", new Random().nextInt(999999));
+    user.setVerificationCode(code);
+    user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15)); // Expira em 15 min
+
     User savedUser = userRepository.save(user);
     String cpf = null;
     String crm = null;
@@ -72,7 +80,7 @@ public class UserServiceImpl implements UserService {
       crm = request.cpfOuCrm();
     }
 
-    publishUserCreatedEvent(savedUser, cpf, crm);
+    publishUserCreatedEvent(savedUser, cpf, crm, code);
 
     return UserResponse.fromEntity(savedUser);
   }
@@ -117,7 +125,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public AuthResponse login(LoginRequest request) {
-    // Deixa o Spring Security validar o usuário e a senha
+    // 1. Autentica credenciais (email/senha)
     authenticationManager.authenticate(
       new UsernamePasswordAuthenticationToken(
         request.email(),
@@ -127,6 +135,10 @@ public class UserServiceImpl implements UserService {
 
     var user = userRepository.findByEmail(request.email())
       .orElseThrow(() -> new IllegalStateException("Usuário não encontrado após autenticação."));
+
+    if (!user.isActive()) {
+      throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
+    }
 
     var jwtToken = jwtService.generateToken(user);
     var expirationTime = jwtService.getExpirationTime();
@@ -156,13 +168,14 @@ public class UserServiceImpl implements UserService {
     newUser.setEmail(request.email());
     newUser.setPassword(encoder.encode(request.password()));
     newUser.setRole(request.role());
+    // admin cria usuários já ativos, então não precisa de código
     newUser.setActive(true);
 
     User savedUser = userRepository.save(newUser);
     String cpf = request.cpf();
     String crm = request.crmNumber();
 
-    publishUserCreatedEvent(savedUser, cpf, crm);
+    publishUserCreatedEvent(savedUser, cpf, crm, null);
 
     return UserResponse.fromEntity(savedUser);
   }
@@ -198,8 +211,30 @@ public class UserServiceImpl implements UserService {
     publishUserUpdatedEvent(user, request);
   }
 
+  public void verifyAccount(String email, String code) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+
+    if (user.isActive()) {
+      throw new IllegalArgumentException("Conta já verificada.");
+    }
+
+    if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+      throw new IllegalArgumentException("Código expirado. Solicite um novo.");
+    }
+
+    if (!user.getVerificationCode().equals(code)) {
+      throw new IllegalArgumentException("Código inválido.");
+    }
+
+    user.setActive(true);
+    user.setVerificationCode(null);
+    user.setVerificationCodeExpiresAt(null);
+    userRepository.save(user);
+  }
+
   // Método auxiliar para publicar o evento
-  private void publishUserCreatedEvent(User user, String cpf, String crm) {
+  private void publishUserCreatedEvent(User user, String cpf, String crm, String code) {
     try {
       UserCreatedEvent event = new UserCreatedEvent(
         user.getId(),
@@ -207,13 +242,12 @@ public class UserServiceImpl implements UserService {
         user.getEmail(),
         user.getRole(),
         cpf,
-        crm
+        crm,
+        code
       );
-
       rabbitTemplate.convertAndSend(exchange, userCreatedRoutingKey, event);
-      log.info("Evento de criação de usuário enviado para fila: ID {}", user.getId());
     } catch (Exception e) {
-      log.error("Erro ao enviar evento de criação de usuário para o RabbitMQ", e);
+      log.error("Erro ao enviar evento", e);
     }
   }
 

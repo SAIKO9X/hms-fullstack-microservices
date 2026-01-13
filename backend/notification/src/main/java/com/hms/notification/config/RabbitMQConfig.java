@@ -18,11 +18,17 @@ public class RabbitMQConfig {
   @Value("${application.rabbitmq.notification-queue}")
   private String notificationQueue;
 
+  @Value("${application.rabbitmq.user-created-queue}")
+  private String userCreatedQueue;
+
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
   @Value("${application.rabbitmq.routing-key}")
   private String routingKey;
+
+  @Value("${application.rabbitmq.user-created-routing-key:user.event.created}")
+  private String userCreatedRoutingKey;
 
   public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
   public static final String REMINDER_QUEUE = "notification.reminder.queue";
@@ -35,11 +41,17 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public CustomExchange delayedExchange() {
-    Map<String, Object> args = new HashMap<>();
-    args.put("x-delayed-type", "topic");
-    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
+  public Queue userCreatedQueue() {
+    return new Queue(userCreatedQueue, true);
   }
+
+  @Bean
+  public Binding userCreatedBinding(TopicExchange exchange) {
+    return BindingBuilder.bind(userCreatedQueue())
+      .to(exchange)
+      .with(userCreatedRoutingKey);
+  }
+
 
   @Bean
   public Queue notificationQueue() {
@@ -64,20 +76,25 @@ public class RabbitMQConfig {
   }
 
   @Bean
+  public CustomExchange delayedExchange() {
+    Map<String, Object> args = new HashMap<>();
+    args.put("x-delayed-type", "topic");
+    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
+  }
+
+  @Bean
   public Queue reminderQueue() {
     return new Queue(REMINDER_QUEUE, true);
   }
 
   @Bean
   public Binding reminderBinding() {
-    // Liga a fila de lembrete à Delayed Exchange
     return BindingBuilder.bind(reminderQueue())
       .to(delayedExchange())
       .with("appointment.reminder")
       .noargs();
   }
 
-  // Fila de Waitlist
   @Bean
   public Queue waitlistQueue() {
     return new Queue(WAITLIST_QUEUE, true);

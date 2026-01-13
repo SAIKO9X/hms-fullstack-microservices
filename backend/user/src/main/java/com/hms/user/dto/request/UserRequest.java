@@ -23,14 +23,14 @@ public record UserRequest(
 
   String cpfOuCrm
 ) {
+
   public User toEntity() {
-    return new User(
-      null,
-      this.name,
-      this.email,
-      this.password,
-      this.role,
-      true
-    );
+    User user = new User();
+    user.setName(this.name);
+    user.setEmail(this.email);
+    user.setPassword(this.password);
+    user.setRole(this.role);
+    user.setActive(false);
+    return user;
   }
 }

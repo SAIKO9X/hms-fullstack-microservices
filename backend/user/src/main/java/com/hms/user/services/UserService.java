@@ -17,6 +17,8 @@ public interface UserService {
 
   UserResponse getUserByEmail(String email);
 
+  void verifyAccount(String email, String code);
+
   UserResponse updateUser(Long id, UserRequest request);
 
   AuthResponse login(LoginRequest request);

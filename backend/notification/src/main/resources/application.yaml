@@ -55,12 +55,13 @@ eureka:
     hostname: ${HOSTNAME:localhost}
     prefer-ip-address: true
 
-# Configurações personalizadas para Filas
 application:
   rabbitmq:
     exchange: internal.exchange
     notification-queue: notification.queue
     routing-key: notification.email
+    user-created-queue: user.created.queue
+    user-created-routing-key: user.event.created
 
 management:
   endpoints:

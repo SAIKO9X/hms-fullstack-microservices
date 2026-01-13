@@ -3,6 +3,7 @@ package com.hms.notification.consumer;
 import com.hms.notification.config.RabbitMQConfig;
 import com.hms.notification.dto.event.AppointmentEvent;
 import com.hms.notification.dto.event.AppointmentStatusChangedEvent;
+import com.hms.notification.dto.event.UserCreatedEvent;
 import com.hms.notification.dto.event.WaitlistNotificationEvent;
 import com.hms.notification.dto.request.EmailRequest;
 import com.hms.notification.services.EmailService;
@@ -55,6 +56,23 @@ public class NotificationConsumer {
       <p>Surgiu uma vaga com <b>Dr. %s</b> para o dia <b>%s</b>.</p>
       <p>Acesse o sistema agora para confirmar este horário antes que seja ocupado.</p>
       """, event.patientName(), event.doctorName(), event.availableDateTime());
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
+  public void consumeUserCreated(UserCreatedEvent event) {
+    log.info("Novo usuário criado. Enviando código para: {}", event.email());
+
+    String subject = "Confirme sua conta - HMS";
+    String content = String.format("""
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Bem-vindo ao HMS, %s!</h2>
+          <p>Obrigado por se cadastrar. Use o código abaixo para ativar sua conta:</p>
+          <h1 style="color: #2563eb; letter-spacing: 5px;">%s</h1>
+          <p>Este código expira em 15 minutos.</p>
+      </div>
+      """, event.name(), event.verificationCode());
+
+    emailService.sendEmail(event.email(), subject, content);
   }
 
   @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_NOTIFICATION_QUEUE)

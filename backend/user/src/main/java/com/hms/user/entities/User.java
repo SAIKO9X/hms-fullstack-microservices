@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Getter
 @Setter
@@ -30,5 +32,9 @@ public class User {
   @Enumerated(EnumType.STRING)
   private UserRole role;
 
-  private boolean active = true;
+  private boolean active = false;
+
+  private String verificationCode;
+
+  private LocalDateTime verificationCodeExpiresAt;
 }

@@ -8,6 +8,7 @@ public record UserCreatedEvent(
   String email,
   UserRole role,
   String cpf,      // Para Paciente
-  String crm       // Para Médico
+  String crm,       // Para Médico
+  String verificationCode
 ) {
 }
