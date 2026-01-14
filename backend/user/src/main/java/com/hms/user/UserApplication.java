@@ -12,10 +12,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+@EnableCaching
 @EnableFeignClients
 @EnableDiscoveryClient
 @SpringBootApplication
-@EnableCaching
 public class UserApplication {
 
   public static void main(String[] args) {

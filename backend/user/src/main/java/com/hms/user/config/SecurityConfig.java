@@ -1,5 +1,6 @@
 package com.hms.user.config;
 
+import com.hms.common.security.CommonJwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +24,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final JwtAuthFilter jwtAuthFilter;
+  private final CommonJwtAuthFilter jwtAuthFilter;
   private final UserDetailsService userDetailsService;
 
   @Bean
@@ -35,11 +36,8 @@ public class SecurityConfig {
         .anyRequest().authenticated()
       )
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      // O AuthenticationProvider só será necessário para o processo de login
-      // Para a autorização via JWT, o filtro é suficiente.
       .authenticationProvider(authenticationProvider())
       .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
     return http.build();
   }
 

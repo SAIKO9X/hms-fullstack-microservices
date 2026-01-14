@@ -1,5 +1,6 @@
 package com.hms.appointment.config;
 
+import com.hms.common.security.CommonJwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-  private final JwtAuthFilter jwtAuthFilter;
+  private final CommonJwtAuthFilter jwtAuthFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {

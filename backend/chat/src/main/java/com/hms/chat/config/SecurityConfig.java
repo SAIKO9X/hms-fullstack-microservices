@@ -1,5 +1,6 @@
 package com.hms.chat.config;
 
+import com.hms.common.security.CommonJwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,13 +22,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final JwtAuthFilter jwtAuthFilter;
+  private final CommonJwtAuthFilter jwtAuthFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .csrf(csrf -> csrf.disable())
-      // Ativa a configuração de CORS definida no Bean abaixo
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/ws/**", "/actuator/**").permitAll() // Permite o handshake inicial (HTTP)

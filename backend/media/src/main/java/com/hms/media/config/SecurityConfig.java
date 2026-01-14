@@ -1,5 +1,6 @@
 package com.hms.media.config;
 
+import com.hms.common.security.CommonJwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,16 +16,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final JwtAuthFilter jwtAuthFilter;
+  private final CommonJwtAuthFilter jwtAuthFilter;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
-        // Todas as requisições para /media/** exigem autenticação
         .requestMatchers(HttpMethod.GET, "/media/**", "/actuator/**").permitAll()
-        // Exige autenticação para fazer UPLOAD de novas imagens
         .requestMatchers(HttpMethod.POST, "/media/upload").authenticated()
         .anyRequest().authenticated()
       )
