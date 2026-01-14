@@ -1,6 +1,5 @@
-package com.hms.appointment.config;
+package com.hms.common.security;
 
-import com.hms.appointment.services.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,9 +20,9 @@ import java.util.Collections;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class CommonJwtAuthFilter extends OncePerRequestFilter {
 
-  private final JwtService jwtService;
+  private final BaseJwtService jwtService;
 
   @Override
   protected void doFilterInternal(
@@ -44,21 +43,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
       final String userEmail = jwtService.extractUsername(jwt);
 
       if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        // Extrai a role do token
-        String role = jwtService.extractClaim(jwt, claims -> claims.get("role", String.class));
-        var authority = new SimpleGrantedAuthority("ROLE_" + role);
-        var authorities = Collections.singletonList(authority);
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-          userEmail,
-          null,
-          authorities
-        );
-        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-        SecurityContextHolder.getContext().setAuthentication(authToken);
+        // extração padronizada
+        String role = jwtService.extractRole(jwt);
+        Long userId = jwtService.extractUserId(jwt);
+        String authorityRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+        var authorities = Collections.singletonList(new SimpleGrantedAuthority(authorityRole));
+
+        HmsUserPrincipal userPrincipal = HmsUserPrincipal.builder()
+          .id(userId)
+          .email(userEmail)
+          .role(role)
+          .authorities(authorities)
+          .build();
+
+        if (jwtService.isTokenValid(jwt, userEmail)) {
+          UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+            userPrincipal,
+            null,
+            authorities
+          );
+          authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+          SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
       }
     } catch (Exception e) {
-      log.error("Error processing JWT token", e);
+      log.error("Authentication Error: Cannot set user authentication: {}", e.getMessage());
+      SecurityContextHolder.clearContext();
     }
 
     filterChain.doFilter(request, response);

@@ -30,6 +30,7 @@
         <module>media</module>
         <module>chat</module>
         <module>notification</module>
+        <module>common-lib</module>
     </modules>
 
     <dependencyManagement>
