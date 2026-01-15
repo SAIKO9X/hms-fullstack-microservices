@@ -1,12 +1,12 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.security.HmsUserPrincipal;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
 import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
 import com.hms.profile.dto.response.PatientDropdownResponse;
 import com.hms.profile.dto.response.PatientResponse;
-import com.hms.profile.services.JwtService;
 import com.hms.profile.services.PatientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.List;
 public class PatientController {
 
   private final PatientService patientService;
-  private final JwtService jwtService;
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
@@ -36,18 +36,16 @@ public class PatientController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public PatientResponse getMyProfile(@RequestHeader("Authorization") String token) {
-    Long userId = getUserIdFromToken(token);
-    return patientService.getPatientProfileByUserId(userId);
+  public PatientResponse getMyProfile(@AuthenticationPrincipal HmsUserPrincipal user) {
+    return patientService.getPatientProfileByUserId(user.getId());
   }
 
   @PatchMapping
   @ResponseStatus(HttpStatus.OK)
   public PatientResponse updateMyProfile(
-    @RequestHeader("Authorization") String token,
+    @AuthenticationPrincipal HmsUserPrincipal user,
     @Valid @RequestBody PatientUpdateRequest request) {
-    Long userId = getUserIdFromToken(token);
-    return patientService.updatePatientProfile(userId, request);
+    return patientService.updatePatientProfile(user.getId(), request);
   }
 
   @GetMapping("/exists/{userId}")
@@ -85,10 +83,9 @@ public class PatientController {
   @PutMapping("/picture")
   @ResponseStatus(HttpStatus.OK)
   public void updatePatientProfilePicture(
-    @RequestHeader("Authorization") String token,
+    @AuthenticationPrincipal HmsUserPrincipal user,
     @Valid @RequestBody ProfilePictureUpdateRequest request) {
-    Long userId = getUserIdFromToken(token);
-    patientService.updateProfilePicture(userId, request.pictureUrl());
+    patientService.updateProfilePicture(user.getId(), request.pictureUrl());
   }
 
   @PutMapping("/admin/update/{userId}")
@@ -99,10 +96,5 @@ public class PatientController {
   ) {
     patientService.adminUpdatePatient(userId, updateRequest);
     return ResponseEntity.ok().build();
-  }
-
-  private Long getUserIdFromToken(String token) {
-    String jwt = token.substring(7);
-    return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));
   }
 }

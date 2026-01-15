@@ -6,10 +6,10 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
-@EnableDiscoveryClient
-@EnableFeignClients
 @EnableScheduling
+@EnableFeignClients
+@EnableDiscoveryClient
+@SpringBootApplication(scanBasePackages = {"com.hms.appointment", "com.hms.common"})
 public class AppointmentApplication {
 
   public static void main(String[] args) {

@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.security.HmsUserPrincipal;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
@@ -7,7 +8,6 @@ import com.hms.profile.dto.request.ProfilePictureUpdateRequest;
 import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
 import com.hms.profile.services.DoctorService;
-import com.hms.profile.services.JwtService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.List;
 public class DoctorController {
 
   private final DoctorService doctorService;
-  private final JwtService jwtService;
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
@@ -36,18 +36,17 @@ public class DoctorController {
 
   @GetMapping
   @ResponseStatus(HttpStatus.OK)
-  public DoctorResponse getMyProfile(@RequestHeader("Authorization") String token) {
-    Long userId = getUserIdFromToken(token);
-    return doctorService.getDoctorProfileByUserId(userId);
+  public DoctorResponse getMyProfile(@AuthenticationPrincipal HmsUserPrincipal user) {
+    return doctorService.getDoctorProfileByUserId(user.getId());
   }
 
   @PatchMapping
   @ResponseStatus(HttpStatus.OK)
   public DoctorResponse updateMyProfile(
-    @RequestHeader("Authorization") String token,
-    @Valid @RequestBody DoctorUpdateRequest request) {
-    Long userId = getUserIdFromToken(token);
-    return doctorService.updateDoctorProfile(userId, request);
+    @AuthenticationPrincipal HmsUserPrincipal user,
+    @Valid @RequestBody DoctorUpdateRequest request
+  ) {
+    return doctorService.updateDoctorProfile(user.getId(), request);
   }
 
   @GetMapping("/exists/{userId}")
@@ -82,11 +81,11 @@ public class DoctorController {
 
   @PutMapping("/picture")
   @ResponseStatus(HttpStatus.OK)
-  public void updatePatientProfilePicture(
-    @RequestHeader("Authorization") String token,
-    @Valid @RequestBody ProfilePictureUpdateRequest request) {
-    Long userId = getUserIdFromToken(token);
-    doctorService.updateProfilePicture(userId, request.pictureUrl());
+  public void updateDoctorProfilePicture(
+    @AuthenticationPrincipal HmsUserPrincipal user,
+    @Valid @RequestBody ProfilePictureUpdateRequest request
+  ) {
+    doctorService.updateProfilePicture(user.getId(), request.pictureUrl());
   }
 
   @PutMapping("/admin/update/{userId}")
@@ -97,11 +96,5 @@ public class DoctorController {
   ) {
     doctorService.adminUpdateDoctor(userId, updateRequest);
     return ResponseEntity.ok().build();
-  }
-
-  private Long getUserIdFromToken(String token) {
-    String jwt = token.substring(7);
-    // Extrai como Number e converte para longValue() para evitar erro de cast Integer -> Long
-    return jwtService.extractClaim(jwt, claims -> claims.get("userId", Number.class).longValue());
   }
 }
