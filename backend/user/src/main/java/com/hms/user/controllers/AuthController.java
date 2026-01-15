@@ -28,4 +28,10 @@ public class AuthController {
   public void verifyAccount(@RequestParam String email, @RequestParam String code) {
     userService.verifyAccount(email, code);
   }
+
+  @PostMapping("/resend-code")
+  @ResponseStatus(HttpStatus.OK)
+  public void resendCode(@RequestParam String email) {
+    userService.resendVerificationCode(email);
+  }
 }

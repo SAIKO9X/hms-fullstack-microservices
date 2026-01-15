@@ -19,6 +19,8 @@ public interface UserService {
 
   void verifyAccount(String email, String code);
 
+  void resendVerificationCode(String email);
+
   UserResponse updateUser(Long id, UserRequest request);
 
   AuthResponse login(LoginRequest request);

@@ -125,7 +125,6 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public AuthResponse login(LoginRequest request) {
-    // 1. Autentica credenciais (email/senha)
     authenticationManager.authenticate(
       new UsernamePasswordAuthenticationToken(
         request.email(),
@@ -231,6 +230,30 @@ public class UserServiceImpl implements UserService {
     user.setVerificationCode(null);
     user.setVerificationCodeExpiresAt(null);
     userRepository.save(user);
+  }
+
+  @Override
+  @Transactional
+  public void resendVerificationCode(String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado."));
+
+    if (user.isActive()) {
+      throw new IllegalArgumentException("Esta conta já está verificada.");
+    }
+
+    // gera novo código e renova expiração (15 min)
+    String newCode = String.format("%06d", new Random().nextInt(999999));
+    user.setVerificationCode(newCode);
+    user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+
+    userRepository.save(user);
+
+    //por ser reenvio, não precisa validar CPF/CRM de novo para o evento.
+    String cpf = null;
+    String crm = null;
+
+    publishUserCreatedEvent(user, cpf, crm, newCode);
   }
 
   // Método auxiliar para publicar o evento
