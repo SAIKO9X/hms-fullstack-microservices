@@ -15,10 +15,7 @@ import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
-import com.hms.appointment.repositories.AppointmentRepository;
-import com.hms.appointment.repositories.DoctorReadModelRepository;
-import com.hms.appointment.repositories.PatientReadModelRepository;
-import com.hms.appointment.repositories.WaitlistRepository;
+import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -408,6 +405,25 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     waitlistRepository.save(entry);
     log.info("Paciente {} entrou na fila de espera para o médico ID {}", patientId, request.doctorId());
+  }
+
+  @Override
+  public List<DoctorPatientSummaryDto> getPatientsForDoctor(Long doctorId) {
+    List<DoctorPatientSummaryProjection> projections = appointmentRepository.findPatientsSummaryByDoctor(doctorId);
+
+    LocalDateTime limitDate = LocalDateTime.now().minusMonths(6);
+
+    // Mapeia as projeções para DTOs, determinando o status ativo/inativo
+    return projections.stream()
+      .map(p -> new DoctorPatientSummaryDto(
+        p.getPatientId(),
+        p.getPatientName(),
+        p.getPatientEmail(),
+        p.getTotalAppointments(),
+        p.getLastAppointmentDate(),
+        p.getLastAppointmentDate().isAfter(limitDate) ? "ACTIVE" : "INACTIVE"
+      ))
+      .toList();
   }
 
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {

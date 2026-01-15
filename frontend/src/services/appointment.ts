@@ -13,7 +13,7 @@ import type {
   AdverseEffectReportCreateRequest,
   Appointment,
 } from "@/types/appointment.types";
-import type { DoctorDropdown } from "@/types/doctor.types";
+import type { DoctorDropdown, PatientSummary } from "@/types/doctor.types";
 import type {
   MedicalDocument,
   MedicalDocumentCreateRequest,
@@ -48,6 +48,13 @@ export const rescheduleAppointment = async (
 // Buscar médicos para dropdown
 export const getDoctorsForDropdown = async (): Promise<DoctorDropdown[]> => {
   const { data } = await api.get("/profile/doctors/dropdown");
+  return data;
+};
+
+export const getDoctorPatients = async (): Promise<PatientSummary[]> => {
+  const { data } = await api.get<PatientSummary[]>(
+    "/doctor/appointments/my-patients"
+  );
   return data;
 };
 

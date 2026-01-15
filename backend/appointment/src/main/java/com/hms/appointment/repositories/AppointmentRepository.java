@@ -70,4 +70,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
   List<Appointment> findByDoctorIdAndAppointmentDateTimeBetween(Long doctorId, LocalDateTime startOfDay, LocalDateTime endOfDay);
 
   List<Appointment> findByPatientIdAndAppointmentDateTimeBefore(Long patientId, LocalDateTime dateTime);
+
+  // Consulta para obter o resumo dos pacientes atendidos por um médico específico
+  @Query("SELECT a.patientId as patientId, " +
+    "p.name as patientName, " +
+    "p.email as patientEmail, " +
+    "COUNT(a) as totalAppointments, " +
+    "MAX(a.appointmentDateTime) as lastAppointmentDate " +
+    "FROM Appointment a " +
+    "JOIN PatientReadModel p ON a.patientId = p.id " +
+    "WHERE a.doctorId = :doctorId " +
+    "GROUP BY a.patientId, p.name, p.email")
+  List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
 }

@@ -20,6 +20,7 @@ import type {
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import { keepPreviousData } from "@tanstack/react-query";
 import type { Page } from "@/types/pagination.types";
+import type { PatientSummary } from "@/types/doctor.types";
 
 export interface AppointmentWithDoctor extends Appointment {
   doctorName?: string;
@@ -400,5 +401,12 @@ export const useAdverseEffectReports = (page = 0, size = 10) => {
     queryKey: appointmentKeys.adverseEffectReports(page, size),
     queryFn: () => AppointmentService.getAdverseEffectReports(page, size),
     placeholderData: keepPreviousData,
+  });
+};
+
+export const useDoctorPatients = () => {
+  return useQuery<PatientSummary[]>({
+    queryKey: ["doctor-patients"],
+    queryFn: AppointmentService.getDoctorPatients,
   });
 };

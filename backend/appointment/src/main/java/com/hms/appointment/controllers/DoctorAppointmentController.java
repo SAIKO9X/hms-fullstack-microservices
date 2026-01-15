@@ -2,10 +2,8 @@ package com.hms.appointment.controllers;
 
 
 import com.hms.appointment.dto.request.AppointmentUpdateRequest;
-import com.hms.appointment.dto.response.AppointmentDetailResponse;
-import com.hms.appointment.dto.response.AppointmentResponse;
-import com.hms.appointment.dto.response.DoctorDashboardStatsResponse;
-import com.hms.appointment.dto.response.PatientGroupResponse;
+import com.hms.appointment.dto.response.*;
+import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +25,7 @@ import java.util.List;
 public class DoctorAppointmentController {
 
   private final AppointmentService appointmentService;
+  private final AppointmentRepository appointmentRepository;
   private final JwtService jwtService;
 
   @GetMapping
@@ -78,6 +77,13 @@ public class DoctorAppointmentController {
     Long doctorId = getUserIdFromToken(token);
     List<PatientGroupResponse> groups = appointmentService.getPatientGroupsForDoctor(doctorId);
     return ResponseEntity.ok(groups);
+  }
+
+  @GetMapping("/my-patients")
+  public ResponseEntity<List<DoctorPatientSummaryDto>> getMyPatients(@RequestHeader("Authorization") String token) {
+    Long doctorId = getUserIdFromToken(token);
+    List<DoctorPatientSummaryDto> patients = appointmentService.getPatientsForDoctor(doctorId);
+    return ResponseEntity.ok(patients);
   }
 
   private Long getUserIdFromToken(String token) {

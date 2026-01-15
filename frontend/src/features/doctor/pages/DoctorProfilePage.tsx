@@ -133,11 +133,7 @@ export const DoctorProfilePage = () => {
   const doctorProfile = profile as DoctorProfile;
 
   const isProfileIncomplete =
-    doctorProfile &&
-    !doctorProfile.specialization &&
-    !doctorProfile.department &&
-    !doctorProfile.phoneNumber &&
-    !user.name;
+    doctorProfile && !doctorProfile.specialization && !doctorProfile.department;
 
   const professionalInfoData = [
     { label: "CRM", value: doctorProfile?.crmNumber || "Não informado" },

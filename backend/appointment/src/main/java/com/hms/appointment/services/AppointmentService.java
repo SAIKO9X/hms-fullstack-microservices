@@ -40,6 +40,8 @@ public interface AppointmentService {
 
   List<AppointmentResponse> getAppointmentsByPatientId(Long patientId);
 
+  List<DoctorPatientSummaryDto> getPatientsForDoctor(Long doctorId);
+
   void joinWaitlist(Long patientId, AppointmentCreateRequest request);
 
   long countAllAppointmentsForToday();
