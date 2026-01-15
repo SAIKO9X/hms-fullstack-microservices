@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Search, FileText, FolderOpen } from "lucide-react";
+import { Search, FileText, FolderOpen, UserPlus } from "lucide-react";
 import { useDoctorPatients } from "@/services/queries/appointment-queries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ export const DoctorRecordsPage = () => {
   const filteredPatients = patients?.filter((p: PatientSummary) =>
     p.patientName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const hasPatients = patients && patients.length > 0;
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -35,6 +37,7 @@ export const DoctorRecordsPage = () => {
           className="pl-10 h-12 text-lg"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          disabled={!hasPatients && !isLoading}
         />
       </div>
 
@@ -43,6 +46,21 @@ export const DoctorRecordsPage = () => {
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-32 w-full" />
           ))}
+        </div>
+      ) : !hasPatients ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 border rounded-lg bg-muted/10 border-dashed">
+          <div className="p-4 bg-muted rounded-full">
+            <UserPlus className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold">
+              Nenhum paciente atendido ainda
+            </h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Assim que você realizar seus primeiros atendimentos, os
+              prontuários dos pacientes aparecerão aqui automaticamente.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

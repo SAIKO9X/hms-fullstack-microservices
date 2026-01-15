@@ -6,6 +6,7 @@ import {
   History,
   ArrowUpDown,
   Filter,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// Importe o tipo para garantir
 import type { PatientSummary } from "@/types/doctor.types";
 
 export const DoctorPatientsPage = () => {
@@ -38,7 +38,7 @@ export const DoctorPatientsPage = () => {
   const { data: patients, isLoading } = useDoctorPatients();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
-    key: keyof PatientSummary; // Usa chaves do tipo real em vez de strings soltas
+    key: keyof PatientSummary;
     direction: "asc" | "desc";
   }>({ key: "lastAppointmentDate", direction: "desc" });
 
@@ -52,14 +52,11 @@ export const DoctorPatientsPage = () => {
 
   const filteredPatients = patients
     ?.filter(
-      (
-        p: PatientSummary // Tipagem explicita resolve o erro "implicit any"
-      ) =>
+      (p: PatientSummary) =>
         p.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.patientEmail?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a: PatientSummary, b: PatientSummary) => {
-      // Tipagem explicita
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
@@ -67,6 +64,8 @@ export const DoctorPatientsPage = () => {
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
+
+  const hasPatients = patients && patients.length > 0;
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -89,12 +88,18 @@ export const DoctorPatientsPage = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
+                disabled={!hasPatients && !isLoading}
               />
             </div>
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    disabled={!hasPatients}
+                  >
                     <Filter className="mr-2 h-4 w-4" />
                     Ordenar
                   </Button>
@@ -125,9 +130,22 @@ export const DoctorPatientsPage = () => {
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
+          ) : !hasPatients ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-medium">
+                Sua lista de pacientes está vazia
+              </h3>
+              <p className="text-muted-foreground max-w-sm">
+                Os pacientes que você atender aparecerão automaticamente nesta
+                lista para acompanhamento futuro.
+              </p>
+            </div>
           ) : !filteredPatients?.length ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Nenhum paciente encontrado.
+            <div className="text-center py-10 text-muted-foreground border border-dashed rounded-md">
+              Nenhum paciente encontrado para "{searchTerm}".
             </div>
           ) : (
             <div className="rounded-md border">

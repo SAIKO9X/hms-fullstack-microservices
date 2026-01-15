@@ -12,6 +12,8 @@ import { DoctorProfilePage } from "@/features/doctor/pages/DoctorProfilePage";
 import { PatientAppointmentsPage } from "@/features/patient/pages/PatientAppointmentsPage";
 import { DoctorAppointmentsPage } from "@/features/doctor/pages/DoctorAppointmentsPage";
 import { DoctorAppointmentsDetailPage } from "@/features/doctor/pages/DoctorAppointmentsDetailPage";
+import { DoctorPatientsPage } from "@/features/doctor/pages/DoctorPatientsPage";
+import { DoctorRecordsPage } from "@/features/doctor/pages/DoctorRecordsPage";
 import { AdminDashboard } from "@/features/admin/layouts/AdminLayout";
 import { AdminMedicinesPage } from "@/features/admin/pages/AdminMedicinePage";
 import { AdminInventoryPage } from "@/features/admin/pages/AdminInventoryPage";
@@ -92,6 +94,12 @@ export const AppRoutes = () => {
               <Route
                 path="appointments/:id"
                 element={<DoctorAppointmentsDetailPage />}
+              />
+              <Route path="patients" element={<DoctorPatientsPage />} />
+              <Route path="records" element={<DoctorRecordsPage />} />
+              <Route
+                path="records/:patientId"
+                element={<PatientMedicalHistoryPage />}
               />
             </Route>
           </Route>

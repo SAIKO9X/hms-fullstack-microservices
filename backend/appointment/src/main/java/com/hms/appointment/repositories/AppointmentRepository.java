@@ -73,13 +73,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   // Consulta para obter o resumo dos pacientes atendidos por um médico específico
   @Query("SELECT a.patientId as patientId, " +
-    "p.name as patientName, " +
+    "p.fullName as patientName, " +
     "p.email as patientEmail, " +
     "COUNT(a) as totalAppointments, " +
     "MAX(a.appointmentDateTime) as lastAppointmentDate " +
     "FROM Appointment a " +
-    "JOIN PatientReadModel p ON a.patientId = p.id " +
+    "JOIN PatientReadModel p ON a.patientId = p.patientId " +
     "WHERE a.doctorId = :doctorId " +
-    "GROUP BY a.patientId, p.name, p.email")
+    "GROUP BY a.patientId, p.fullName, p.email")
   List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
 }
