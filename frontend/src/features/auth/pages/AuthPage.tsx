@@ -18,11 +18,6 @@ export const AuthPage = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [notification, setNotification] = useState<NotificationState>(null);
 
-  const handleRegisterSuccess = (message: string) => {
-    setNotification({ type: "success", message });
-    setActiveTab("login");
-  };
-
   return (
     <div className="w-full max-w-md mx-auto">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -98,7 +93,7 @@ export const AuthPage = () => {
                 Preencha os campos abaixo para começar
               </CardDescription>
             </CardHeader>
-            <RegisterForm onRegisterSuccess={handleRegisterSuccess} />
+            <RegisterForm />
           </Card>
         </TabsContent>
       </Tabs>

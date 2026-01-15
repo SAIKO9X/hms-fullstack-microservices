@@ -42,3 +42,16 @@ export const verifyAccount = async (email: string, code: string) => {
     );
   }
 };
+
+// Reenvia o código de verificação para o email
+export const resendVerificationCode = async (email: string) => {
+  try {
+    await api.post(`/auth/resend-code`, null, {
+      params: { email },
+    });
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.errorMessage || "Erro ao reenviar código."
+    );
+  }
+};
