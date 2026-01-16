@@ -30,6 +30,7 @@ import { Combobox } from "@/components/ui/combobox";
 
 interface PrescriptionFormProps {
   appointmentId: number;
+  patientId?: number;
   existingPrescription?: Prescription | null;
   onSuccess: () => void;
   onCancel?: () => void;

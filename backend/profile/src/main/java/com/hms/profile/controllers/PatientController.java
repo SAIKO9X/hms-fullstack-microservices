@@ -75,7 +75,7 @@ public class PatientController {
 
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
-  @PreAuthorize("hasRole('ADMIN')")
+  @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
   public PatientResponse getPatientProfileById(@PathVariable Long id) {
     return patientService.getPatientProfileById(id);
   }

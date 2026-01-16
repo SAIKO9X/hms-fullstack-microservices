@@ -1,6 +1,7 @@
 package com.hms.appointment.services;
 
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
+import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,4 +46,10 @@ public interface AppointmentService {
   void joinWaitlist(Long patientId, AppointmentCreateRequest request);
 
   long countAllAppointmentsForToday();
+
+  AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request);
+
+  List<AvailabilityResponse> getDoctorAvailability(Long doctorId);
+
+  void deleteAvailability(Long availabilityId);
 }

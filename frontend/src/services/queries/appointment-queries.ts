@@ -21,6 +21,8 @@ import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import { keepPreviousData } from "@tanstack/react-query";
 import type { Page } from "@/types/pagination.types";
 import type { PatientSummary } from "@/types/doctor.types";
+import { createLabOrder, getLabOrdersByAppointment } from "../appointment";
+import type { LabOrderFormData } from "@/lib/schemas/labOrder.schema";
 
 export interface AppointmentWithDoctor extends Appointment {
   doctorName?: string;
@@ -55,6 +57,8 @@ export const appointmentKeys = {
     ["adverseEffectReports", { page, size }] as const,
   doctorDetails: (dateFilter?: string) =>
     [...appointmentKeys.doctor(), "details", dateFilter || "all"] as const,
+  labOrders: (appointmentId: number) =>
+    [...appointmentKeys.all, "lab-orders", appointmentId] as const,
 };
 
 export const useAppointments = (page = 0, size = 10) => {
@@ -408,5 +412,25 @@ export const useDoctorPatients = () => {
   return useQuery<PatientSummary[]>({
     queryKey: ["doctor-patients"],
     queryFn: AppointmentService.getDoctorPatients,
+  });
+};
+
+export const useCreateLabOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: LabOrderFormData) => createLabOrder(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: appointmentKeys.labOrders(variables.appointmentId),
+      });
+    },
+  });
+};
+
+export const useLabOrders = (appointmentId: number) => {
+  return useQuery({
+    queryKey: appointmentKeys.labOrders(appointmentId),
+    queryFn: () => getLabOrdersByAppointment(appointmentId),
+    enabled: !!appointmentId,
   });
 };

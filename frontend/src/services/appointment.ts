@@ -1,5 +1,6 @@
 import api from "@/config/axios";
 import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
+import type { LabOrderFormData } from "@/lib/schemas/labOrder.schema";
 import type {
   PrescriptionFormData,
   PrescriptionUpdateData,
@@ -13,7 +14,11 @@ import type {
   AdverseEffectReportCreateRequest,
   Appointment,
 } from "@/types/appointment.types";
-import type { DoctorDropdown, PatientSummary } from "@/types/doctor.types";
+import type {
+  AvailabilitySlot,
+  DoctorDropdown,
+  PatientSummary,
+} from "@/types/doctor.types";
 import type {
   MedicalDocument,
   MedicalDocumentCreateRequest,
@@ -203,4 +208,35 @@ export const createMedicalDocument = async (
 
 export const deleteMedicalDocument = async (id: number): Promise<void> => {
   await api.delete(`/documents/${id}`);
+};
+
+export const getDoctorAvailability = async (doctorId: number) => {
+  const { data } = await api.get<AvailabilitySlot[]>(
+    `/doctor/appointments/availability/${doctorId}`
+  );
+  return data;
+};
+
+export const addDoctorAvailability = async (
+  doctorId: number,
+  slot: Omit<AvailabilitySlot, "id">
+) => {
+  const { data } = await api.post<AvailabilitySlot>(
+    `/doctor/appointments/availability/${doctorId}`,
+    slot
+  );
+  return data;
+};
+
+export const deleteDoctorAvailability = async (id: number) => {
+  await api.delete(`/doctor/appointments/availability/${id}`);
+};
+
+export const createLabOrder = async (data: LabOrderFormData): Promise<void> => {
+  await api.post("/appointments/lab-orders", data);
+};
+
+export const getLabOrdersByAppointment = async (appointmentId: number) => {
+  const { data } = await api.get(`/appointments/lab-orders/${appointmentId}`);
+  return data;
 };

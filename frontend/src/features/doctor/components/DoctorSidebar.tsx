@@ -11,7 +11,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, UserPen, Calendar, Users, FileText, Heart } from "lucide-react";
+import {
+  Home,
+  UserPen,
+  Calendar,
+  Users,
+  FileText,
+  Heart,
+  CalendarClock,
+} from "lucide-react";
 
 export const DoctorSidebar = () => {
   const navigate = useNavigate();
@@ -26,6 +34,11 @@ export const DoctorSidebar = () => {
       title: "Minha Agenda",
       url: "/doctor/appointments",
       icon: Calendar,
+    },
+    {
+      title: "Meus Horários",
+      url: "/doctor/availability",
+      icon: CalendarClock,
     },
     {
       title: "Meus Pacientes",

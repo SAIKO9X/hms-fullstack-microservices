@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -7,14 +8,16 @@ import {
   XCircle,
   Activity,
   Stethoscope,
+  Loader2,
+  type LucideProps,
 } from "lucide-react";
 import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getMedicalHistory } from "@/services/patient";
 import type { AppointmentHistory } from "@/types/patient.types";
 import type { FC, ForwardRefExoticComponent, RefAttributes } from "react";
-import type { LucideProps } from "lucide-react";
 
-// Ajuda o TypeScript a entender a estrutura do objeto
+// Configuração de status
 type StatusConfigValue = {
   label: string;
   variant: "secondary" | "default" | "destructive" | "outline";
@@ -27,7 +30,6 @@ type StatusConfigValue = {
   timeline: string;
 };
 
-// --- CONFIGURAÇÃO VISUAL DOS STATUS ---
 const statusConfig: { [key: string]: StatusConfigValue } = {
   COMPLETED: {
     label: "Concluída",
@@ -67,7 +69,7 @@ const statusConfig: { [key: string]: StatusConfigValue } = {
   },
 };
 
-// --- COMPONENTE DE UM ITEM DA TIMELINE ---
+// componente TimelineItem
 const TimelineItem: FC<{
   appointment: AppointmentHistory;
   isLast: boolean;
@@ -83,12 +85,10 @@ const TimelineItem: FC<{
 
   return (
     <div className="relative flex gap-6">
-      {/* Linha vertical da timeline */}
       {!isLast && (
         <div className="absolute left-[52px] top-[70px] w-0.5 h-full bg-border" />
       )}
 
-      {/* Badge da Data e Ponto da Timeline */}
       <div className="flex-shrink-0 flex flex-col items-center">
         <div
           className={`flex flex-col items-center justify-center w-[105px] h-[70px] rounded-xl ${config.bg} border ${config.border}`}
@@ -109,7 +109,6 @@ const TimelineItem: FC<{
         </div>
       </div>
 
-      {/* Card com o conteúdo da consulta */}
       <Card className="flex-1 shadow-sm transition-shadow duration-300 border-border/60">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
@@ -156,21 +155,39 @@ const TimelineItem: FC<{
   );
 };
 
-// --- COMPONENTE PRINCIPAL ---
+// componente Principal
 interface MedicalHistoryTimelineProps {
-  appointments: AppointmentHistory[];
+  patientId: number;
 }
 
 export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
-  appointments,
+  patientId,
 }) => {
+  // faz o fetch dos dados aqui
+  const { data: history, isLoading } = useQuery({
+    queryKey: ["medical-history", patientId],
+    queryFn: () => getMedicalHistory(patientId),
+    enabled: !!patientId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // verifica se existe appointments dentro do objeto history ou se history é o array
+  const appointments = history?.appointments || [];
+
   const sortedAppointments = [...appointments].sort(
     (a, b) =>
       new Date(b.appointmentDateTime).getTime() -
       new Date(a.appointmentDateTime).getTime()
   );
 
-  if (sortedAppointments.length === 0) {
+  if (!sortedAppointments || sortedAppointments.length === 0) {
     return (
       <Card className="shadow-sm border-border/60">
         <CardContent className="flex flex-col items-center justify-center py-16 text-center">
@@ -181,7 +198,7 @@ export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
             Nenhum histórico encontrado
           </p>
           <p className="text-sm text-muted-foreground max-w-xs">
-            As suas consultas passadas aparecerão aqui após serem concluídas.
+            As consultas passadas aparecerão aqui após serem concluídas.
           </p>
         </CardContent>
       </Card>

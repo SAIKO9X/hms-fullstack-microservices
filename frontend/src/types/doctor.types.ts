@@ -27,3 +27,10 @@ export interface PatientSummary {
   lastAppointmentDate: string;
   status: "ACTIVE" | "INACTIVE";
 }
+
+export interface AvailabilitySlot {
+  id?: number;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+}

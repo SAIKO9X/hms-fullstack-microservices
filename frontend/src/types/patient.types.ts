@@ -24,7 +24,7 @@ export interface PatientProfile {
   userId: number;
   name: string;
   cpf: string;
-  dateOfBirth: Date;
+  dateOfBirth: string;
   phoneNumber: string;
   bloodGroup: BloodGroup;
   gender: Gender;

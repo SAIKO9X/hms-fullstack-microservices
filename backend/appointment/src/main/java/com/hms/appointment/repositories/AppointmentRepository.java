@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -82,4 +83,23 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     "WHERE a.doctorId = :doctorId " +
     "GROUP BY a.patientId, p.fullName, p.email")
   List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
+
+
+  // verifica se existe algum agendamento onde o intervalo (Start-End) se cruza com o novo intervalo
+  @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId " +
+    "AND a.status != 'CANCELED' " +
+    "AND a.appointmentDateTime < :endTime " +
+    "AND :startTime < (a.appointmentDateTime + 1 HOUR)")
+  boolean existsByDoctorIdAndTimeRange(@Param("doctorId") Long doctorId,
+                                       @Param("startTime") LocalDateTime startTime,
+                                       @Param("endTime") LocalDateTime endTime);
+
+  // conta agendamentos de um paciente num dia específico
+  @Query("SELECT COUNT(a) FROM Appointment a " +
+    "WHERE a.patientId = :patientId " +
+    "AND CAST(a.appointmentDateTime AS date) = :date " +
+    "AND a.status != 'CANCELED'")
+  long countByPatientIdAndDate(@Param("patientId") Long patientId, @Param("date") LocalDate date);
+}
 }

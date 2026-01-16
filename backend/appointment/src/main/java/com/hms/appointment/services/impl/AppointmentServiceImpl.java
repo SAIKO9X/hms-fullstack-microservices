@@ -5,11 +5,9 @@ import com.hms.appointment.dto.event.AppointmentEvent;
 import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
 import com.hms.appointment.dto.event.WaitlistNotificationEvent;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
+import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.*;
-import com.hms.appointment.entities.Appointment;
-import com.hms.appointment.entities.DoctorReadModel;
-import com.hms.appointment.entities.PatientReadModel;
-import com.hms.appointment.entities.WaitlistEntry;
+import com.hms.appointment.entities.*;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
@@ -26,10 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
-import java.time.Duration;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,6 +38,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final AppointmentRepository appointmentRepository;
   private final DoctorReadModelRepository doctorReadModelRepository;
   private final PatientReadModelRepository patientReadModelRepository;
+  private final DoctorAvailabilityRepository availabilityRepository;
   private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
 
@@ -55,13 +51,26 @@ public class AppointmentServiceImpl implements AppointmentService {
     if (!patientReadModelRepository.existsById(patientId)) {
       throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não encontrado.");
     }
-
     if (!doctorReadModelRepository.existsById(request.doctorId())) {
       throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado.");
     }
 
-    if (appointmentRepository.existsByDoctorIdAndAppointmentDateTime(request.doctorId(), request.appointmentDateTime())) {
-      throw new SchedulingConflictException("O doutor já possui uma consulta agendada para este horário.");
+    // validações de Regras de Negócio
+    validateBusinessHours(request.appointmentDateTime());
+    validateMinimumAdvanceBooking(request.appointmentDateTime());
+    validateMaximumAdvanceBooking(request.appointmentDateTime());
+    validatePatientDailyLimit(patientId, request.appointmentDateTime());
+    validateDoctorAvailability(request.doctorId(), request.appointmentDateTime());
+    LocalDateTime appointmentEnd = request.appointmentDateTime().plusHours(1);
+
+    boolean hasOverlap = appointmentRepository.existsByDoctorIdAndTimeRange(
+      request.doctorId(),
+      request.appointmentDateTime(),
+      appointmentEnd
+    );
+
+    if (hasOverlap) {
+      throw new SchedulingConflictException("O médico já possui uma consulta agendada neste período.");
     }
 
     Appointment appointment = new Appointment();
@@ -74,7 +83,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
     publishStatusEvent(savedAppointment, "SCHEDULED", null);
-
     scheduleReminder(savedAppointment);
 
     return AppointmentResponse.fromEntity(savedAppointment);
@@ -413,7 +421,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     LocalDateTime limitDate = LocalDateTime.now().minusMonths(6);
 
-    // Mapeia as projeções para DTOs, determinando o status ativo/inativo
+    // mapeia as projeções para DTOs, determinando o status ativo/inativo
     return projections.stream()
       .map(p -> new DoctorPatientSummaryDto(
         p.getPatientId(),
@@ -424,6 +432,111 @@ public class AppointmentServiceImpl implements AppointmentService {
         p.getLastAppointmentDate().isAfter(limitDate) ? "ACTIVE" : "INACTIVE"
       ))
       .toList();
+  }
+
+  @Override
+  @Transactional
+  public AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request) {
+    if (request.startTime().isAfter(request.endTime())) {
+      throw new InvalidUpdateException("O horário de início deve ser anterior ao horário de fim.");
+    }
+
+    List<DoctorAvailability> existingSlots = availabilityRepository.findByDoctorId(doctorId);
+
+    boolean hasConflict = existingSlots.stream()
+      .filter(slot -> slot.getDayOfWeek() == request.dayOfWeek())
+      .anyMatch(slot ->
+        // verifica se o novo horário se sobrepõe a um existente
+        (request.startTime().isBefore(slot.getEndTime()) && request.endTime().isAfter(slot.getStartTime()))
+      );
+
+    if (hasConflict) {
+      throw new InvalidUpdateException("Você já possui um horário configurado que conflita com este período.");
+    }
+
+    DoctorAvailability availability = DoctorAvailability.builder()
+      .doctorId(doctorId)
+      .dayOfWeek(request.dayOfWeek())
+      .startTime(request.startTime())
+      .endTime(request.endTime())
+      .build();
+
+    DoctorAvailability saved = availabilityRepository.save(availability);
+
+    return new AvailabilityResponse(
+      saved.getId(),
+      saved.getDayOfWeek(),
+      saved.getStartTime(),
+      saved.getEndTime()
+    );
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<AvailabilityResponse> getDoctorAvailability(Long doctorId) {
+    return availabilityRepository.findByDoctorId(doctorId).stream()
+      .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime()))
+      .collect(Collectors.toList());
+  }
+
+  @Override
+  @Transactional
+  public void deleteAvailability(Long availabilityId) {
+    availabilityRepository.deleteById(availabilityId);
+  }
+
+  private void validateDoctorAvailability(Long doctorId, LocalDateTime appointmentDateTime) {
+    List<DoctorAvailability> settings = availabilityRepository.findByDoctorId(doctorId);
+
+    if (settings.isEmpty()) return;
+
+    DayOfWeek day = appointmentDateTime.getDayOfWeek();
+    LocalTime appointmentStart = appointmentDateTime.toLocalTime();
+    LocalTime appointmentEnd = appointmentStart.plusHours(1); // consulta de 1h
+
+    boolean isCovered = settings.stream()
+      .anyMatch(slot ->
+        slot.getDayOfWeek() == day &&
+          !appointmentStart.isBefore(slot.getStartTime()) &&
+          !appointmentEnd.isAfter(slot.getEndTime())
+      );
+
+    if (!isCovered) {
+      throw new InvalidUpdateException("O médico não atende neste horário/dia ou a consulta não cabe no período disponível.");
+    }
+  }
+
+  private void validateMinimumAdvanceBooking(LocalDateTime appointmentDateTime) {
+    LocalDateTime minimumTime = LocalDateTime.now().plusHours(2); // 2h de antecedência
+
+    if (appointmentDateTime.isBefore(minimumTime)) {
+      throw new InvalidUpdateException("Agendamentos devem ser feitos com pelo menos 2 horas de antecedência.");
+    }
+  }
+
+  private void validateMaximumAdvanceBooking(LocalDateTime appointmentDateTime) {
+    LocalDateTime maxTime = LocalDateTime.now().plusMonths(3); // Até 3 meses
+
+    if (appointmentDateTime.isAfter(maxTime)) {
+      throw new InvalidUpdateException("Não é possível agendar consultas com mais de 3 meses de antecedência.");
+    }
+  }
+
+  private void validateBusinessHours(LocalDateTime appointmentDateTime) {
+    LocalTime time = appointmentDateTime.toLocalTime();
+
+    if (time.isBefore(LocalTime.of(6, 0)) || time.isAfter(LocalTime.of(22, 0))) {
+      throw new InvalidUpdateException("Horário de agendamento deve estar entre 06:00 e 22:00.");
+    }
+  }
+
+  private void validatePatientDailyLimit(Long patientId, LocalDateTime appointmentDateTime) {
+    LocalDate date = appointmentDateTime.toLocalDate();
+    long appointmentsOnDay = appointmentRepository.countByPatientIdAndDate(patientId, date);
+
+    if (appointmentsOnDay >= 2) {
+      throw new InvalidUpdateException("Você atingiu o limite de 2 agendamentos ativos para este dia.");
+    }
   }
 
   private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
