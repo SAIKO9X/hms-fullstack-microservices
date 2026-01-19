@@ -2,18 +2,16 @@ package com.hms.appointment.repositories;
 
 import java.time.LocalDateTime;
 
-public interface DoctorPatientSummaryProjection {
-  Long getPatientId();
+public interface DoctorSummaryProjection {
+  Long getDoctorId();
 
   Long getUserId();
 
-  String getPatientName();
+  String getDoctorName();
 
-  String getPatientEmail();
+  String getSpecialization();
 
   String getProfilePicture();
-
-  Long getTotalAppointments();
 
   LocalDateTime getLastAppointmentDate();
 }

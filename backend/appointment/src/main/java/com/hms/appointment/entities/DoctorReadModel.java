@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
 @Setter
 @Entity
 @Getter
@@ -22,4 +21,5 @@ public class DoctorReadModel {
   private Long userId;
   private String fullName;
   private String specialization;
+  private String profilePicture;
 }
