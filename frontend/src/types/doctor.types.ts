@@ -12,11 +12,13 @@ export interface DoctorProfile {
   dateOfBirth: Date;
   profilePictureUrl?: string;
   active: boolean;
+  consultationFee?: number;
 }
 
 export interface DoctorDropdown {
   userId: number;
   name: string;
+  consultationFee?: number;
 }
 
 export interface PatientSummary {
