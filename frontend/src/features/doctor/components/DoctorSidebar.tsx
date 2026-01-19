@@ -20,6 +20,7 @@ import {
   Heart,
   CalendarClock,
   MessageSquare,
+  DollarSign,
 } from "lucide-react";
 
 export const DoctorSidebar = () => {
@@ -64,6 +65,11 @@ export const DoctorSidebar = () => {
       title: "Meu Perfil",
       url: "/doctor/profile",
       icon: UserPen,
+    },
+    {
+      title: "Financeiro",
+      url: "/doctor/finance",
+      icon: DollarSign,
     },
   ];
 

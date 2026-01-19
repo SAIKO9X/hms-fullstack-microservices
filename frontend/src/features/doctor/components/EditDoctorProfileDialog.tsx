@@ -32,9 +32,9 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "../../../components/ui/popover";
+} from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../../../components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { medicalSpecializations } from "@/data/medicalSpecializations";
 import { medicalDepartments } from "@/data/medicalDepartments";
@@ -54,6 +54,7 @@ const emptyProfileDefaults: DoctorProfileFormData = {
   yearsOfExperience: 0,
   qualifications: "",
   biography: "",
+  consultationFee: 0,
 };
 
 export const EditDoctorProfileDialog = ({
@@ -64,27 +65,25 @@ export const EditDoctorProfileDialog = ({
 }: EditDialogProps) => {
   const form = useForm<DoctorProfileFormData>({
     resolver: zodResolver(DoctorProfileSchema),
-    defaultValues: profile
-      ? {
-          ...profile,
-          dateOfBirth: profile.dateOfBirth
-            ? new Date(profile.dateOfBirth)
-            : new Date(),
-        }
-      : emptyProfileDefaults,
+    defaultValues: emptyProfileDefaults,
   });
 
   useEffect(() => {
-    if (open) {
-      const defaultValues = profile
-        ? {
-            ...profile,
-            dateOfBirth: profile.dateOfBirth
-              ? new Date(profile.dateOfBirth)
-              : new Date(),
-          }
-        : emptyProfileDefaults;
-      form.reset(defaultValues);
+    if (open && profile) {
+      form.reset({
+        dateOfBirth: profile.dateOfBirth
+          ? new Date(profile.dateOfBirth)
+          : new Date(),
+        specialization: profile.specialization || "",
+        department: profile.department || "",
+        phoneNumber: profile.phoneNumber || "",
+        yearsOfExperience: profile.yearsOfExperience || 0,
+        qualifications: profile.qualifications || "",
+        biography: profile.biography || "",
+        consultationFee: profile.consultationFee || 0,
+      });
+    } else if (open && !profile) {
+      form.reset(emptyProfileDefaults);
     }
   }, [profile, open, form]);
 
@@ -130,6 +129,8 @@ export const EditDoctorProfileDialog = ({
                           selected={field.value}
                           onSelect={field.onChange}
                           captionLayout="dropdown"
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -144,9 +145,9 @@ export const EditDoctorProfileDialog = ({
                 render={({ field }) => (
                   <Combobox
                     label="Especialização"
-                    placeholder="Selecione uma especialização"
-                    searchPlaceholder="Buscar especialização..."
-                    emptyMessage="Nenhuma especialização encontrada."
+                    placeholder="Selecione..."
+                    searchPlaceholder="Buscar..."
+                    emptyMessage="Nada encontrado."
                     options={medicalSpecializations}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -160,9 +161,9 @@ export const EditDoctorProfileDialog = ({
                 render={({ field }) => (
                   <Combobox
                     label="Departamento"
-                    placeholder="Selecione um departamento"
-                    searchPlaceholder="Buscar departamento..."
-                    emptyMessage="Nenhum departamento encontrado."
+                    placeholder="Selecione..."
+                    searchPlaceholder="Buscar..."
+                    emptyMessage="Nada encontrado."
                     options={medicalDepartments}
                     value={field.value}
                     onValueChange={field.onChange}
@@ -202,11 +203,7 @@ export const EditDoctorProfileDialog = ({
                         type="number"
                         placeholder="15"
                         {...field}
-                        value={field.value || ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          field.onChange(value === "" ? 0 : Number(value));
-                        }}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -225,7 +222,7 @@ export const EditDoctorProfileDialog = ({
                     <Textarea
                       {...field}
                       value={field.value || ""}
-                      placeholder="Residência médica, especialização, pós-graduação, certificações, etc."
+                      placeholder="Residência, doutorado..."
                       rows={4}
                     />
                   </FormControl>
@@ -244,8 +241,31 @@ export const EditDoctorProfileDialog = ({
                     <Textarea
                       {...field}
                       value={field.value || ""}
-                      placeholder="Um breve resumo sobre sua carreira, áreas de interesse, e abordagem profissional."
+                      placeholder="Sobre sua carreira..."
                       rows={4}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="consultationFee"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Valor da Consulta (R$)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 300.00"
+                      {...field}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : val);
+                      }}
                     />
                   </FormControl>
                   <FormMessage />

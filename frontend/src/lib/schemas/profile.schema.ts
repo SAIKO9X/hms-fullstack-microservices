@@ -41,6 +41,10 @@ export const DoctorProfileSchema = z.object({
     .max(70, { message: "A experiência não pode ser maior que 70 anos." }),
   qualifications: z.string().optional(),
   biography: z.string().optional(),
+  consultationFee: z.coerce
+    .number()
+    .min(0, "Valor não pode ser negativo")
+    .optional(),
 });
 
 export type DoctorProfileFormData = z.infer<typeof DoctorProfileSchema>;

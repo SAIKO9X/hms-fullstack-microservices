@@ -13,6 +13,7 @@ import { useDoctorsDropdown } from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { formatCurrency } from "@/utils/utils";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +59,6 @@ export const CreateAppointmentDialog = ({
 }: CreateAppointmentDialogProps) => {
   const { data: doctors, isLoading: isLoadingDoctors } = useDoctorsDropdown();
 
-  // Usar o schema de input para o useForm
   const form = useForm<AppointmentFormInput>({
     resolver: zodResolver(AppointmentFormInputSchema),
     defaultValues: {
@@ -69,13 +69,16 @@ export const CreateAppointmentDialog = ({
     },
   });
 
-  // Transformar os dados apenas no momento do submit
+  const selectedDoctorId = form.watch("doctorId");
+  const selectedDoctor = doctors?.find(
+    (d) => String(d.userId) === selectedDoctorId,
+  );
+
   const handleFormSubmit = (data: AppointmentFormInput) => {
     const transformedData = AppointmentFormSchema.parse(data);
     onSubmit(transformedData);
   };
 
-  // Reset form quando o dialog fechar
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setTimeout(() => form.reset(), 200);
@@ -104,7 +107,6 @@ export const CreateAppointmentDialog = ({
             onSubmit={form.handleSubmit(handleFormSubmit)}
             className="space-y-4"
           >
-            {/* Campo de Data */}
             <FormField
               control={form.control}
               name="appointmentDate"
@@ -143,7 +145,6 @@ export const CreateAppointmentDialog = ({
               )}
             />
 
-            {/* Campo de Horário */}
             <FormField
               control={form.control}
               name="appointmentTime"
@@ -173,7 +174,6 @@ export const CreateAppointmentDialog = ({
               )}
             />
 
-            {/* Campo de Doutor */}
             <FormField
               control={form.control}
               name="doctorId"
@@ -209,7 +209,6 @@ export const CreateAppointmentDialog = ({
               )}
             />
 
-            {/* Campo de Motivo */}
             <FormField
               control={form.control}
               name="reason"
@@ -224,6 +223,24 @@ export const CreateAppointmentDialog = ({
                 />
               )}
             />
+
+            {selectedDoctor && (
+              <div className="bg-muted p-4 rounded-md mb-4 flex justify-between items-center">
+                <div>
+                  <p className="font-semibold text-sm">Valor da Consulta</p>
+                  <p className="text-xs text-muted-foreground">
+                    Pode variar conforme seu convênio
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-primary">
+                    {selectedDoctor.consultationFee
+                      ? formatCurrency(selectedDoctor.consultationFee)
+                      : "A combinar"}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <DialogFooter className="pt-4">
               <DialogClose asChild>

@@ -23,6 +23,7 @@ import {
   Pill,
   History,
   MessageSquare,
+  CreditCard,
 } from "lucide-react";
 
 import { useProfile } from "@/services/queries/profile-queries";
@@ -105,6 +106,11 @@ export const PatientSidebar = () => {
       url: "/patient/messages",
       icon: MessageSquare,
       restricted: true,
+    },
+    {
+      title: "Financeiro",
+      url: "/patient/billing",
+      icon: CreditCard,
     },
   ];
 
