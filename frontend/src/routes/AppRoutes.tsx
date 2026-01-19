@@ -42,6 +42,7 @@ import { DoctorAvailabilityPage } from "@/features/doctor/pages/DoctorAvailabili
 import { ConsultationPage } from "@/features/doctor/pages/ConsultationPage";
 import { PatientMessagesPage } from "@/features/patient/pages/PatientMessagesPage";
 import { DoctorMessagesPage } from "@/features/doctor/pages/DoctorMessagesPage";
+import DoctorFinancePage from "@/features/doctor/pages/DoctorFinancePage";
 
 export const AppRoutes = () => {
   return (
@@ -97,6 +98,7 @@ export const AppRoutes = () => {
               <Route path="dashboard" element={<DoctorDashboardPage />} />
               <Route path="profile" element={<DoctorProfilePage />} />
               <Route path="appointments" element={<DoctorAppointmentsPage />} />
+              <Route path="/doctor/finance" element={<DoctorFinancePage />} />
               <Route
                 path="appointments/:id"
                 element={<DoctorAppointmentsDetailPage />}
