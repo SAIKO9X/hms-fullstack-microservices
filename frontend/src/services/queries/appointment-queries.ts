@@ -76,7 +76,7 @@ export const useAppointments = (page = 0, size = 10) => {
 };
 
 export const useDoctorAppointmentDetails = (
-  dateFilter?: "today" | "week" | "month"
+  dateFilter?: "today" | "week" | "month",
 ) => {
   return useQuery({
     queryKey: appointmentKeys.doctorDetails(dateFilter),
@@ -107,7 +107,7 @@ export const useAppointmentsWithDoctorNames = (page = 0, size = 10) => {
 
     return appointmentsList.map((appointment) => {
       const doctor = doctorsQuery.data.find(
-        (doc) => doc.userId === appointment.doctorId
+        (doc) => doc.userId === appointment.doctorId,
       );
       return {
         ...appointment,
@@ -214,7 +214,7 @@ export const useCreateAppointmentRecord = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(
         appointmentKeys.record(data.appointmentId),
-        data
+        data,
       );
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
@@ -229,7 +229,7 @@ export const useUpdateAppointmentRecord = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(
         appointmentKeys.record(data.appointmentId),
-        data
+        data,
       );
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
@@ -253,7 +253,7 @@ export const useCreatePrescription = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(
         appointmentKeys.prescription(data.appointmentId),
-        data
+        data,
       );
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
@@ -268,7 +268,7 @@ export const useUpdatePrescription = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(
         appointmentKeys.prescription(data.appointmentId),
-        data
+        data,
       );
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
@@ -343,7 +343,7 @@ export const useDocumentsByPatientId = (
   patientId?: number,
   page = 0,
   size = 10,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) => {
   return useQuery({
     queryKey: [...appointmentKeys.myDocuments(page, size), patientId],

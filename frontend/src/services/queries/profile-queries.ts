@@ -83,10 +83,10 @@ export const useProfile = () => {
     status: profileQuery.isLoading
       ? "loading"
       : profileQuery.isError
-      ? "failed"
-      : profileQuery.isSuccess
-      ? "succeeded"
-      : "idle",
+        ? "failed"
+        : profileQuery.isSuccess
+          ? "succeeded"
+          : "idle",
   };
 };
 

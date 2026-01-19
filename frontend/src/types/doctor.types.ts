@@ -21,11 +21,13 @@ export interface DoctorDropdown {
 
 export interface PatientSummary {
   patientId: number;
+  userId: number;
   patientName: string;
   patientEmail: string;
   totalAppointments: number;
   lastAppointmentDate: string;
   status: "ACTIVE" | "INACTIVE";
+  profilePicture?: string;
 }
 
 export interface AvailabilitySlot {
@@ -33,4 +35,12 @@ export interface AvailabilitySlot {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+}
+
+export interface DoctorSummary {
+  doctorId: number;
+  doctorName: string;
+  specialization: string;
+  profilePicture?: string;
+  lastAppointmentDate: string;
 }
