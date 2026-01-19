@@ -3,6 +3,7 @@ package com.hms.appointment.controllers;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.dto.response.AppointmentStatsResponse;
+import com.hms.appointment.repositories.DoctorSummaryProjection;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
 import jakarta.validation.Valid;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/appointments/patient")
@@ -29,6 +32,13 @@ public class PatientAppointmentController {
     @Valid @RequestBody AppointmentCreateRequest request) {
     Long patientId = getUserIdFromToken(token);
     return appointmentService.createAppointment(patientId, request);
+  }
+
+  @GetMapping("/my-doctors")
+  @ResponseStatus(HttpStatus.OK)
+  public List<DoctorSummaryProjection> getMyDoctors(@RequestHeader("Authorization") String token) {
+    Long patientId = getUserIdFromToken(token);
+    return appointmentService.getMyDoctors(patientId);
   }
 
   @GetMapping

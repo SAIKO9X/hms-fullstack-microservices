@@ -141,13 +141,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
-      .orElse(new DoctorReadModel(doctorId, null, "Médico (Sincronizando)", "N/A"));
+      .orElse(new DoctorReadModel(doctorId, null, "Médico (Sincronizando)", "N/A", null));
 
     List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
 
     for (Appointment appointment : appointments) {
       PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null));
+        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null, null));
 
       appointmentDetails.add(new AppointmentDetailResponse(
         appointment.getId(),
@@ -241,10 +241,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null));
+      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null, null));
 
     DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
-      .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico Desconhecido", "N/A"));
+      .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico Desconhecido", "N/A", null));
 
     return new AppointmentDetailResponse(
       appointment.getId(),
@@ -425,6 +425,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     return projections.stream()
       .map(p -> new DoctorPatientSummaryDto(
         p.getPatientId(),
+        p.getUserId(),
         p.getPatientName(),
         p.getPatientEmail(),
         p.getTotalAppointments(),
@@ -544,14 +545,20 @@ public class AppointmentServiceImpl implements AppointmentService {
       .orElseThrow(() -> new AppointmentNotFoundException("Agendamento com ID " + appointmentId + " não encontrado."));
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public List<DoctorSummaryProjection> getMyDoctors(Long patientId) {
+    return appointmentRepository.findDoctorsSummaryByPatient(patientId);
+  }
+
   // Método Auxiliar para publicar eventos de status de agendamento
   private void publishStatusEvent(Appointment appointment, String statusOverride, String notes) {
     try {
       PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente", null, "email@exemplo.com"));
+        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente", null, "email@exemplo.com", null));
 
       DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
-        .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico", "Geral"));
+        .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico", "Geral", null));
 
       AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
         appointment.getId(),
@@ -612,7 +619,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     LocalDateTime reminderTime = appointmentTime.minusHours(24);
     LocalDateTime now = LocalDateTime.now();
 
-    // Se a consulta é em menos de 24h, não agendar lembrete (ou agendar para daqui a pouco se quiser)
+    // se a consulta é em menos de 24h, não agendar lembrete (ou agendar para daqui a pouco se quiser)
     if (now.isAfter(reminderTime)) {
       return -1;
     }
@@ -620,10 +627,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     return Duration.between(now, reminderTime).toMillis();
   }
 
-  // Lógica de Waitlist
+  // Verifica a fila de espera e notifica o próximo paciente, se houver
   private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime slotDateTime) {
     try {
-      // Verificar se há alguém na fila para ESTE médico e ESTA data
       Optional<WaitlistEntry> entryOpt = waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(
         doctorId,
         slotDateTime.toLocalDate()
@@ -633,7 +639,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         WaitlistEntry entry = entryOpt.get();
 
         DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
-          .orElse(new DoctorReadModel(doctorId, null, "Médico", "Geral"));
+          .orElse(new DoctorReadModel(doctorId, null, "Médico", "Geral", null));
 
         WaitlistNotificationEvent event = new WaitlistNotificationEvent(
           entry.getPatientEmail(),

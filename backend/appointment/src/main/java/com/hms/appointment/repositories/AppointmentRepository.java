@@ -74,16 +74,30 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   // Consulta para obter o resumo dos pacientes atendidos por um médico específico
   @Query("SELECT a.patientId as patientId, " +
+    "p.userId as userId, " +
     "p.fullName as patientName, " +
     "p.email as patientEmail, " +
+    "p.profilePicture as profilePicture, " +
     "COUNT(a) as totalAppointments, " +
     "MAX(a.appointmentDateTime) as lastAppointmentDate " +
     "FROM Appointment a " +
     "JOIN PatientReadModel p ON a.patientId = p.patientId " +
     "WHERE a.doctorId = :doctorId " +
-    "GROUP BY a.patientId, p.fullName, p.email")
+    "GROUP BY a.patientId, p.userId, p.fullName, p.email, p.profilePicture")
   List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
 
+  // Consulta para obter o resumo dos médicos consultados por um paciente específico
+  @Query("SELECT a.doctorId as doctorId, " +
+    "d.userId as userId, " +
+    "d.fullName as doctorName, " +
+    "d.specialization as specialization, " +
+    "d.profilePicture as profilePicture, " +
+    "MAX(a.appointmentDateTime) as lastAppointmentDate " +
+    "FROM Appointment a " +
+    "JOIN DoctorReadModel d ON a.doctorId = d.doctorId " +
+    "WHERE a.patientId = :patientId " +
+    "GROUP BY a.doctorId, d.userId, d.fullName, d.specialization, d.profilePicture")
+  List<DoctorSummaryProjection> findDoctorsSummaryByPatient(@Param("patientId") Long patientId);
 
   // verifica se existe algum agendamento onde o intervalo (Start-End) se cruza com o novo intervalo
   @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
