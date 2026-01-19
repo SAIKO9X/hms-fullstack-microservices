@@ -24,10 +24,11 @@ public class DoctorEventListener {
       event.doctorId(),
       event.userId(),
       event.fullName(),
-      event.specialization()
+      event.specialization(),
+      null
     );
 
-    repository.save(doctor); // Salva ou Atualiza (Upsert)
+    repository.save(doctor);
     log.info("Modelo de leitura do médico atualizado com sucesso.");
   }
 }

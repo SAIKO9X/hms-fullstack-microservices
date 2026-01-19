@@ -421,7 +421,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     LocalDateTime limitDate = LocalDateTime.now().minusMonths(6);
 
-    // mapeia as projeções para DTOs, determinando o status ativo/inativo
+    // Mapeia as projeções para DTOs, incluindo os novos campos userId e profilePicture
     return projections.stream()
       .map(p -> new DoctorPatientSummaryDto(
         p.getPatientId(),
@@ -430,7 +430,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         p.getPatientEmail(),
         p.getTotalAppointments(),
         p.getLastAppointmentDate(),
-        p.getLastAppointmentDate().isAfter(limitDate) ? "ACTIVE" : "INACTIVE"
+        p.getLastAppointmentDate().isAfter(limitDate) ? "ACTIVE" : "INACTIVE",
+        p.getProfilePicture()
       ))
       .toList();
   }
