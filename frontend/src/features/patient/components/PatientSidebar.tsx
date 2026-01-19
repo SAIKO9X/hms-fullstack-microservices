@@ -1,4 +1,4 @@
-import { useState } from "react"; // Adicionado useState
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
   Sidebar,
@@ -14,19 +14,17 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Home,
-  Settings,
   Calendar,
-  Shield,
-  Stethoscope,
   FileText,
   Heart,
-  Clipboard,
   UserPen,
   UserRoundSearch,
-  Lock, // Adicionado ícone de cadeado
+  Lock,
+  Pill,
+  History,
+  MessageSquare,
 } from "lucide-react";
 
-// Imports para a lógica de perfil e alerta
 import { useProfile } from "@/services/queries/profile-queries";
 import { type PatientProfile } from "@/types/patient.types";
 import {
@@ -39,18 +37,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 
 export const PatientSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
-  // Busca os dados do perfil
   const { profile, isLoading } = useProfile();
   const patientProfile = profile as PatientProfile;
 
-  // Lógica para verificar se está incompleto (mesma lógica da sua página de perfil)
   const isProfileIncomplete =
     !isLoading &&
     patientProfile &&
@@ -79,46 +74,37 @@ export const PatientSidebar = () => {
       title: "Consultas",
       url: "/patient/appointments",
       icon: Calendar,
-      restricted: true, // Item restrito
+      restricted: true,
     },
     {
-      url: "/patient/documents",
       title: "Documentos",
+      url: "/patient/documents",
       icon: FileText,
       restricted: true,
     },
     {
-      icon: UserRoundSearch,
+      title: "Minhas Prescrições",
+      url: "/patient/prescriptions",
+      icon: Pill,
+      restricted: true,
+    },
+    {
+      title: "Histórico Médico",
+      url: "/patient/medical-history",
+      icon: History,
+      restricted: true,
+    },
+    {
       title: "Encontrar Médicos",
       url: "/patient/doctors",
+      icon: UserRoundSearch,
       restricted: true,
     },
     {
-      title: "Exames",
-      url: "/patient/exams",
-      icon: Clipboard,
+      title: "Mensagens",
+      url: "/patient/messages",
+      icon: MessageSquare,
       restricted: true,
-    },
-    {
-      title: "Diagnósticos",
-      url: "/patient/diagnostics",
-      icon: Stethoscope,
-      restricted: true,
-    },
-    {
-      title: "Emergência",
-      url: "/patient/emergency",
-      icon: Shield,
-      restricted: true,
-    },
-  ];
-
-  const systemItems = [
-    {
-      title: "Configurações",
-      url: "/patient/settings",
-      icon: Settings,
-      restricted: false,
     },
   ];
 
@@ -127,7 +113,6 @@ export const PatientSidebar = () => {
   };
 
   const handleNavigation = (url: string, isRestricted: boolean) => {
-    // Se o item for restrito e o perfil estiver incompleto, mostra o alerta e não navega
     if (isRestricted && isProfileIncomplete) {
       setIsAlertOpen(true);
       return;
@@ -135,7 +120,6 @@ export const PatientSidebar = () => {
     navigate(url);
   };
 
-  // Função auxiliar para renderizar o ícone correto
   const renderIcon = (Icon: any, isRestricted: boolean) => {
     if (isRestricted && isProfileIncomplete) {
       return <Lock className="h-4 w-4 text-muted-foreground/70" />;
@@ -200,7 +184,6 @@ export const PatientSidebar = () => {
                         onClick={() =>
                           handleNavigation(item.url, item.restricted)
                         }
-                        // Adiciona estilo de opacidade se estiver bloqueado
                         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary ${
                           locked ? "opacity-60 cursor-not-allowed" : ""
                         }`}
@@ -211,30 +194,6 @@ export const PatientSidebar = () => {
                     </SidebarMenuItem>
                   );
                 })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-              Sistema
-            </SidebarGroupLabel>
-            <SidebarGroupContent className="space-y-1">
-              <SidebarMenu>
-                {systemItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={isActive(item.url)}
-                      onClick={() =>
-                        handleNavigation(item.url, item.restricted)
-                      }
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary"
-                    >
-                      {renderIcon(item.icon, item.restricted)}
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -259,18 +218,14 @@ export const PatientSidebar = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Acesso Restrito</AlertDialogTitle>
             <AlertDialogDescription>
-              Para acessar as funcionalidades clínicas (Consultas, Exames,
-              etc.), você precisa completar seu cadastro com suas informações
-              pessoais e de endereço.
+              Para acessar as funcionalidades clínicas (como Prescrições e
+              Histórico), você precisa completar seu cadastro com endereço e
+              CPF.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Agora não</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                navigate("/patient/profile");
-              }}
-            >
+            <AlertDialogAction onClick={() => navigate("/patient/profile")}>
               Completar Perfil
             </AlertDialogAction>
           </AlertDialogFooter>

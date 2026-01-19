@@ -102,4 +102,3 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     "AND a.status != 'CANCELED'")
   long countByPatientIdAndDate(@Param("patientId") Long patientId, @Param("date") LocalDate date);
 }
-}

@@ -19,6 +19,7 @@ import {
   FileText,
   Heart,
   CalendarClock,
+  MessageSquare,
 } from "lucide-react";
 
 export const DoctorSidebar = () => {
@@ -49,6 +50,12 @@ export const DoctorSidebar = () => {
       title: "Prontuários",
       url: "/doctor/records",
       icon: FileText,
+    },
+    {
+      title: "Mensagens",
+      url: "/doctor/messages",
+      icon: MessageSquare,
+      restricted: true,
     },
   ];
 

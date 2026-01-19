@@ -106,10 +106,20 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Override
   @Transactional(readOnly = true)
   public Page<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId, Pageable pageable) {
-    // Validação de segurança: apenas o próprio paciente ou um médico pode ver
+    // se o usuário está pedindo os próprios dados, permite direto
+    if (patientId.equals(requesterId)) {
+      return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
+        .map(PrescriptionResponse::fromEntity);
+    }
+
+    // se for um terceiro verifica se tem vínculo
     List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
     boolean isAuthorized = appointments.stream()
-      .anyMatch(app -> app.getPatientId().equals(requesterId) || app.getDoctorId().equals(requesterId));
+      .anyMatch(app -> app.getDoctorId().equals(requesterId));
+
+    if (!isAuthorized) {
+      throw new SecurityException("Acesso negado. Você não tem vínculo com este paciente.");
+    }
 
     return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
       .map(PrescriptionResponse::fromEntity);

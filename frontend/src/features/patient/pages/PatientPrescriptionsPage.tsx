@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export const PatientPrescriptionsPage = () => {
@@ -28,7 +28,7 @@ export const PatientPrescriptionsPage = () => {
   const [pageSize] = useState(10);
   const { data: prescriptionsPage, isLoading } = useMyPrescriptionsHistory(
     page,
-    pageSize
+    pageSize,
   );
 
   // Lista de prescrições da página atual
@@ -157,7 +157,7 @@ export const PatientPrescriptionsPage = () => {
                                 "dd 'de' MMMM 'de' yyyy",
                                 {
                                   locale: ptBR,
-                                }
+                                },
                               )}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -208,6 +208,15 @@ export const PatientPrescriptionsPage = () => {
                                     <strong>Duração:</strong> {med.duration}{" "}
                                     dias
                                   </span>
+                                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                    <AlertCircle className="h-3 w-3" />
+                                    <strong>Válido até:</strong>{" "}
+                                    {format(
+                                      addDays(new Date(p.createdAt), 30), // data de criação + 30 dias
+                                      "dd/MM/yyyy",
+                                      { locale: ptBR },
+                                    )}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -257,7 +266,7 @@ export const PatientPrescriptionsPage = () => {
                       !prescriptionsPage ||
                       old >= prescriptionsPage.totalPages - 1
                         ? old
-                        : old + 1
+                        : old + 1,
                     )
                   }
                   disabled={
