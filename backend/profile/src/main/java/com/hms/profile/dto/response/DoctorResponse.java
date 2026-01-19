@@ -3,6 +3,7 @@ package com.hms.profile.dto.response;
 import com.hms.profile.entities.Doctor;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record DoctorResponse(
@@ -17,7 +18,8 @@ public record DoctorResponse(
   int yearsOfExperience,
   String qualifications,
   String biography,
-  String profilePictureUrl
+  String profilePictureUrl,
+  BigDecimal consultationFee
 ) implements Serializable {
 
   public static DoctorResponse fromEntity(Doctor doctor) {
@@ -33,7 +35,8 @@ public record DoctorResponse(
       doctor.getYearsOfExperience(),
       doctor.getQualifications(),
       doctor.getBiography(),
-      doctor.getProfilePictureUrl()
+      doctor.getProfilePictureUrl(),
+      doctor.getConsultationFee()
     );
   }
 }

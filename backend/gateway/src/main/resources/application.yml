@@ -72,11 +72,19 @@ spring:
             - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
             - name: TokenFilter
 
-              # Rota para o Chat REST
+        # Rota para o Chat REST
         - id: chat-rest-route
           uri: lb://chat-service
           predicates:
             - Path=/chat/**
+          filters:
+            - name: TokenFilter
+
+        # Rota para o Billing-Service
+        - id: billing-service-route
+          uri: lb://billing-service
+          predicates:
+            - Path=/api/billing/**
           filters:
             - name: TokenFilter
 

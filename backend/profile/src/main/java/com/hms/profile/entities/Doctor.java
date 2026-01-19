@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -45,4 +46,6 @@ public class Doctor {
   private String biography;
 
   private String profilePictureUrl;
+
+  private BigDecimal consultationFee; // Ex: 200.00
 }

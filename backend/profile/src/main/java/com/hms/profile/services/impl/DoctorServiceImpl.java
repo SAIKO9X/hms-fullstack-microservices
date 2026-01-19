@@ -61,7 +61,7 @@ public class DoctorServiceImpl implements DoctorService {
 
   @Override
   @Transactional(readOnly = true)
-  @Cacheable(value = "doctorsByUserId", key = "#userId") // Cacheia a leitura
+  @Cacheable(value = "doctorsByUserId", key = "#userId")
   public DoctorResponse getDoctorProfileByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
       .map(DoctorResponse::fromEntity)
@@ -85,6 +85,9 @@ public class DoctorServiceImpl implements DoctorService {
     if (request.yearsOfExperience() > 0) doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
     if (request.qualifications() != null) doctorToUpdate.setQualifications(request.qualifications());
     if (request.biography() != null) doctorToUpdate.setBiography(request.biography());
+    if (request.consultationFee() != null) {
+      doctorToUpdate.setConsultationFee(request.consultationFee());
+    }
 
     Doctor updatedDoctor = doctorRepository.save(doctorToUpdate);
     publishDoctorEvent(updatedDoctor, "UPDATED");

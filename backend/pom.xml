@@ -31,6 +31,7 @@
         <module>chat</module>
         <module>notification</module>
         <module>common-lib</module>
+        <module>billing</module>
     </modules>
 
     <dependencyManagement>

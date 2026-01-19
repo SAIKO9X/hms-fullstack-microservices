@@ -3,6 +3,7 @@ package com.hms.profile.dto.request;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record DoctorUpdateRequest(
@@ -22,6 +23,8 @@ public record DoctorUpdateRequest(
 
   String qualifications,
 
-  String biography
+  String biography,
+
+  BigDecimal consultationFee
 ) {
 }

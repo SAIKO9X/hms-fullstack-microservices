@@ -236,6 +236,27 @@ services:
       timeout: 5s
       retries: 5
 
+  mysql-billing:
+    image: mysql:8.0
+    container_name: ms-billing-db
+    environment:
+      MYSQL_DATABASE: ${MYSQL_BILLING_DB}
+      MYSQL_USER: ${MYSQL_BILLING_USER}
+      MYSQL_PASSWORD: ${MYSQL_BILLING_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${MYSQL_BILLING_PORT}:3306"
+    volumes:
+      - billing-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ====================================================
   # MICROSSERVIÇOS
   # ====================================================
@@ -484,6 +505,40 @@ services:
       retries: 5
       start_period: 120s
 
+  billing-service:
+    build:
+      context: .
+      dockerfile: billing/Dockerfile
+    container_name: billing-service
+    environment:
+      - SERVER_PORT=8088
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-billing
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_BILLING_DB}
+      - DB_USER=${MYSQL_BILLING_USER}
+      - DB_PASSWORD=${MYSQL_BILLING_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      mysql-billing:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8088/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   # ====================================================
   # MONITORAMENTO
   # ====================================================
@@ -512,6 +567,8 @@ services:
       chat-service:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      billing-service:
         condition: service_healthy
 
   grafana:
@@ -556,6 +613,7 @@ volumes:
   media-mysql-data:
   chat-mysql-data:
   notification-mysql-data:
+  billing-mysql-data:
 
 networks:
   hms-network:
