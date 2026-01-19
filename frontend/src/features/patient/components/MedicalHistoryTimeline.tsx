@@ -158,12 +158,14 @@ const TimelineItem: FC<{
 // componente Principal
 interface MedicalHistoryTimelineProps {
   patientId: number;
+  compactMode?: boolean;
 }
 
 export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
   patientId,
+  compactMode = false,
 }) => {
-  // faz o fetch dos dados aqui
+  // busca do histórico médico
   const { data: history, isLoading } = useQuery({
     queryKey: ["medical-history", patientId],
     queryFn: () => getMedicalHistory(patientId),
@@ -184,8 +186,11 @@ export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
   const sortedAppointments = [...appointments].sort(
     (a, b) =>
       new Date(b.appointmentDateTime).getTime() -
-      new Date(a.appointmentDateTime).getTime()
+      new Date(a.appointmentDateTime).getTime(),
   );
+
+  const displayLimit = compactMode ? 3 : undefined;
+  const displayedAppointments = sortedAppointments.slice(0, displayLimit);
 
   if (!sortedAppointments || sortedAppointments.length === 0) {
     return (
@@ -206,14 +211,19 @@ export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
   }
 
   return (
-    <div className="space-y-8">
-      {sortedAppointments.map((appointment, index) => (
+    <div className={compactMode ? "space-y-4" : "space-y-8"}>
+      {displayedAppointments.map((appointment, index) => (
         <TimelineItem
           key={appointment.id}
           appointment={appointment}
-          isLast={index === sortedAppointments.length - 1}
+          isLast={index === displayedAppointments.length - 1}
         />
       ))}
+      {compactMode && sortedAppointments.length > 3 && (
+        <p className="text-xs text-center text-muted-foreground mt-2">
+          e mais {sortedAppointments.length - 3} consultas...
+        </p>
+      )}
     </div>
   );
 };

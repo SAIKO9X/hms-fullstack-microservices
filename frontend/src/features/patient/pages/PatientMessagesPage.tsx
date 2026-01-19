@@ -4,98 +4,102 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, MessageSquare, Stethoscope, User } from "lucide-react";
+import { Search, MessageSquare, Stethoscope } from "lucide-react";
 import { ChatWindow } from "@/features/chat/components/ChatWindow";
-import { useProfile } from "@/services/queries/profile-queries";
-// import { useMyRecentChats } from "@/services/queries/chat-queries";
+import { useMyDoctors } from "@/services/queries/patient-queries";
 
 export const PatientMessagesPage = () => {
-  const { profile } = useProfile();
-  const [selectedContact, setSelectedContact] = useState<{
+  const { data: doctors, isLoading } = useMyDoctors();
+
+  const [selectedDoctor, setSelectedDoctor] = useState<{
     id: number;
     name: string;
-    role: string;
-    avatar?: string;
+    profilePicture?: string;
   } | null>(null);
 
-  // MOCK DE DADOS
-  // const { data: contacts } = useMyRecentChats();
-  const contacts = [
-    { id: 101, name: "Dr. House", role: "Cardiologista", avatar: "" },
-    { id: 102, name: "Dra. Grey", role: "Clínica Geral", avatar: "" },
-  ];
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredDoctors =
+    doctors?.filter(
+      (d) =>
+        d.doctorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.specialization.toLowerCase().includes(searchTerm.toLowerCase()),
+    ) || [];
 
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-4">
-      {/* Lado Esquerdo - Lista de Conversas */}
       <Card className="w-1/3 flex flex-col h-full border-r">
         <div className="p-4 border-b space-y-4">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-lg">Mensagens</h2>
+            <h2 className="font-semibold text-lg">Seus Médicos</h2>
           </div>
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar conversas..." className="pl-8" />
+            <Input
+              placeholder="Buscar médico..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
 
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-1 p-2">
-            {contacts.map((contact) => (
+            {isLoading && (
+              <p className="p-4 text-center text-sm">Carregando...</p>
+            )}
+
+            {filteredDoctors.map((doc) => (
               <Button
-                key={contact.id}
+                key={doc.doctorId}
                 variant={
-                  selectedContact?.id === contact.id ? "secondary" : "ghost"
+                  selectedDoctor?.id === doc.doctorId ? "secondary" : "ghost"
                 }
                 className="justify-start px-3 py-6 h-auto"
-                onClick={() => setSelectedContact(contact)}
+                onClick={() =>
+                  setSelectedDoctor({
+                    id: doc.doctorId,
+                    name: doc.doctorName,
+                    profilePicture: doc.profilePicture,
+                  })
+                }
               >
                 <div className="flex items-center gap-3 w-full">
                   <Avatar>
-                    <AvatarImage src={contact.avatar} />
+                    <AvatarImage src={doc.profilePicture} />
                     <AvatarFallback>
                       <Stethoscope className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col items-start text-left overflow-hidden">
                     <span className="font-semibold truncate w-full">
-                      {contact.name}
+                      {doc.doctorName}
                     </span>
                     <span className="text-xs text-muted-foreground truncate w-full">
-                      {contact.role}
+                      {doc.specialization}
                     </span>
                   </div>
                 </div>
               </Button>
             ))}
-
-            {contacts.length === 0 && (
-              <div className="p-4 text-center text-muted-foreground text-sm">
-                Nenhuma conversa recente.
-              </div>
-            )}
           </div>
         </ScrollArea>
       </Card>
 
-      {/* Lado Direito - Janela do Chat */}
       <Card className="flex-1 h-full overflow-hidden flex flex-col">
-        {selectedContact ? (
+        {selectedDoctor ? (
           <ChatWindow
-            recipientId={selectedContact.id}
-            recipientName={selectedContact.name}
-            // onClose={() => setSelectedContact(null)}
+            recipientId={selectedDoctor.id}
+            recipientName={selectedDoctor.name}
+            recipientProfilePictureUrl={selectedDoctor.profilePicture}
             className="h-full border-0 shadow-none"
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 bg-muted/20">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8">
             <MessageSquare className="h-16 w-16 mb-4 opacity-20" />
-            <h3 className="text-lg font-semibold">Suas Mensagens</h3>
-            <p className="text-sm text-center max-w-sm mt-2">
-              Selecione um médico na lista ao lado para visualizar o histórico
-              de conversas ou enviar uma nova mensagem.
-            </p>
+            <h3 className="text-lg font-semibold">Selecione uma conversa</h3>
           </div>
         )}
       </Card>
