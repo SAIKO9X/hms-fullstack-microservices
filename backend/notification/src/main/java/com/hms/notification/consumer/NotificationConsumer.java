@@ -1,9 +1,7 @@
 package com.hms.notification.consumer;
 
-import com.hms.notification.clients.UserFeignClient;
 import com.hms.notification.config.RabbitMQConfig;
 import com.hms.notification.dto.event.*;
-import com.hms.notification.dto.external.UserResponse;
 import com.hms.notification.dto.request.EmailRequest;
 import com.hms.notification.services.EmailService;
 import jakarta.mail.MessagingException;
@@ -29,7 +27,6 @@ public class NotificationConsumer {
   private final JavaMailSender mailSender;
   private final EmailService emailService;
   private final SpringTemplateEngine templateEngine;
-  private final UserFeignClient userFeignClient;
 
   @RabbitListener(queues = "${application.rabbitmq.notification-queue}")
   public void consumeNotification(EmailRequest request) {
@@ -88,35 +85,21 @@ public class NotificationConsumer {
   public void handleLabResult(LabOrderCompletedEvent event) {
     log.info("Processando notificação de exame: ID Pedido {}", event.labOrderNumber());
 
-    String doctorEmail = null;
-
-    if (event.doctorUserId() != null) {
-      try {
-        UserResponse user = userFeignClient.getUserById(event.doctorUserId());
-        if (user != null) {
-          doctorEmail = user.email();
-        }
-      } catch (Exception e) {
-        log.error("Falha ao buscar dados do médico no User Service para o ID {}: {}",
-          event.doctorUserId(), e.getMessage());
-      }
-    } else {
-      log.warn("Evento recebido sem doctorUserId: {}", event);
-    }
+    String doctorEmail = event.doctorEmail();
 
     if (doctorEmail == null || doctorEmail.isBlank()) {
-      log.warn("Email do médico não encontrado ou ausente. Notificação cancelada para o pedido {}", event.labOrderNumber());
+      log.warn("Email ausente no evento para o pedido {}", event.labOrderNumber());
       return;
     }
 
     try {
       Context context = new Context();
       context.setVariables(Map.of(
-        "doctorName", event.doctorName() != null ? event.doctorName() : "Doutor(a)",
-        "patientName", event.patientName() != null ? event.patientName() : "Paciente",
+        "doctorName", event.doctorName(),
+        "patientName", event.patientName(),
         "orderNumber", event.labOrderNumber(),
-        "orderDate", event.completionDate() != null ? event.completionDate() : "Hoje",
-        "actionUrl", "http://localhost:5173/doctor/appointments/" + event.appointmentId()
+        "orderDate", event.completionDate(),
+        "actionUrl", event.resultUrl()
       ));
 
       String htmlBody = templateEngine.process("lab-result-email", context);
@@ -124,16 +107,16 @@ public class NotificationConsumer {
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
 
-      helper.setTo(doctorEmail); // Usando o email buscado
+      helper.setTo(doctorEmail);
       helper.setSubject("Resultados de Exames Disponíveis - Pedido " + event.labOrderNumber());
       helper.setText(htmlBody, true);
       helper.setFrom("no-reply@hms.com");
 
       mailSender.send(message);
-      log.info("Email de exames enviado com sucesso para {}", doctorEmail);
+      log.info("Email enviado para {}", doctorEmail);
 
     } catch (MessagingException e) {
-      log.error("Erro fatal ao enviar email de exames", e);
+      log.error("Erro ao enviar email", e);
     }
   }
 

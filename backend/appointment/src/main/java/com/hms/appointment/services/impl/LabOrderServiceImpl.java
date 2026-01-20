@@ -1,10 +1,12 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.LabOrderCompletedEvent;
 import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
+import com.hms.appointment.dto.external.UserResponse;
 import com.hms.appointment.dto.request.AddLabResultRequest;
 import com.hms.appointment.dto.request.LabOrderCreateRequest;
 import com.hms.appointment.dto.response.LabOrderDTO;
@@ -40,6 +42,7 @@ public class LabOrderServiceImpl implements LabOrderService {
   private final AppointmentRepository appointmentRepository;
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileClient;
+  private final UserFeignClient userClient;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -93,25 +96,33 @@ public class LabOrderServiceImpl implements LabOrderService {
     if (allCompleted) {
       order.setStatus(LabOrderStatus.COMPLETED);
 
-      String doctorName = "Doutor";
-      Long doctorUserId = null;
+      String doctorEmail = "no-reply@hms.com";
+      String doctorName = "Doutor(a)";
       String patientName = "Paciente";
+      Long doctorUserId = null;
 
       try {
         DoctorProfile doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
-        PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
 
         if (doctorProfile != null) {
           doctorName = doctorProfile.name();
           doctorUserId = doctorProfile.userId();
+
+          if (doctorUserId != null) {
+            UserResponse userResponse = userClient.getUserById(doctorUserId);
+            if (userResponse != null) {
+              doctorEmail = userResponse.email();
+            }
+          }
         }
 
+        PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
         if (patientProfile != null) {
           patientName = patientProfile.name();
         }
 
       } catch (Exception e) {
-        log.error("Erro ao buscar dados do perfil: {}", e.getMessage());
+        log.error("Erro ao enriquecer evento de exame (continuando fluxo): {}", e.getMessage());
       }
 
       LabOrderCompletedEvent event = new LabOrderCompletedEvent(
@@ -123,7 +134,9 @@ public class LabOrderServiceImpl implements LabOrderService {
         order.getAppointment().getDoctorId(),
         doctorUserId,
         doctorName,
-        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        doctorEmail,
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+        "http://localhost:5173/doctor/appointments/" + order.getAppointment().getId()
       );
 
       rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
