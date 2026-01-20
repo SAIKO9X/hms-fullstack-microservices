@@ -1,8 +1,9 @@
 package com.hms.appointment.entities;
 
-import com.hms.appointment.enums.ReportStatus;
+import com.hms.appointment.enums.LabOrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,18 +21,23 @@ public class LabOrder {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private Long appointmentId;
+  @Column(unique = true)
+  private String orderNumber;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "appointment_id")
+  private Appointment appointment;
+
   private Long patientId;
-  private Long doctorId;
 
   private LocalDateTime orderDate;
 
-  @ElementCollection
-  @CollectionTable(name = "tb_lab_order_items", joinColumns = @JoinColumn(name = "lab_order_id"))
-  private List<LabTestItem> tests = new ArrayList<>();
+  @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = "lab_order_id")
+  private List<LabTestItem> labTestItems = new ArrayList<>();
 
-  private String notes; // Observações gerais do pedido
+  private String notes;
 
   @Enumerated(EnumType.STRING)
-  private ReportStatus status; // PENDING, COMPLETED
+  private LabOrderStatus status;
 }

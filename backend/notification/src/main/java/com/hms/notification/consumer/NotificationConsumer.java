@@ -1,35 +1,37 @@
 package com.hms.notification.consumer;
 
 import com.hms.notification.config.RabbitMQConfig;
-import com.hms.notification.dto.event.AppointmentEvent;
-import com.hms.notification.dto.event.AppointmentStatusChangedEvent;
-import com.hms.notification.dto.event.UserCreatedEvent;
-import com.hms.notification.dto.event.WaitlistNotificationEvent;
+import com.hms.notification.dto.event.*;
 import com.hms.notification.dto.request.EmailRequest;
 import com.hms.notification.services.EmailService;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
-@Component
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class NotificationConsumer {
 
+  private final JavaMailSender mailSender;
   private final EmailService emailService;
+  private final SpringTemplateEngine templateEngine;
 
   @RabbitListener(queues = "${application.rabbitmq.notification-queue}")
   public void consumeNotification(EmailRequest request) {
     log.info("Mensagem recebida da fila: {}", request);
-
-    emailService.sendEmail(
-      request.to(),
-      request.subject(),
-      request.body()
-    );
+    emailService.sendEmail(request.to(), request.subject(), request.body());
   }
 
   @RabbitListener(queues = RabbitMQConfig.REMINDER_QUEUE)
@@ -43,6 +45,8 @@ public class NotificationConsumer {
       <p>Este é um lembrete de que você tem uma consulta agendada com <b>Dr. %s</b> em <b>%s</b>.</p>
       <p>Por favor, chegue com 15 minutos de antecedência.</p>
       """, event.doctorName(), event.appointmentDateTime());
+
+    emailService.sendEmail(event.patientEmail(), subject, content);
   }
 
   @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
@@ -56,6 +60,8 @@ public class NotificationConsumer {
       <p>Surgiu uma vaga com <b>Dr. %s</b> para o dia <b>%s</b>.</p>
       <p>Acesse o sistema agora para confirmar este horário antes que seja ocupado.</p>
       """, event.patientName(), event.doctorName(), event.availableDateTime());
+
+    emailService.sendEmail(event.email(), subject, content);
   }
 
   @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
@@ -73,6 +79,43 @@ public class NotificationConsumer {
       """, event.name(), event.verificationCode());
 
     emailService.sendEmail(event.email(), subject, content);
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.lab-queue-name:notification.lab.completed.queue}")
+  public void handleLabResult(LabOrderCompletedEvent event) {
+    log.info("Processando notificação de exame: {}", event.labOrderNumber());
+
+    if (event.doctorEmail() == null || event.doctorEmail().isBlank()) {
+      log.warn("Email do médico ausente para o pedido {}", event.labOrderNumber());
+      return;
+    }
+
+    try {
+      Context context = new Context();
+      context.setVariables(Map.of(
+        "doctorName", event.doctorName() != null ? event.doctorName() : "Doutor(a)",
+        "patientName", event.patientName() != null ? event.patientName() : "Paciente",
+        "orderNumber", event.labOrderNumber(),
+        "orderDate", event.completionDate() != null ? event.completionDate() : "Hoje",
+        "actionUrl", "http://localhost:5173/doctor/appointments/" + event.appointmentId()
+      ));
+
+      String htmlBody = templateEngine.process("lab-result-email", context);
+
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+
+      helper.setTo(event.doctorEmail());
+      helper.setSubject("Resultados de Exames Disponíveis - Pedido " + event.labOrderNumber());
+      helper.setText(htmlBody, true);
+      helper.setFrom("no-reply@hms.com");
+
+      mailSender.send(message);
+      log.info("Email de exames enviado para {}", event.doctorEmail());
+
+    } catch (MessagingException e) {
+      log.error("Erro ao enviar email de exames", e);
+    }
   }
 
   @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_NOTIFICATION_QUEUE)
@@ -109,10 +152,6 @@ public class NotificationConsumer {
         return;
     }
 
-    emailService.sendEmail(
-      event.patientEmail(),
-      subject,
-      body
-    );
+    emailService.sendEmail(event.patientEmail(), subject, body);
   }
 }

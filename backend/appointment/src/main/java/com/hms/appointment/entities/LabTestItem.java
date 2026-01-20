@@ -1,17 +1,44 @@
 package com.hms.appointment.entities;
 
-import jakarta.persistence.Embeddable;
+import com.hms.appointment.enums.LabItemStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Embeddable
-@Data
+@Entity
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "lab_test_items")
 public class LabTestItem {
-  private String testName; // Ex: Hemograma Completo
-  private String category; // Ex: Sangue, Imagem, Urina
-  private String clinicalIndication; // Ex: Suspeita de Anemia (Justificativa)
-  private String instructions; // Ex: Jejum de 8 horas
+
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
+
+  private String testName;
+  private String category;
+  private String clinicalIndication;
+  private String instructions;
+
+  @Column(name = "result_notes", columnDefinition = "TEXT")
+  private String resultNotes;
+
+  @Column(name = "attachment_id")
+  private String attachmentId;
+
+  @Enumerated(EnumType.STRING)
+  private LabItemStatus status = LabItemStatus.PENDING;
+
+  // Construtor auxiliar
+  public LabTestItem(String testName, String category, String clinicalIndication, String instructions) {
+    this.testName = testName;
+    this.category = category;
+    this.clinicalIndication = clinicalIndication;
+    this.instructions = instructions;
+    this.status = LabItemStatus.PENDING;
+  }
 }

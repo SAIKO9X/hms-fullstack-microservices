@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultados de Exames</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px; }
+        .header { background-color: #0f766e; color: white; padding: 15px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { padding: 20px; }
+        .button { display: inline-block; background-color: #0f766e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin-top: 20px; font-weight: bold; }
+        .footer { font-size: 12px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Resultados Disponíveis</h1>
+    </div>
+    <div class="content">
+        <p>Olá, <strong th:text="${doctorName}">Doutor(a)</strong>,</p>
+
+        <p>Os resultados laboratoriais referentes ao pedido <strong th:text="${orderNumber}">#123</strong> foram
+            processados e anexados ao sistema.</p>
+
+        <div style="background-color: #f9fafb; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p><strong>Paciente:</strong> <span th:text="${patientName}">Nome do Paciente</span></p>
+            <p><strong>Data do Pedido:</strong> <span th:text="${orderDate}">01/01/2024</span></p>
+        </div>
+
+        <p>Clique no botão abaixo para acessar os detalhes e visualizar os arquivos:</p>
+
+        <center>
+            <a th:href="${actionUrl}" class="button">Ver Resultados</a>
+        </center>
+    </div>
+    <div class="footer">
+        <p>Sistema de Gestão Hospitalar (HMS) - Mensagem Automática</p>
+    </div>
+</div>
+</body>
+</html>

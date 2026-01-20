@@ -48,7 +48,7 @@ export const AdminSidebar = () => {
     { title: "Configurações", url: "/admin/settings", icon: Settings },
     {
       title: "Auditoria",
-      href: "/admin/audit-logs",
+      url: "/admin/audit-logs",
       icon: ShieldCheck,
     },
   ];

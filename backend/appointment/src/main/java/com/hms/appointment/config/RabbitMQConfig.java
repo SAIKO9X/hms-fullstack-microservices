@@ -1,5 +1,6 @@
 package com.hms.appointment.config;
 
+import lombok.Getter;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -15,6 +16,7 @@ import java.util.Map;
 @Configuration
 public class RabbitMQConfig {
 
+  @Getter
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
@@ -37,6 +39,8 @@ public class RabbitMQConfig {
   public static final String DELAYED_EXCHANGE = "delayed.exchange";
   public static final String REMINDER_ROUTING_KEY = "appointment.reminder";
   public static final String WAITLIST_ROUTING_KEY = "appointment.waitlist.available";
+  public static final String LAB_COMPLETED_QUEUE = "notification.lab.completed.queue";
+  public static final String LAB_RESULT_ROUTING_KEY = "notification.lab.completed";
 
   @Bean
   public TopicExchange exchange() {
@@ -46,6 +50,11 @@ public class RabbitMQConfig {
   @Bean
   public TopicExchange auditExchange() {
     return new TopicExchange("hms.audit.exchange");
+  }
+
+  @Bean
+  public Queue labCompletedQueue() {
+    return new Queue(LAB_COMPLETED_QUEUE, true);
   }
 
   @Bean
@@ -75,6 +84,14 @@ public class RabbitMQConfig {
   @Bean
   public Binding patientBinding(Queue patientQueue, TopicExchange exchange) {
     return BindingBuilder.bind(patientQueue).to(exchange).with(PATIENT_ROUTING_KEY);
+  }
+
+  @Bean
+  public Binding labCompletedBinding(Queue labCompletedQueue, TopicExchange exchange) {
+    return BindingBuilder
+      .bind(labCompletedQueue)
+      .to(exchange)
+      .with("notification.lab.completed");
   }
 
   // --- CONFIGURAÇÃO USER ---

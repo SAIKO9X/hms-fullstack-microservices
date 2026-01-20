@@ -26,4 +26,6 @@ public class LabOrderController {
   public ResponseEntity<List<LabOrder>> getOrdersByAppointment(@PathVariable Long appointmentId) {
     return ResponseEntity.ok(labOrderService.getLabOrdersByAppointment(appointmentId));
   }
+
+
 }
