@@ -6,6 +6,7 @@ import * as PatientService from "./patient";
 import * as PharmacyService from "./pharmacy";
 import * as ProfileService from "./profile";
 import * as ChatService from "./chat";
+import * as BillingService from "./billing";
 
 export {
   AdminService,
@@ -16,4 +17,5 @@ export {
   PharmacyService,
   ProfileService,
   ChatService,
+  BillingService,
 };

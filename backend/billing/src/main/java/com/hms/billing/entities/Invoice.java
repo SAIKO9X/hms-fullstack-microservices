@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "tb_invoices")
+@Table(
+  name = "tb_invoices", uniqueConstraints = {
+  @UniqueConstraint(columnNames = "appointmentId")
+})
 public class Invoice {
 
   @Id
@@ -36,4 +39,8 @@ public class Invoice {
   private LocalDateTime issuedAt;
 
   private LocalDateTime paidAt;
+
+  private LocalDateTime patientPaidAt;
+
+  private LocalDateTime insurancePaidAt;
 }

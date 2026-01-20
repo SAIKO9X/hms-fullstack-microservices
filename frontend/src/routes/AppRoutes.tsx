@@ -43,6 +43,7 @@ import { ConsultationPage } from "@/features/doctor/pages/ConsultationPage";
 import { PatientMessagesPage } from "@/features/patient/pages/PatientMessagesPage";
 import { DoctorMessagesPage } from "@/features/doctor/pages/DoctorMessagesPage";
 import DoctorFinancePage from "@/features/doctor/pages/DoctorFinancePage";
+import { AdminInsurancePage } from "@/features/admin/pages/AdminInsurancePage";
 
 export const AppRoutes = () => {
   return (
@@ -129,6 +130,7 @@ export const AppRoutes = () => {
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="/admin/insurance" element={<AdminInsurancePage />} />
             <Route
               path="users/patient/:id/history"
               element={<AdminPatientMedicalHistoryPage />}

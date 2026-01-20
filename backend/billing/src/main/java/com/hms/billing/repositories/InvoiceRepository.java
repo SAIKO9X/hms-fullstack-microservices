@@ -1,6 +1,7 @@
 package com.hms.billing.repositories;
 
 import com.hms.billing.entities.Invoice;
+import com.hms.billing.enums.InvoiceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -12,4 +13,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
   List<Invoice> findByDoctorId(String doctorId);
 
   Optional<Invoice> findByAppointmentId(Long appointmentId);
+
+  List<Invoice> findByStatus(InvoiceStatus status);
 }

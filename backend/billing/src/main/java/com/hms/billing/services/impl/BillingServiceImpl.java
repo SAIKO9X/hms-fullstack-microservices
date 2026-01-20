@@ -43,6 +43,7 @@ public class BillingServiceImpl implements BillingService {
     }
 
     BigDecimal appointmentFee = BASE_CONSULTATION_FEE;
+
     try {
       if (doctorId != null) {
         // O Feign Client espera String, o profile-service converte
@@ -65,25 +66,28 @@ public class BillingServiceImpl implements BillingService {
       .totalAmount(finalFee)
       .build();
 
-    patientInsuranceRepository.findByPatientId(patientId).ifPresentOrElse(
-      insurance -> {
-        BigDecimal coveragePercent = insurance.getProvider().getCoveragePercentage();
-        BigDecimal coveredAmount = finalFee.multiply(coveragePercent);
-        BigDecimal patientAmount = finalFee.subtract(coveredAmount);
+    patientInsuranceRepository.findByPatientId(patientId)
+      .filter(ins -> ins.getProvider().isActive() &&
+        (ins.getValidUntil() == null || ins.getValidUntil().isAfter(LocalDate.now())))
+      .ifPresentOrElse(
+        insurance -> {
+          BigDecimal coveragePercent = insurance.getProvider().getCoveragePercentage();
+          BigDecimal coveredAmount = finalFee.multiply(coveragePercent);
+          BigDecimal patientAmount = finalFee.subtract(coveredAmount);
 
-        invoice.setInsuranceCovered(coveredAmount);
-        invoice.setPatientPayable(patientAmount);
-        invoice.setStatus(InvoiceStatus.INSURANCE_PENDING); // convênio paga depois
-        log.info("Convênio aplicado: {} cobrindo {}%", insurance.getProvider().getName(), coveragePercent.multiply(new BigDecimal(100)));
-      },
-      () -> {
-        // Particular
-        invoice.setInsuranceCovered(BigDecimal.ZERO);
-        invoice.setPatientPayable(finalFee);
-        invoice.setStatus(InvoiceStatus.PENDING);
-        log.info("Nenhum convênio encontrado. Cobrança particular.");
-      }
-    );
+          invoice.setInsuranceCovered(coveredAmount);
+          invoice.setPatientPayable(patientAmount);
+          invoice.setStatus(InvoiceStatus.INSURANCE_PENDING); // convênio paga depois
+          log.info("Convênio aplicado: {} cobrindo {}%", insurance.getProvider().getName(), coveragePercent.multiply(new BigDecimal(100)));
+        },
+        () -> {
+          // Particular
+          invoice.setInsuranceCovered(BigDecimal.ZERO);
+          invoice.setPatientPayable(finalFee);
+          invoice.setStatus(InvoiceStatus.PENDING);
+          log.info("Nenhum convênio encontrado. Cobrança particular.");
+        }
+      );
 
     invoiceRepository.save(invoice);
   }
@@ -120,14 +124,46 @@ public class BillingServiceImpl implements BillingService {
     Invoice invoice = invoiceRepository.findById(invoiceId)
       .orElseThrow(() -> new RuntimeException("Fatura não encontrada"));
 
-    if (invoice.getStatus() == InvoiceStatus.PAID) {
-      throw new RuntimeException("Fatura já está paga");
+    if (invoice.getPatientPaidAt() != null) {
+      throw new RuntimeException("Parte do paciente já foi paga.");
     }
 
-    // Futuro: integração com Gateway de Pagamento
-    invoice.setStatus(InvoiceStatus.PAID);
-    invoice.setPaidAt(LocalDateTime.now());
-
+    invoice.setPatientPaidAt(LocalDateTime.now());
+    checkAndFinalizeInvoice(invoice);
     return invoiceRepository.save(invoice);
+  }
+
+  @Override
+  @Transactional
+  public void processInsurancePayment(String invoiceId) {
+    Invoice invoice = invoiceRepository.findById(invoiceId)
+      .orElseThrow(() -> new RuntimeException("Fatura não encontrada"));
+
+    if (invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0) {
+      log.warn("Tentativa de processar convênio para fatura particular: {}", invoiceId);
+      return;
+    }
+
+    invoice.setInsurancePaidAt(LocalDateTime.now());
+    checkAndFinalizeInvoice(invoice);
+    invoiceRepository.save(invoice);
+  }
+
+  // Método auxiliar para decidir se muda o status geral para PAID
+  private void checkAndFinalizeInvoice(Invoice invoice) {
+    boolean patientPaid = invoice.getPatientPaidAt() != null || invoice.getPatientPayable().compareTo(BigDecimal.ZERO) == 0;
+    boolean insurancePaid = invoice.getInsurancePaidAt() != null || invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0;
+
+    if (patientPaid && insurancePaid) {
+      invoice.setStatus(InvoiceStatus.PAID);
+      invoice.setPaidAt(LocalDateTime.now());
+    }
+    // se o paciente pagou, mas o seguro não, o status continua PENDING
+  }
+
+  @Override
+  public List<Invoice> getPendingInsuranceInvoices() {
+    // casos que o convênio ainda não pagou a parte dele
+    return invoiceRepository.findByStatus(InvoiceStatus.INSURANCE_PENDING);
   }
 }

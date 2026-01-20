@@ -15,4 +15,8 @@ public interface BillingService {
   PatientInsurance registerPatientInsurance(String patientId, Long providerId, String policyNumber);
 
   Invoice payInvoice(String invoiceId);
+
+  void processInsurancePayment(String invoiceId);
+
+  List<Invoice> getPendingInsuranceInvoices();
 }

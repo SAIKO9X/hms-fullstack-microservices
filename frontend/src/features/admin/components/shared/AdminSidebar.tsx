@@ -20,6 +20,7 @@ import {
   Archive,
   ShoppingCart,
   Store,
+  Landmark,
 } from "lucide-react";
 
 export const AdminSidebar = () => {
@@ -31,7 +32,10 @@ export const AdminSidebar = () => {
     { title: "Utilizadores", url: "/admin/users", icon: UserCheck },
   ];
 
-  // Seção de Farmácia
+  const financeItems = [
+    { title: "Convênios", url: "/admin/insurance", icon: Landmark },
+  ];
+
   const pharmacyItems = [
     { title: "Medicamentos", url: "/admin/medicines", icon: Pill },
     { title: "Inventário", url: "/admin/inventory", icon: Archive },
@@ -50,6 +54,23 @@ export const AdminSidebar = () => {
   const handleNavigation = (url: string) => {
     navigate(url);
   };
+
+  const renderMenuItems = (items: typeof mainItems) => (
+    <SidebarMenu>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton
+            isActive={isActive(item.url)}
+            onClick={() => handleNavigation(item.url)}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary"
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.title}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
 
   return (
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
@@ -73,20 +94,16 @@ export const AdminSidebar = () => {
             Principal
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.url)}
-                    onClick={() => handleNavigation(item.url)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary"
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {renderMenuItems(mainItems)}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+            Financeiro
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="space-y-1">
+            {renderMenuItems(financeItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -95,20 +112,7 @@ export const AdminSidebar = () => {
             Farmácia
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
-            <SidebarMenu>
-              {pharmacyItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.url)}
-                    onClick={() => handleNavigation(item.url)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200"
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {renderMenuItems(pharmacyItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
@@ -117,20 +121,7 @@ export const AdminSidebar = () => {
             Sistema
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
-            <SidebarMenu>
-              {systemItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.url)}
-                    onClick={() => handleNavigation(item.url)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-all duration-200 hover:bg-sidebar-accent text-sidebar-foreground hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:border-r-2 data-[active=true]:border-sidebar-primary"
-                  >
-                    <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {renderMenuItems(systemItems)}
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

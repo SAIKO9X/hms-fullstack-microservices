@@ -23,10 +23,13 @@ export interface Invoice {
   id: string;
   appointmentId: number;
   patientId: string;
+  doctorId: string;
   totalAmount: number;
   insuranceCovered: number;
   patientPayable: number;
   status: InvoiceStatus;
   issuedAt: string;
   paidAt?: string;
+  patientPaidAt?: string;
+  insurancePaidAt?: string;
 }
