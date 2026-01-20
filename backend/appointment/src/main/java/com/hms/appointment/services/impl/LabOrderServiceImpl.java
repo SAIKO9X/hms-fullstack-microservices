@@ -1,7 +1,10 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.LabOrderCompletedEvent;
+import com.hms.appointment.dto.external.DoctorProfile;
+import com.hms.appointment.dto.external.PatientProfile;
 import com.hms.appointment.dto.request.AddLabResultRequest;
 import com.hms.appointment.dto.request.LabOrderCreateRequest;
 import com.hms.appointment.dto.response.LabOrderDTO;
@@ -16,6 +19,7 @@ import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.LabOrderRepository;
 import com.hms.appointment.services.LabOrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LabOrderServiceImpl implements LabOrderService {
@@ -34,7 +39,7 @@ public class LabOrderServiceImpl implements LabOrderService {
   private final LabOrderRepository labOrderRepository;
   private final AppointmentRepository appointmentRepository;
   private final RabbitTemplate rabbitTemplate;
-  // private final ProfileFeignClient profileClient; // Injete isso para buscar nomes/emails
+  private final ProfileFeignClient profileClient;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -88,16 +93,26 @@ public class LabOrderServiceImpl implements LabOrderService {
     if (allCompleted) {
       order.setStatus(LabOrderStatus.COMPLETED);
 
-      // --- BUSCAR DADOS DO PERFIL ---
-      // var doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
-      // var patientProfile = profileClient.getPatient(order.getPatientId());
+      String doctorName = "Doutor";
+      Long doctorUserId = null;
+      String patientName = "Paciente";
 
-      // sem o Feign Client pronto agora enviar NULL
-      // e deixar o Notification Service buscar, mas o ideal é preencher aqui.
+      try {
+        DoctorProfile doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
+        PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
 
-      String doctorName = "Dr. Exemplo"; // doctorProfile.getFullName();
-      String doctorEmail = "medico@email.com"; // doctorProfile.getEmail();
-      String patientName = "Paciente Teste"; // patientProfile.getFullName();
+        if (doctorProfile != null) {
+          doctorName = doctorProfile.name();
+          doctorUserId = doctorProfile.userId();
+        }
+
+        if (patientProfile != null) {
+          patientName = patientProfile.name();
+        }
+
+      } catch (Exception e) {
+        log.error("Erro ao buscar dados do perfil: {}", e.getMessage());
+      }
 
       LabOrderCompletedEvent event = new LabOrderCompletedEvent(
         order.getId(),
@@ -106,16 +121,12 @@ public class LabOrderServiceImpl implements LabOrderService {
         order.getPatientId(),
         patientName,
         order.getAppointment().getDoctorId(),
+        doctorUserId,
         doctorName,
-        doctorEmail,
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
       );
 
-      rabbitTemplate.convertAndSend(
-        exchange,
-        RabbitMQConfig.LAB_RESULT_ROUTING_KEY,
-        event
-      );
+      rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
     }
 
     labOrderRepository.save(order);

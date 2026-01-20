@@ -1,0 +1,18 @@
+package com.hms.appointment.clients;
+
+import com.hms.appointment.config.FeignClientInterceptor;
+import com.hms.appointment.dto.external.DoctorProfile;
+import com.hms.appointment.dto.external.PatientProfile;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+@FeignClient(name = "profile-service", configuration = FeignClientInterceptor.class)
+public interface ProfileFeignClient {
+
+  @GetMapping("/profile/doctors/{id}")
+  DoctorProfile getDoctor(@PathVariable("id") Long id);
+
+  @GetMapping("/profile/patients/{id}")
+  PatientProfile getPatient(@PathVariable("id") Long id);
+}
