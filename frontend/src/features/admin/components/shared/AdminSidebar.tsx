@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Store,
   Landmark,
+  ShieldCheck,
 } from "lucide-react";
 
 export const AdminSidebar = () => {
@@ -45,6 +46,11 @@ export const AdminSidebar = () => {
 
   const systemItems = [
     { title: "Configurações", url: "/admin/settings", icon: Settings },
+    {
+      title: "Auditoria",
+      href: "/admin/audit-logs",
+      icon: ShieldCheck,
+    },
   ];
 
   const isActive = (url: string) => {

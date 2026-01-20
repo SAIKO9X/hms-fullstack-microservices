@@ -11,4 +11,6 @@ public @interface Auditable {
   String action();
 
   String resourceName();
+
+  String resourceId() default "";
 }

@@ -1,5 +1,6 @@
 package com.hms.user.controllers;
 
+import com.hms.common.security.Auditable;
 import com.hms.user.dto.request.AdminCreateUserRequest;
 import com.hms.user.dto.request.AdminUpdateUserRequest;
 import com.hms.user.dto.request.UserRequest;
@@ -47,6 +48,7 @@ public class UserController {
   @PatchMapping("/{id}/status")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
+  @Auditable(action = "CHANGE_USER_STATUS", resourceName = "User")
   public void updateUserStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> status) {
     userService.updateUserStatus(id, status.get("active"));
   }
@@ -60,6 +62,7 @@ public class UserController {
 
   @PutMapping("/admin/update/{id}")
   @PreAuthorize("hasRole('ADMIN')")
+  @Auditable(action = "ADMIN_UPDATE_USER", resourceName = "User")
   public ResponseEntity<Void> adminUpdateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
     userService.adminUpdateUser(id, request);
     return ResponseEntity.ok().build();

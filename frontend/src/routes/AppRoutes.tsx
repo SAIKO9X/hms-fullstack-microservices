@@ -44,6 +44,7 @@ import { PatientMessagesPage } from "@/features/patient/pages/PatientMessagesPag
 import { DoctorMessagesPage } from "@/features/doctor/pages/DoctorMessagesPage";
 import DoctorFinancePage from "@/features/doctor/pages/DoctorFinancePage";
 import { AdminInsurancePage } from "@/features/admin/pages/AdminInsurancePage";
+import AuditLogsPage from "@/features/admin/pages/AuditLogsPage";
 
 export const AppRoutes = () => {
   return (
@@ -127,6 +128,7 @@ export const AppRoutes = () => {
             <Route path="medicines" element={<AdminMedicinesPage />} />
             <Route path="inventory" element={<AdminInventoryPage />} />
             <Route path="sales" element={<AdminSalesPage />} />
+            <Route path="admin/audit-logs" element={<AuditLogsPage />} />
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />

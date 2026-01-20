@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.security.Auditable;
 import com.hms.profile.dto.response.MedicalHistoryResponse;
 import com.hms.profile.services.MedicalHistoryService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class MedicalHistoryController {
 
   @PreAuthorize("hasRole('ADMIN')")
   @GetMapping("/admin/patient/{patientProfileId}/medical-history")
+  @Auditable(action = "VIEW_MEDICAL_HISTORY_ADMIN", resourceName = "MedicalHistory")
   public MedicalHistoryResponse getPatientMedicalHistoryByIdForAdmin(@PathVariable Long patientProfileId) {
     return medicalHistoryService.getMedicalHistoryByPatientProfileId(patientProfileId);
   }

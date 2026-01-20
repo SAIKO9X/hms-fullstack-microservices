@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import api from "@/config/axios";
 import { AdminService } from "@/services";
 import type {
@@ -19,6 +24,8 @@ export const adminKeys = {
   allUsers: ["allUsers"] as const,
   doctorAppointments: (id: number) => ["adminDoctorAppointments", id] as const,
   patientHistory: (id: number) => ["adminPatientMedicalHistory", id] as const,
+  auditLogs: (page: number, size: number) =>
+    ["audit-logs", page, size] as const,
 };
 
 export const useAdminProfileCounts = () => {
@@ -127,12 +134,20 @@ export const useAdminDoctorAppointments = (doctorId: number | undefined) => {
 };
 
 export const useAdminPatientMedicalHistory = (
-  patientId: number | undefined
+  patientId: number | undefined,
 ) => {
   return useQuery<MedicalHistory>({
     queryKey: adminKeys.patientHistory(patientId!),
     queryFn: () => AdminService.getPatientMedicalHistoryById(patientId!),
     enabled: !!patientId,
     staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useAuditLogs = (page: number, size: number) => {
+  return useQuery({
+    queryKey: adminKeys.auditLogs(page, size),
+    queryFn: () => AdminService.getAuditLogs(page, size),
+    placeholderData: keepPreviousData,
   });
 };

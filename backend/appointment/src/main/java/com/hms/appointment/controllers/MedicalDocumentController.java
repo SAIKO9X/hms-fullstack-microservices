@@ -4,6 +4,7 @@ import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
 import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
+import com.hms.common.security.Auditable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ public class MedicalDocumentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @Auditable(action = "UPLOAD_DOCUMENT", resourceName = "MedicalDocument")
   public MedicalDocumentResponse uploadDocument(
     @RequestHeader("Authorization") String token,
     @Valid @RequestBody MedicalDocumentCreateRequest request) {
@@ -46,6 +48,7 @@ public class MedicalDocumentController {
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+  @Auditable(action = "VIEW_PATIENT_DOCUMENTS", resourceName = "MedicalDocument")
   public Page<MedicalDocumentResponse> getDocumentsForPatient(
     @PathVariable Long patientId,
     @PageableDefault(size = 10, sort = "uploadedAt", direction = Sort.Direction.DESC) Pageable pageable
@@ -54,6 +57,7 @@ public class MedicalDocumentController {
   }
 
   @DeleteMapping("/{id}")
+  @Auditable(action = "DELETE_DOCUMENT", resourceName = "MedicalDocument")
   public ResponseEntity<Void> deleteDocument(
     @PathVariable Long id,
     @RequestHeader("Authorization") String token

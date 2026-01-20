@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.security.Auditable;
 import com.hms.common.security.HmsUserPrincipal;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
@@ -76,6 +77,7 @@ public class PatientController {
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+  @Auditable(action = "VIEW_PATIENT_PROFILE", resourceName = "PatientProfile")
   public PatientResponse getPatientProfileById(@PathVariable Long id) {
     return patientService.getPatientProfileById(id);
   }
@@ -90,6 +92,7 @@ public class PatientController {
 
   @PutMapping("/admin/update/{userId}")
   @PreAuthorize("hasRole('ADMIN')")
+  @Auditable(action = "ADMIN_UPDATE_PATIENT", resourceName = "PatientProfile")
   public ResponseEntity<Void> adminUpdatePatient(
     @PathVariable("userId") Long userId,
     @RequestBody AdminPatientUpdateRequest updateRequest

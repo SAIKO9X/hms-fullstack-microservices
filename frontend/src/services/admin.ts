@@ -1,5 +1,6 @@
 import api from "@/config/axios";
 import type { AdminCreateUserFormData } from "@/lib/schemas/admin.schema";
+import type { AuditLogResponse } from "@/types/admin.types";
 import type { AppointmentDetail } from "@/types/appointment.types";
 import type { MedicalHistory } from "@/types/patient.types";
 
@@ -18,7 +19,7 @@ export const updateUserStatus = async ({
 
 // Cria um novo utilizador (paciente ou médico) como administrador.
 export const adminCreateUser = async (
-  userData: AdminCreateUserFormData
+  userData: AdminCreateUserFormData,
 ): Promise<void> => {
   await api.post("/users/admin/create", userData);
 };
@@ -31,7 +32,7 @@ export const adminUpdateUser = async (userData: any): Promise<void> => {
 
 // Busca todos os detalhes de consulta para um médico específico (usado pelo Admin).
 export const getAppointmentsByDoctorId = async (
-  doctorId: number
+  doctorId: number,
 ): Promise<AppointmentDetail[]> => {
   const { data } = await api.get(`/admin/stats/by-doctor/${doctorId}`);
   return data;
@@ -39,10 +40,21 @@ export const getAppointmentsByDoctorId = async (
 
 // Busca o histórico médico completo para um paciente específico (usado pelo Admin).
 export const getPatientMedicalHistoryById = async (
-  patientId: number
+  patientId: number,
 ): Promise<MedicalHistory> => {
   const { data } = await api.get(
-    `/profile/admin/patient/${patientId}/medical-history`
+    `/profile/admin/patient/${patientId}/medical-history`,
   );
   return data;
+};
+
+// Busca logs de auditoria com paginação.
+export const getAuditLogs = async (
+  page = 0,
+  size = 20,
+): Promise<AuditLogResponse> => {
+  const response = await api.get<AuditLogResponse>(`/audit/logs`, {
+    params: { page, size, sort: "timestamp,desc" }, // garante ordem cronológica reversa
+  });
+  return response.data;
 };

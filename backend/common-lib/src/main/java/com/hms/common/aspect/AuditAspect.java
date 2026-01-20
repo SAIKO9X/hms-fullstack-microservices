@@ -2,92 +2,131 @@ package com.hms.common.aspect;
 
 import com.hms.common.dto.AuditLogEvent;
 import com.hms.common.security.Auditable;
+import com.hms.common.security.HmsUserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-@Slf4j
 @Aspect
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AuditAspect {
 
   private final RabbitTemplate rabbitTemplate;
 
-  private static final String AUDIT_EXCHANGE = "hms.audit.exchange";
-  private static final String AUDIT_ROUTING_KEY = "audit.log";
+  // Cenário de Sucesso
+  @AfterReturning(value = "@annotation(auditable)", returning = "result")
+  public void logAuditActivity(JoinPoint joinPoint, Auditable auditable, Object result) {
+    recordAudit(joinPoint, auditable, "SUCCESS", null);
+  }
 
-  @AfterReturning(pointcut = "@annotation(auditable)", returning = "result")
-  public void logAudit(JoinPoint joinPoint, Auditable auditable, Object result) {
+  // Cenário de Falha
+  @AfterThrowing(value = "@annotation(auditable)", throwing = "ex")
+  public void logAuditException(JoinPoint joinPoint, Auditable auditable, Throwable ex) {
+    recordAudit(joinPoint, auditable, "FAILURE", ex.getMessage());
+  }
+
+  private void recordAudit(JoinPoint joinPoint, Auditable auditable, String status, String errorMessage) {
     try {
-      Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-      if (auth == null || !auth.isAuthenticated()) {
-        return; // não audita chamadas anônimas (ou loga como ANONYMOUS)
-      }
+      Long actorIdLong = getCurrentUserId();
+      String actorId = actorIdLong != null ? String.valueOf(actorIdLong) : "SYSTEM";
+      String actorRole = getCurrentUserRole();
 
-      String resourceId = extractResourceId(joinPoint);
       String ipAddress = getClientIp();
+      String details = buildDetails(joinPoint.getArgs(), status, errorMessage);
 
       AuditLogEvent event = new AuditLogEvent(
-        auth.getName(),
-        auth.getAuthorities().toString(),
+        actorId,
+        actorRole,
         auditable.action(),
         auditable.resourceName(),
-        resourceId,
-        "Success",
+        null,
+        details,
         ipAddress,
         LocalDateTime.now()
       );
 
-      rabbitTemplate.convertAndSend(AUDIT_EXCHANGE, AUDIT_ROUTING_KEY, event);
+      rabbitTemplate.convertAndSend("audit.exchange", "audit.routing.key", event);
 
-      log.info("Audit event sent: {} on {}", auditable.action(), auditable.resourceName());
+      log.info("Audit log sent: Action={}, User={}, Status={}", auditable.action(), actorId, status);
 
     } catch (Exception e) {
-      log.error("Failed to generate audit log", e);
+      log.error("Failed to send audit log", e);
     }
   }
 
-  private String extractResourceId(JoinPoint joinPoint) {
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    String[] parameterNames = signature.getParameterNames();
-    Object[] args = joinPoint.getArgs();
-
-    if (args == null || args.length == 0) return "N/A";
-
-    // tenta achar um parametro chamado "id", "doctorId", "patientId"
-    for (int i = 0; i < parameterNames.length; i++) {
-      String name = parameterNames[i].toLowerCase();
-      if (name.contains("id") && args[i] != null) {
-        return args[i].toString();
-      }
+  // Constrói detalhes do log, filtrando argumentos irrelevantes
+  private String buildDetails(Object[] args, String status, String errorMessage) {
+    if ("FAILURE".equals(status)) {
+      return "Failed: " + errorMessage;
     }
 
-    // se não achar pelo nome, assume que o primeiro argumento é relevante se for String/Long
-    if (args[0] instanceof String || args[0] instanceof Long) {
-      return args[0].toString();
+    if (args == null || args.length == 0) {
+      return "Success";
     }
 
-    return "UNKNOWN";
+    // filtra objetos técnicos do spring que não serializam bem ou não interessam
+    String argsString = Arrays.stream(args)
+      .filter(arg -> !(arg instanceof HttpServletRequest))
+      .filter(arg -> !(arg instanceof HttpServletResponse))
+      .filter(arg -> !(arg instanceof Authentication))
+      .filter(arg -> !(arg instanceof BindingResult))
+      .filter(Objects::nonNull)
+      .map(Object::toString)
+      .collect(Collectors.joining(", "));
+
+    // limita o tamanho para não estourar banco de dados se houver um PDF em base64
+    if (argsString.length() > 500) {
+      argsString = argsString.substring(0, 500) + "...";
+    }
+
+    return "Success. Args: [" + argsString + "]";
+  }
+
+  // Obtém o papel (role) do usuário atual
+  private String getCurrentUserRole() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
+      return authentication.getAuthorities().stream()
+        .map(GrantedAuthority::getAuthority)
+        .findFirst()
+        .orElse("UNKNOWN");
+    }
+    return "SYSTEM";
+  }
+
+  private Long getCurrentUserId() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication != null && authentication.getPrincipal() instanceof HmsUserPrincipal userPrincipal) {
+      return userPrincipal.getId();
+    }
+    return null; // Sistema ou Anônimo
   }
 
   private String getClientIp() {
     try {
-      ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-      if (attrs != null) {
-        HttpServletRequest request = attrs.getRequest();
+      ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+      if (attributes != null) {
+        HttpServletRequest request = attributes.getRequest();
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
           return xForwardedFor.split(",")[0];
@@ -95,8 +134,8 @@ public class AuditAspect {
         return request.getRemoteAddr();
       }
     } catch (Exception e) {
-      // ignora erros ao obter IP
+      // Ignora em contextos assíncronos
     }
-    return "UNKNOWN";
+    return "Unknown";
   }
 }

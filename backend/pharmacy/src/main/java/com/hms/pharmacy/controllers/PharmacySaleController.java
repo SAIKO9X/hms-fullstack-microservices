@@ -1,5 +1,6 @@
 package com.hms.pharmacy.controllers;
 
+import com.hms.common.security.Auditable;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.PharmacySaleRequest;
 import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
@@ -41,6 +42,7 @@ public class PharmacySaleController {
   @PostMapping("/from-prescription")
   @ResponseStatus(HttpStatus.CREATED)
   @PreAuthorize("hasRole('ADMIN')")
+  @Auditable(action = "SALE_FROM_PRESCRIPTION", resourceName = "PharmacySale")
   public PharmacySaleResponse createSaleFromPrescription(@RequestBody ProcessPrescriptionRequest request) {
     return saleService.processPrescriptionAndCreateSale(request.prescriptionId());
   }
@@ -55,6 +57,7 @@ public class PharmacySaleController {
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN') or #patientId == authentication.principal.id")
+  @Auditable(action = "VIEW_PATIENT_SALES", resourceName = "PharmacySale")
   public List<PharmacySaleResponse> getSalesByPatient(@PathVariable Long patientId) {
     return saleService.getSalesByPatientId(patientId);
   }
