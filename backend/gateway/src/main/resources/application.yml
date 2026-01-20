@@ -88,6 +88,14 @@ spring:
           filters:
             - name: TokenFilter
 
+        # Rota para o Audit-Service
+        - id: audit-service-route
+          uri: lb://audit-service
+          predicates:
+            - Path=/audit-logs/**
+          filters:
+            - name: TokenFilter
+
 application:
   security:
     jwt:

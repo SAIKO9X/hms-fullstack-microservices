@@ -257,6 +257,27 @@ services:
       timeout: 5s
       retries: 5
 
+  mysql-audit:
+    image: mysql:8.0
+    container_name: ms-audit-db
+    environment:
+      MYSQL_DATABASE: ${MYSQL_AUDIT_DB}
+      MYSQL_USER: ${MYSQL_AUDIT_USER}
+      MYSQL_PASSWORD: ${MYSQL_AUDIT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "${MYSQL_AUDIT_PORT}:3306"
+    volumes:
+      - audit-mysql-data:/var/lib/mysql
+    networks:
+      - hms-network
+    restart: always
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ====================================================
   # MICROSSERVIÇOS
   # ====================================================
@@ -428,10 +449,16 @@ services:
       - DB_USER=${MYSQL_MEDIA_USER}
       - DB_PASSWORD=${MYSQL_MEDIA_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       mysql-media:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - hms-network
@@ -456,10 +483,16 @@ services:
       - DB_USER=${MYSQL_CHAT_USER}
       - DB_PASSWORD=${MYSQL_CHAT_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       mysql-chat:
         condition: service_healthy
       eureka-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - hms-network
@@ -539,6 +572,40 @@ services:
       retries: 5
       start_period: 120s
 
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit/Dockerfile
+    container_name: audit-service
+    environment:
+      - SERVER_PORT=8089
+      - EUREKA_URI=http://eureka-server:8761/eureka/
+      - DB_HOST=mysql-audit
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_AUDIT_DB}
+      - DB_USER=${MYSQL_AUDIT_USER}
+      - DB_PASSWORD=${MYSQL_AUDIT_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      mysql-audit:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hms-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8089/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   # ====================================================
   # MONITORAMENTO
   # ====================================================
@@ -569,6 +636,8 @@ services:
       notification-service:
         condition: service_healthy
       billing-service:
+        condition: service_healthy
+      audit-service:
         condition: service_healthy
 
   grafana:
@@ -614,6 +683,7 @@ volumes:
   chat-mysql-data:
   notification-mysql-data:
   billing-mysql-data:
+  audit-mysql-data:
 
 networks:
   hms-network:

@@ -32,6 +32,7 @@
         <module>notification</module>
         <module>common-lib</module>
         <module>billing</module>
+        <module>audit</module>
     </modules>
 
     <dependencyManagement>

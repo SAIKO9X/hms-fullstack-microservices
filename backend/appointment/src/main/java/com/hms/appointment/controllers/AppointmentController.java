@@ -5,6 +5,7 @@ import com.hms.appointment.dto.request.AppointmentUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.appointment.services.JwtService;
+import com.hms.common.security.Auditable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ public class AppointmentController {
 
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
+  @Auditable(action = "VIEW", resourceName = "APPOINTMENT")
   public AppointmentResponse getAppointmentById(@PathVariable Long id, @RequestHeader("Authorization") String token) {
     Long requesterId = getUserIdFromToken(token);
     return appointmentService.getAppointmentById(id, requesterId);
@@ -30,6 +32,7 @@ public class AppointmentController {
 
   @PatchMapping("/{id}/cancel")
   @ResponseStatus(HttpStatus.OK)
+  @Auditable(action = "CANCEL", resourceName = "APPOINTMENT")
   public AppointmentResponse cancelAppointment(@PathVariable Long id, @RequestHeader("Authorization") String token) {
     Long requesterId = getUserIdFromToken(token);
     return appointmentService.cancelAppointment(id, requesterId);
@@ -37,6 +40,7 @@ public class AppointmentController {
 
   @PatchMapping("/{id}/reschedule")
   @ResponseStatus(HttpStatus.OK)
+  @Auditable(action = "RESCHEDULE", resourceName = "APPOINTMENT")
   public AppointmentResponse rescheduleAppointment(
     @PathVariable Long id,
     @RequestBody AppointmentUpdateRequest request,

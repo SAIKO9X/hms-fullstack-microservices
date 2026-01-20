@@ -44,6 +44,11 @@ public class RabbitMQConfig {
   }
 
   @Bean
+  public TopicExchange auditExchange() {
+    return new TopicExchange("hms.audit.exchange");
+  }
+
+  @Bean
   public CustomExchange delayedExchange() {
     Map<String, Object> args = new HashMap<>();
     args.put("x-delayed-type", "topic");
