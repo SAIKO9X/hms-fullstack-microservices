@@ -5,6 +5,7 @@ import com.hms.appointment.dto.response.DoctorUnavailabilityResponse;
 import com.hms.appointment.entities.DoctorUnavailability;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ResourceNotFoundException;
+import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorUnavailabilityRepository;
 import com.hms.appointment.services.DoctorUnavailabilityService;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityService {
 
   private final DoctorUnavailabilityRepository repository;
+  private final AppointmentRepository appointmentRepository;
 
   @Override
   @Transactional
@@ -35,6 +37,16 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
 
     if (hasOverlap) {
       throw new InvalidUpdateException("Já existe um período de indisponibilidade registrado neste intervalo.");
+    }
+
+    boolean hasAppointments = appointmentRepository.existsActiveAppointmentsInPeriod(
+      request.doctorId(),
+      request.startDateTime(),
+      request.endDateTime()
+    );
+
+    if (hasAppointments) {
+      throw new InvalidUpdateException("Não é possível bloquear a agenda: Existem consultas agendadas neste período. Cancele ou remarque as consultas existentes primeiro.");
     }
 
     DoctorUnavailability entity = DoctorUnavailability.builder()

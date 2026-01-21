@@ -6,6 +6,7 @@ import { PatientService, DoctorService, AppointmentService } from "@/services";
 import type {
   AdverseEffectReportCreateRequest,
   Appointment,
+  DoctorUnavailabilityRequest,
 } from "@/types/appointment.types";
 import type { MedicalDocumentCreateRequest } from "@/types/document.types";
 import type { AppointmentFormData } from "@/lib/schemas/appointment.schema";
@@ -21,7 +22,13 @@ import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import { keepPreviousData } from "@tanstack/react-query";
 import type { Page } from "@/types/pagination.types";
 import type { PatientSummary } from "@/types/doctor.types";
-import { createLabOrder, getLabOrdersByAppointment } from "../appointment";
+import {
+  createLabOrder,
+  createUnavailability,
+  deleteUnavailability,
+  getDoctorUnavailability,
+  getLabOrdersByAppointment,
+} from "../appointment";
 import type { LabOrderFormData } from "@/lib/schemas/labOrder.schema";
 
 export interface AppointmentWithDoctor extends Appointment {
@@ -59,6 +66,8 @@ export const appointmentKeys = {
     [...appointmentKeys.doctor(), "details", dateFilter || "all"] as const,
   labOrders: (appointmentId: number) =>
     [...appointmentKeys.all, "lab-orders", appointmentId] as const,
+  unavailability: (doctorId: number) =>
+    [...appointmentKeys.all, "unavailability", doctorId] as const,
 };
 
 export const useAppointments = (page = 0, size = 10) => {
@@ -432,5 +441,38 @@ export const useLabOrders = (appointmentId: number) => {
     queryKey: appointmentKeys.labOrders(appointmentId),
     queryFn: () => getLabOrdersByAppointment(appointmentId),
     enabled: !!appointmentId,
+  });
+};
+
+export const useGetDoctorUnavailability = (doctorId: number) => {
+  return useQuery({
+    queryKey: appointmentKeys.unavailability(doctorId),
+    queryFn: () => getDoctorUnavailability(doctorId),
+    enabled: !!doctorId,
+  });
+};
+
+export const useCreateDoctorUnavailability = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: DoctorUnavailabilityRequest) =>
+      createUnavailability(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: appointmentKeys.unavailability(variables.doctorId),
+      });
+    },
+  });
+};
+
+export const useDeleteDoctorUnavailability = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deleteUnavailability(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["appointments", "unavailability"],
+      });
+    },
   });
 };

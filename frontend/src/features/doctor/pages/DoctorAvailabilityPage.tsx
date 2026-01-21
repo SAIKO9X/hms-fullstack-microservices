@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -9,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Clock, Save, Trash2, Loader2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,6 +27,7 @@ import {
 } from "@/services/appointment";
 import type { AvailabilitySlot } from "@/types/doctor.types";
 import { DAYS_OF_WEEK } from "@/data/daysOfWeek";
+import { DoctorUnavailabilityManager } from "../components/DoctorUnavailabilityManager";
 
 export const DoctorAvailabilityPage = () => {
   const { user } = useAuth();
@@ -61,7 +69,7 @@ export const DoctorAvailabilityPage = () => {
       (s) =>
         s.dayOfWeek === newSlot.dayOfWeek &&
         newSlot.startTime < s.endTime &&
-        newSlot.endTime > s.startTime
+        newSlot.endTime > s.startTime,
     );
 
     if (hasConflict) {
@@ -75,7 +83,7 @@ export const DoctorAvailabilityPage = () => {
 
       const createdSlot = await addDoctorAvailability(
         Number(user?.id),
-        payload
+        payload,
       );
       setSlots([...slots, createdSlot]);
       toast.success("Horário adicionado!");
@@ -114,151 +122,169 @@ export const DoctorAvailabilityPage = () => {
   return (
     <div className="container mx-auto py-8 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Meus Horários de Atendimento
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">Gerenciar Agenda</h1>
         <p className="text-muted-foreground">
-          Gerencie sua agenda semanal recorrente. Consultas fora destes horários
-          serão bloqueadas.
+          Configure seus horários de atendimento padrão e registre períodos de
+          ausência.
         </p>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Para configurar horários de almoço, basta criar dois blocos separados.
-          Ex: <strong>08:00 às 12:00</strong> e <strong>13:00 às 18:00</strong>.
-        </AlertDescription>
-      </Alert>
+      <Tabs defaultValue="recurring" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+          <TabsTrigger value="recurring">Horários Semanais</TabsTrigger>
+          <TabsTrigger value="unavailability">
+            Ausências e Bloqueios
+          </TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Novo Bloco de Horário
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Dia da Semana</label>
-              <Select
-                value={newSlot.dayOfWeek}
-                onValueChange={(val) =>
-                  setNewSlot({ ...newSlot, dayOfWeek: val })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o dia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS_OF_WEEK.map((day) => (
-                    <SelectItem key={day.value} value={day.value}>
-                      {day.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <TabsContent value="recurring" className="space-y-6 mt-6">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Para configurar horários de almoço, crie dois blocos separados.
+              Ex: <strong>08:00 às 12:00</strong> e{" "}
+              <strong>13:00 às 18:00</strong>.
+            </AlertDescription>
+          </Alert>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Início</label>
-                <Input
-                  type="time"
-                  value={newSlot.startTime}
-                  onChange={(e) =>
-                    setNewSlot({ ...newSlot, startTime: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Fim</label>
-                <Input
-                  type="time"
-                  value={newSlot.endTime}
-                  onChange={(e) =>
-                    setNewSlot({ ...newSlot, endTime: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <Button
-              onClick={handleAddSlot}
-              className="w-full"
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              Adicionar Horário
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Agenda Semanal Configurada</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-12 bg-muted/20 animate-pulse rounded"
-                  />
-                ))}
-              </div>
-            ) : sortedSlots.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground border border-dashed rounded-lg bg-muted/10">
-                <Clock className="h-8 w-8 mb-2 opacity-50" />
-                <p>Nenhum horário configurado.</p>
-                <p className="text-xs">
-                  Sua agenda aparece como disponível 24h.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                {sortedSlots.map((slot, index) => (
-                  <div
-                    key={slot.id || index}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/30 transition-colors group"
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Novo Bloco de Horário
+                </CardTitle>
+                <CardDescription>
+                  Define disponibilidade recorrente toda semana.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Dia da Semana</label>
+                  <Select
+                    value={newSlot.dayOfWeek}
+                    onValueChange={(val) =>
+                      setNewSlot({ ...newSlot, dayOfWeek: val })
+                    }
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="bg-primary/10 p-2 rounded-full text-primary font-bold text-xs w-10 h-10 flex items-center justify-center">
-                        {getDayLabel(slot.dayOfWeek)
-                          .substring(0, 3)
-                          .toUpperCase()}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm">
-                          {getDayLabel(slot.dayOfWeek)}
-                        </span>
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {slot.startTime.substring(0, 5)} -{" "}
-                          {slot.endTime.substring(0, 5)}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-70 group-hover:opacity-100"
-                      onClick={() => handleRemoveSlot(slot.id, index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS_OF_WEEK.map((day) => (
+                        <SelectItem key={day.value} value={day.value}>
+                          {day.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Início</label>
+                    <Input
+                      type="time"
+                      value={newSlot.startTime}
+                      onChange={(e) =>
+                        setNewSlot({ ...newSlot, startTime: e.target.value })
+                      }
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Fim</label>
+                    <Input
+                      type="time"
+                      value={newSlot.endTime}
+                      onChange={(e) =>
+                        setNewSlot({ ...newSlot, endTime: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleAddSlot}
+                  className="w-full"
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                  )}
+                  Adicionar Horário
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Agenda Semanal Configurada</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-12 bg-muted/20 animate-pulse rounded"
+                      />
+                    ))}
+                  </div>
+                ) : sortedSlots.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground border border-dashed rounded-lg bg-muted/10">
+                    <Clock className="h-8 w-8 mb-2 opacity-50" />
+                    <p>Nenhum horário configurado.</p>
+                    <p className="text-xs">
+                      Sua agenda aparece como disponível 24h (Risco de
+                      conflitos).
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                    {sortedSlots.map((slot, index) => (
+                      <div
+                        key={slot.id || index}
+                        className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/30 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="bg-primary/10 p-2 rounded-full text-primary font-bold text-xs w-10 h-10 flex items-center justify-center">
+                            {getDayLabel(slot.dayOfWeek)
+                              .substring(0, 3)
+                              .toUpperCase()}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm">
+                              {getDayLabel(slot.dayOfWeek)}
+                            </span>
+                            <span className="text-sm text-muted-foreground font-mono">
+                              {slot.startTime.substring(0, 5)} -{" "}
+                              {slot.endTime.substring(0, 5)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-70 group-hover:opacity-100"
+                          onClick={() => handleRemoveSlot(slot.id, index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="unavailability" className="mt-6">
+          <DoctorUnavailabilityManager doctorId={Number(user?.id)} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

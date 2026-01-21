@@ -22,6 +22,9 @@ import {
 } from "@/services/profile";
 import { useState } from "react";
 import { ChatSheet } from "@/features/chat/components/ChatSheet";
+import { CreateAppointmentDialog } from "@/features/patient/components/CreateAppointmentDialog"; 
+import { useCreateAppointment } from "@/services/queries/appointment-queries"; 
+import { toast } from "sonner"; 
 
 export const PatientViewDoctorProfilePage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +32,7 @@ export const PatientViewDoctorProfilePage = () => {
   const API_BASE_URL = "http://localhost:9000";
 
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isAppointmentOpen, setIsAppointmentOpen] = useState(false); // <--- Estado do Modal
 
   const { data: doctor, isLoading: isLoadingDoctor } = useQuery({
     queryKey: ["doctor", doctorId],
@@ -47,6 +51,22 @@ export const PatientViewDoctorProfilePage = () => {
     queryFn: () => getDoctorReviews(doctorId),
     enabled: !!doctorId,
   });
+
+  const createAppointmentMutation = useCreateAppointment();
+
+  const handleAppointmentSubmit = (data: any) => {
+    createAppointmentMutation.mutate(data, {
+      onSuccess: () => {
+        setIsAppointmentOpen(false);
+        toast.success("Consulta agendada com sucesso!");
+      },
+      onError: (error: any) => {
+        toast.error(
+          error.response?.data?.message || "Erro ao agendar consulta.",
+        );
+      },
+    });
+  };
 
   if (isLoadingDoctor) {
     return (
@@ -110,7 +130,10 @@ export const PatientViewDoctorProfilePage = () => {
 
           <div className="flex flex-col gap-3 min-w-[200px]">
             <div className="pt-4">
-              <Button className="px-20 shadow-md text-secondary">
+              <Button
+                className="px-20 shadow-md text-secondary"
+                onClick={() => setIsAppointmentOpen(true)}
+              >
                 Agendar Consulta
               </Button>
             </div>
@@ -241,6 +264,14 @@ export const PatientViewDoctorProfilePage = () => {
         onOpenChange={setIsChatOpen}
         recipientId={doctor.userId}
         recipientName={doctor.name}
+      />
+
+      <CreateAppointmentDialog
+        open={isAppointmentOpen}
+        onOpenChange={setIsAppointmentOpen}
+        onSubmit={handleAppointmentSubmit}
+        isPending={createAppointmentMutation.isPending}
+        defaultDoctorId={doctorId}
       />
     </div>
   );

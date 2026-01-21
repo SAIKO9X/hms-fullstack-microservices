@@ -12,7 +12,6 @@ public interface DoctorUnavailabilityRepository extends JpaRepository<DoctorUnav
 
   List<DoctorUnavailability> findByDoctorId(Long doctorId);
 
-  // Query para verificar se existe algum bloqueio que conflite com o horário solicitado
   @Query("SELECT COUNT(u) > 0 FROM DoctorUnavailability u " +
     "WHERE u.doctorId = :doctorId " +
     "AND u.startDateTime < :end " +

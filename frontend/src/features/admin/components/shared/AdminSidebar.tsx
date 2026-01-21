@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Home,
-  Settings,
   UserCheck,
   Heart,
   Pill,
@@ -45,7 +44,6 @@ export const AdminSidebar = () => {
   ];
 
   const systemItems = [
-    { title: "Configurações", url: "/admin/settings", icon: Settings },
     {
       title: "Auditoria",
       url: "/admin/audit-logs",

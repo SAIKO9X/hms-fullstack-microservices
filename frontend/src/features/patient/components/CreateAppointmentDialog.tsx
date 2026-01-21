@@ -1,15 +1,19 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
+import { format, parseISO, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
+import { useMemo, useEffect } from "react";
 import {
   AppointmentFormInputSchema,
   AppointmentFormSchema,
   type AppointmentFormInput,
   type AppointmentFormData,
 } from "@/lib/schemas/appointment.schema";
-import { useDoctorsDropdown } from "@/services/queries/appointment-queries";
+import {
+  useDoctorsDropdown,
+  useGetDoctorUnavailability,
+} from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -49,6 +53,7 @@ interface CreateAppointmentDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: AppointmentFormData) => void;
   isPending: boolean;
+  defaultDoctorId?: number;
 }
 
 export const CreateAppointmentDialog = ({
@@ -56,6 +61,7 @@ export const CreateAppointmentDialog = ({
   onOpenChange,
   onSubmit,
   isPending,
+  defaultDoctorId,
 }: CreateAppointmentDialogProps) => {
   const { data: doctors, isLoading: isLoadingDoctors } = useDoctorsDropdown();
 
@@ -63,16 +69,61 @@ export const CreateAppointmentDialog = ({
     resolver: zodResolver(AppointmentFormInputSchema),
     defaultValues: {
       reason: "",
-      doctorId: "",
+      doctorId: defaultDoctorId ? String(defaultDoctorId) : "",
       appointmentTime: "",
       appointmentDate: undefined,
     },
   });
 
+  useEffect(() => {
+    if (defaultDoctorId) {
+      form.setValue("doctorId", String(defaultDoctorId));
+    }
+  }, [defaultDoctorId, form]);
+
   const selectedDoctorId = form.watch("doctorId");
+  const selectedDate = form.watch("appointmentDate");
   const selectedDoctor = doctors?.find(
     (d) => String(d.userId) === selectedDoctorId,
   );
+  const { data: unavailabilityList } = useGetDoctorUnavailability(
+    Number(selectedDoctorId),
+  );
+
+  const timeSlots = [
+    "08:00",
+    "09:00",
+    "10:00",
+    "11:00",
+    "14:00",
+    "15:00",
+    "16:00",
+  ];
+
+  const availableTimeSlots = useMemo(() => {
+    if (
+      !selectedDate ||
+      !unavailabilityList ||
+      unavailabilityList.length === 0
+    ) {
+      return timeSlots;
+    }
+
+    return timeSlots.filter((time) => {
+      const [hours, minutes] = time.split(":").map(Number);
+
+      const slotDateTime = new Date(selectedDate);
+      slotDateTime.setHours(hours, minutes, 0, 0);
+
+      const isBlocked = unavailabilityList.some((block) => {
+        const start = parseISO(block.startDateTime);
+        const end = parseISO(block.endDateTime);
+        return isWithinInterval(slotDateTime, { start, end });
+      });
+
+      return !isBlocked;
+    });
+  }, [selectedDate, unavailabilityList, timeSlots]);
 
   const handleFormSubmit = (data: AppointmentFormInput) => {
     const transformedData = AppointmentFormSchema.parse(data);
@@ -85,16 +136,6 @@ export const CreateAppointmentDialog = ({
     }
     onOpenChange(newOpen);
   };
-
-  const timeSlots = [
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "14:00",
-    "15:00",
-    "16:00",
-  ];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -109,6 +150,43 @@ export const CreateAppointmentDialog = ({
           >
             <FormField
               control={form.control}
+              name="doctorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Doutor</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={
+                      isLoadingDoctors || isPending || !!defaultDoctorId
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={
+                            isLoadingDoctors
+                              ? "Carregando..."
+                              : "Selecione o doutor"
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {doctors?.map((doc) => (
+                        <SelectItem key={doc.userId} value={String(doc.userId)}>
+                          {doc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="appointmentDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
@@ -119,7 +197,7 @@ export const CreateAppointmentDialog = ({
                         <Button
                           variant="outline"
                           className="font-normal justify-start text-left w-full"
-                          disabled={isPending}
+                          disabled={isPending || !selectedDoctorId}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {field.value ? (
@@ -154,54 +232,31 @@ export const CreateAppointmentDialog = ({
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
-                    disabled={isPending}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione o horário" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {timeSlots.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="doctorId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Doutor</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={isLoadingDoctors || isPending}
+                    disabled={isPending || !selectedDate}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full">
                         <SelectValue
                           placeholder={
-                            isLoadingDoctors
-                              ? "Carregando..."
-                              : "Selecione o doutor"
+                            selectedDate
+                              ? "Selecione o horário"
+                              : "Selecione a data primeiro"
                           }
                         />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {doctors?.map((doc) => (
-                        <SelectItem key={doc.userId} value={String(doc.userId)}>
-                          {doc.name}
-                        </SelectItem>
-                      ))}
+                      {availableTimeSlots.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          Nenhum horário disponível
+                        </div>
+                      ) : (
+                        availableTimeSlots.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

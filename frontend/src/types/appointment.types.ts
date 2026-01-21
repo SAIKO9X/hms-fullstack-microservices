@@ -1,9 +1,8 @@
-// Enum para status da consulta (deve coincidir com o backend)
 export type AppointmentStatus =
-  | "SCHEDULED" // Agendada
-  | "COMPLETED" // Concluída
-  | "CANCELED" // Cancelada
-  | "NO_SHOW"; // Não compareceu
+  | "SCHEDULED"
+  | "COMPLETED"
+  | "CANCELED"
+  | "NO_SHOW";
 
 export interface DoctorDashboardStats {
   appointmentsTodayCount: number;
@@ -15,7 +14,6 @@ export interface DoctorDashboardStats {
   };
 }
 
-// Interface principal da consulta (baseada na resposta do backend)
 export interface Appointment {
   id: number;
   patientId: number;
@@ -27,7 +25,6 @@ export interface Appointment {
   notes?: string | null;
 }
 
-// Interface para consulta com detalhes agregados (quando precisar de nomes)
 export interface AppointmentDetail {
   id: number;
   patientId: number;
@@ -41,7 +38,6 @@ export interface AppointmentDetail {
   notes?: string;
 }
 
-// Interface para dados do formulário (antes da transformação)
 export interface AppointmentFormInput {
   doctorId: string; // String no form, será convertido para number
   appointmentDate: Date;
@@ -49,14 +45,12 @@ export interface AppointmentFormInput {
   reason: string;
 }
 
-// Interface para dados enviados para o backend (após transformação)
 export interface AppointmentCreateRequest {
   doctorId: number;
   appointmentDateTime: string; // ISO string
   reason: string;
 }
 
-// Interface para atualização de consulta
 export interface AppointmentUpdateRequest {
   appointmentDateTime?: string;
   notes?: string;
@@ -88,4 +82,19 @@ export interface AdverseEffectReport {
   description: string;
   status: "REPORTED" | "REVIEWED";
   reportedAt: string;
+}
+
+export interface DoctorUnavailability {
+  id: number;
+  doctorId: number;
+  startDateTime: string;
+  endDateTime: string;
+  reason?: string;
+}
+
+export interface DoctorUnavailabilityRequest {
+  doctorId: number;
+  startDateTime: string;
+  endDateTime: string;
+  reason?: string;
 }

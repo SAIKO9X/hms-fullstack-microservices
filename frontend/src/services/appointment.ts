@@ -13,6 +13,8 @@ import type {
   AdverseEffectReport,
   AdverseEffectReportCreateRequest,
   Appointment,
+  DoctorUnavailability,
+  DoctorUnavailabilityRequest,
 } from "@/types/appointment.types";
 import type {
   AvailabilitySlot,
@@ -251,4 +253,27 @@ export const addLabResult = async (
     data,
   );
   return response.data;
+};
+
+export const createUnavailability = async (
+  data: DoctorUnavailabilityRequest,
+): Promise<DoctorUnavailability> => {
+  const { data: response } = await api.post<DoctorUnavailability>(
+    "/appointments/unavailability",
+    data,
+  );
+  return response;
+};
+
+export const getDoctorUnavailability = async (
+  doctorId: number,
+): Promise<DoctorUnavailability[]> => {
+  const { data } = await api.get<DoctorUnavailability[]>(
+    `/appointments/unavailability/doctor/${doctorId}`,
+  );
+  return data;
+};
+
+export const deleteUnavailability = async (id: number): Promise<void> => {
+  await api.delete(`/appointments/unavailability/${id}`);
 };

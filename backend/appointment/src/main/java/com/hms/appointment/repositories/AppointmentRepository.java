@@ -25,45 +25,50 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   List<Appointment> findByStatusAndAppointmentDateTimeBefore(AppointmentStatus status, LocalDateTime dateTime);
 
-  // Verifica se já existe uma consulta para o mesmo médico no mesmo horário
   boolean existsByDoctorIdAndAppointmentDateTime(Long doctorId, LocalDateTime appointmentDateTime);
 
-  // Consulta para encontrar a próxima consulta agendada para um paciente específico
   Optional<Appointment> findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
     Long patientId, AppointmentStatus status, LocalDateTime now);
 
-  // Consulta para contar as consultas agendadas para hoje para um médico específico
-  @Query("SELECT COUNT(a) FROM Appointment a WHERE a.doctorId = :doctorId AND FUNCTION('DATE', a.appointmentDateTime) = CURRENT_DATE")
+  @Query("SELECT COUNT(a) FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId " +
+    "AND FUNCTION('DATE', a.appointmentDateTime) = CURRENT_DATE")
   long countAppointmentsForToday(@Param("doctorId") Long doctorId);
 
-  // Conta todas as consultas para hoje (sem filtro de médico)
-  @Query("SELECT COUNT(a) FROM Appointment a WHERE FUNCTION('DATE', a.appointmentDateTime) = CURRENT_DATE")
+  @Query("SELECT COUNT(a) FROM Appointment a " +
+    "WHERE FUNCTION('DATE', a.appointmentDateTime) = CURRENT_DATE")
   long countAllAppointmentsForToday();
 
-  // Consulta para contar as consultas concluídas do médico na última semana
-  @Query("SELECT COUNT(a) FROM Appointment a WHERE a.doctorId = :doctorId AND a.status = 'COMPLETED' AND a.appointmentDateTime >= :weekAgo")
+  @Query("SELECT COUNT(a) FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId " +
+    "AND a.status = 'COMPLETED' " +
+    "AND a.appointmentDateTime >= :weekAgo")
   long countCompletedAppointmentsSince(@Param("doctorId") Long doctorId, @Param("weekAgo") LocalDateTime weekAgo);
 
-  // Consulta para agrupar e contar as consultas por status
-  @Query("SELECT a.status, COUNT(a) FROM Appointment a WHERE a.doctorId = :doctorId GROUP BY a.status")
+  @Query("SELECT a.status, COUNT(a) FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId " +
+    "GROUP BY a.status")
   List<Object[]> countAppointmentsByStatus(@Param("doctorId") Long doctorId);
 
-  // Consulta para contar o número de pacientes distintos atendidos por um médico
-  @Query("SELECT COUNT(DISTINCT a.patientId) FROM Appointment a WHERE a.doctorId = :doctorId")
+  @Query("SELECT COUNT(DISTINCT a.patientId) FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId")
   long countDistinctPatientsByDoctorId(@Param("doctorId") Long doctorId);
 
-  // Consulta para encontrar IDs de pacientes distintos com base em palavras-chave no diagnóstico
   @Query("SELECT DISTINCT ar.appointment.patientId FROM AppointmentRecord ar " +
     "WHERE ar.appointment.doctorId = :doctorId " +
     "AND (LOWER(ar.diagnosisDescription) LIKE %:keyword% OR LOWER(ar.diagnosisCid10) LIKE %:keyword%)")
-  List<Long> findDistinctPatientIdsByDoctorAndDiagnosisKeyword(@Param("doctorId") Long doctorId, @Param("keyword") String keyword);
+  List<Long> findDistinctPatientIdsByDoctorAndDiagnosisKeyword(
+    @Param("doctorId") Long doctorId,
+    @Param("keyword") String keyword);
 
-  // Consulta para contar consultas a partir de uma data específica, agrupadas por dia
-  @Query("SELECT FUNCTION('DATE', a.appointmentDateTime), COUNT(a) FROM Appointment a WHERE a.appointmentDateTime >= :startDate GROUP BY FUNCTION('DATE', a.appointmentDateTime)")
+  @Query("SELECT FUNCTION('DATE', a.appointmentDateTime), COUNT(a) FROM Appointment a " +
+    "WHERE a.appointmentDateTime >= :startDate " +
+    "GROUP BY FUNCTION('DATE', a.appointmentDateTime)")
   List<Object[]> countAppointmentsFromDateGroupedByDay(@Param("startDate") LocalDateTime startDate);
 
-  // Consulta para encontrar a data da primeira consulta de cada paciente a partir de uma data específica
-  @Query("SELECT p.patientId, MIN(FUNCTION('DATE', p.appointmentDateTime)) FROM Appointment p WHERE p.appointmentDateTime >= :startDate GROUP BY p.patientId")
+  @Query("SELECT p.patientId, MIN(FUNCTION('DATE', p.appointmentDateTime)) FROM Appointment p " +
+    "WHERE p.appointmentDateTime >= :startDate " +
+    "GROUP BY p.patientId")
   List<Object[]> findFirstAppointmentDateForPatients(@Param("startDate") LocalDateTime startDate);
 
   List<Appointment> findByAppointmentDateTimeBetween(LocalDateTime start, LocalDateTime end);
@@ -72,7 +77,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   List<Appointment> findByPatientIdAndAppointmentDateTimeBefore(Long patientId, LocalDateTime dateTime);
 
-  // Consulta para obter o resumo dos pacientes atendidos por um médico específico
   @Query("SELECT a.patientId as patientId, " +
     "p.userId as userId, " +
     "p.fullName as patientName, " +
@@ -86,7 +90,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     "GROUP BY a.patientId, p.userId, p.fullName, p.email, p.profilePicture")
   List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
 
-  // Consulta para obter o resumo dos médicos consultados por um paciente específico
   @Query("SELECT a.doctorId as doctorId, " +
     "d.userId as userId, " +
     "d.fullName as doctorName, " +
@@ -99,20 +102,29 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     "GROUP BY a.doctorId, d.userId, d.fullName, d.specialization, d.profilePicture")
   List<DoctorSummaryProjection> findDoctorsSummaryByPatient(@Param("patientId") Long patientId);
 
-  // verifica se existe algum agendamento onde o intervalo (Start-End) se cruza com o novo intervalo
   @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
     "WHERE a.doctorId = :doctorId " +
-    "AND a.status != 'CANCELED' " +
+    "AND a.status <> 'CANCELED' " +
     "AND a.appointmentDateTime < :endTime " +
     "AND :startTime < (a.appointmentDateTime + 1 HOUR)")
-  boolean existsByDoctorIdAndTimeRange(@Param("doctorId") Long doctorId,
-                                       @Param("startTime") LocalDateTime startTime,
-                                       @Param("endTime") LocalDateTime endTime);
+  boolean existsByDoctorIdAndTimeRange(
+    @Param("doctorId") Long doctorId,
+    @Param("startTime") LocalDateTime startTime,
+    @Param("endTime") LocalDateTime endTime);
 
-  // conta agendamentos de um paciente num dia específico
   @Query("SELECT COUNT(a) FROM Appointment a " +
     "WHERE a.patientId = :patientId " +
     "AND CAST(a.appointmentDateTime AS date) = :date " +
-    "AND a.status != 'CANCELED'")
+    "AND a.status <> 'CANCELED'")
   long countByPatientIdAndDate(@Param("patientId") Long patientId, @Param("date") LocalDate date);
+
+  @Query("SELECT COUNT(a) > 0 FROM Appointment a " +
+    "WHERE a.doctorId = :doctorId " +
+    "AND a.status <> 'CANCELED' " +
+    "AND a.appointmentDateTime >= :start " +
+    "AND a.appointmentDateTime < :end")
+  boolean existsActiveAppointmentsInPeriod(
+    @Param("doctorId") Long doctorId,
+    @Param("start") LocalDateTime start,
+    @Param("end") LocalDateTime end);
 }
