@@ -30,6 +30,7 @@ interface MultiComboboxProps {
   className?: string;
   disabled?: boolean;
   maxHeight?: string;
+  heading?: string;
 }
 
 export const MultiCombobox = ({
@@ -40,6 +41,7 @@ export const MultiCombobox = ({
   className,
   disabled = false,
   maxHeight = "200px",
+  heading = "Opções disponíveis",
 }: MultiComboboxProps) => {
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -87,13 +89,13 @@ export const MultiCombobox = ({
   const filteredOptions = options.filter(
     (option) =>
       option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
-      option.value.toLowerCase().includes(inputValue.toLowerCase())
+      option.value.toLowerCase().includes(inputValue.toLowerCase()),
   );
 
   // Check if input matches existing option or selected value
   const inputMatchesExisting =
     filteredOptions.some(
-      (option) => option.label.toLowerCase() === inputValue.toLowerCase()
+      (option) => option.label.toLowerCase() === inputValue.toLowerCase(),
     ) || value.some((val) => val.toLowerCase() === inputValue.toLowerCase());
 
   const showAddCustomOption =
@@ -111,7 +113,7 @@ export const MultiCombobox = ({
             disabled={disabled}
             className={cn(
               "w-full justify-between font-normal h-auto min-h-10 p-3",
-              disabled && "cursor-not-allowed opacity-50"
+              disabled && "cursor-not-allowed opacity-50",
             )}
           >
             <div className="flex flex-wrap items-center gap-1 flex-1">
@@ -159,7 +161,7 @@ export const MultiCombobox = ({
 
               {/* Existing options */}
               {filteredOptions.length > 0 && (
-                <CommandGroup heading="Sintomas disponíveis">
+                <CommandGroup heading={heading}>
                   {filteredOptions.map((option) => (
                     <CommandItem
                       key={option.value}
@@ -172,7 +174,7 @@ export const MultiCombobox = ({
                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                           value.includes(option.value)
                             ? "bg-primary text-primary-foreground"
-                            : "opacity-50"
+                            : "opacity-50",
                         )}
                       >
                         {value.includes(option.value) && (

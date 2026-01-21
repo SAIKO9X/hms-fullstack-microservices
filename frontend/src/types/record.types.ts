@@ -1,16 +1,27 @@
-// Representa o registo de uma consulta
+// frontend/src/types/record.types.ts
+
 export interface AppointmentRecord {
   id: number;
   appointmentId: number;
+  // Anamnese
+  chiefComplaint: string; // Queixa Principal
+  historyOfPresentIllness?: string; // HMA
   symptoms: string[];
-  diagnosis: string;
-  tests: string[];
-  notes?: string;
-  prescription: string[];
+
+  // Exame Físico
+  physicalExamNotes?: string;
+
+  // Diagnóstico e Plano
+  diagnosisCid10?: string;
+  diagnosisDescription: string;
+  treatmentPlan?: string;
+
+  // Outros
+  requestedTests: string[];
+  notes?: string; // Observações gerais
   createdAt: string;
 }
 
-// Representa uma prescrição
 export interface Prescription {
   id: number;
   appointmentId: number;
@@ -20,7 +31,6 @@ export interface Prescription {
   createdAt: string;
 }
 
-// Representa um medicamento dentro de uma prescrição
 export interface Medicine {
   name: string;
   dosage: string;
