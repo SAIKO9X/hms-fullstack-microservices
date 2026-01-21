@@ -39,6 +39,8 @@ spring:
         time-to-live: 600000 # 10 minutos
 
 application:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
   rabbitmq:
     exchange: internal.exchange
     prescription-issued-routing-key: prescription.issued

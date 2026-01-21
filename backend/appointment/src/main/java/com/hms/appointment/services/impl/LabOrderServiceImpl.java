@@ -47,6 +47,9 @@ public class LabOrderServiceImpl implements LabOrderService {
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
+  @Value("${application.frontend.url}")
+  private String frontendUrl;
+
   @Override
   @Transactional
   public LabOrder createLabOrder(LabOrderCreateRequest request) {
@@ -95,7 +98,11 @@ public class LabOrderServiceImpl implements LabOrderService {
 
     if (allCompleted) {
       order.setStatus(LabOrderStatus.COMPLETED);
+    }
 
+    labOrderRepository.save(order);
+
+    if (allCompleted) {
       String doctorEmail = "no-reply@hms.com";
       String doctorName = "Doutor(a)";
       String patientName = "Paciente";
@@ -125,6 +132,8 @@ public class LabOrderServiceImpl implements LabOrderService {
         log.error("Erro ao enriquecer evento de exame (continuando fluxo): {}", e.getMessage());
       }
 
+      String notificationLink = frontendUrl + "/doctor/appointments/" + order.getAppointment().getId();
+
       LabOrderCompletedEvent event = new LabOrderCompletedEvent(
         order.getId(),
         order.getOrderNumber(),
@@ -136,13 +145,12 @@ public class LabOrderServiceImpl implements LabOrderService {
         doctorName,
         doctorEmail,
         LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-        "http://localhost:5173/doctor/appointments/" + order.getAppointment().getId()
+        notificationLink
       );
 
       rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
     }
 
-    labOrderRepository.save(order);
     return mapToDTO(order);
   }
 

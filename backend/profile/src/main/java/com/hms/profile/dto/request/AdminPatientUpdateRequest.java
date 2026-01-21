@@ -1,6 +1,7 @@
 package com.hms.profile.dto.request;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record AdminPatientUpdateRequest(
   String name,
@@ -12,7 +13,8 @@ public record AdminPatientUpdateRequest(
   String bloodGroup,
   String gender,
   LocalDate dateOfBirth,
-  String chronicDiseases,
-  String allergies
+  String chronicConditions,
+  String familyHistory,
+  List<String> allergies
 ) {
 }

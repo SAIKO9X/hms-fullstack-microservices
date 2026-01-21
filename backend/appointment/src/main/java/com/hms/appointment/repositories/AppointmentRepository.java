@@ -52,10 +52,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
   @Query("SELECT COUNT(DISTINCT a.patientId) FROM Appointment a WHERE a.doctorId = :doctorId")
   long countDistinctPatientsByDoctorId(@Param("doctorId") Long doctorId);
 
-  // Consulta para contar o número de pacientes com base em uma palavra-chave
-  @Query("SELECT DISTINCT a.patientId FROM Appointment a " +
-    "JOIN AppointmentRecord ar ON a.id = ar.appointment.id " +
-    "WHERE a.doctorId = :doctorId AND LOWER(ar.diagnosis) LIKE %:keyword%")
+  // Consulta para encontrar IDs de pacientes distintos com base em palavras-chave no diagnóstico
+  @Query("SELECT DISTINCT ar.appointment.patientId FROM AppointmentRecord ar " +
+    "WHERE ar.appointment.doctorId = :doctorId " +
+    "AND (LOWER(ar.diagnosisDescription) LIKE %:keyword% OR LOWER(ar.diagnosisCid10) LIKE %:keyword%)")
   List<Long> findDistinctPatientIdsByDoctorAndDiagnosisKeyword(@Param("doctorId") Long doctorId, @Param("keyword") String keyword);
 
   // Consulta para contar consultas a partir de uma data específica, agrupadas por dia

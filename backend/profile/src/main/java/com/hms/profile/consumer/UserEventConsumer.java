@@ -14,6 +14,10 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -68,7 +72,7 @@ public class UserEventConsumer {
     Patient patient = new Patient();
     patient.setUserId(event.userId());
     patient.setName(event.name());
-    patient.setCpf(event.cpf()); // CPF vem do record UserCreatedEvent
+    patient.setCpf(event.cpf());
     patientRepository.save(patient);
     log.info("Perfil de Paciente criado com sucesso para userId: {}", event.userId());
   }
@@ -78,7 +82,7 @@ public class UserEventConsumer {
     Doctor doctor = new Doctor();
     doctor.setUserId(event.userId());
     doctor.setName(event.name());
-    doctor.setCrmNumber(event.crm()); // CRM vem do record
+    doctor.setCrmNumber(event.crm());
     doctorRepository.save(doctor);
     log.info("Perfil de Médico criado com sucesso para userId: {}", event.userId());
   }
@@ -92,8 +96,6 @@ public class UserEventConsumer {
         if (event.address() != null) patient.setAddress(event.address());
         if (event.emergencyContactName() != null) patient.setEmergencyContactName(event.emergencyContactName());
         if (event.emergencyContactPhone() != null) patient.setEmergencyContactPhone(event.emergencyContactPhone());
-
-        // Conversão string -> enum (BLOOD GROUP)
         if (event.bloodGroup() != null && !event.bloodGroup().isBlank()) {
           try {
             patient.setBloodGroup(BloodGroup.valueOf(event.bloodGroup()));
@@ -101,8 +103,6 @@ public class UserEventConsumer {
             log.warn("Grupo sanguíneo inválido recebido no evento: {}", event.bloodGroup());
           }
         }
-
-        // Conversão string -> enum (GENDER)
         if (event.gender() != null && !event.gender().isBlank()) {
           try {
             patient.setGender(Gender.valueOf(event.gender()));
@@ -110,10 +110,20 @@ public class UserEventConsumer {
             log.warn("Gênero inválido recebido no evento: {}", event.gender());
           }
         }
-
         if (event.dateOfBirth() != null) patient.setDateOfBirth(event.dateOfBirth());
-        if (event.chronicDiseases() != null) patient.setChronicDiseases(event.chronicDiseases());
-        if (event.allergies() != null) patient.setAllergies(event.allergies());
+        if (event.chronicDiseases() != null) patient.setChronicConditions(event.chronicDiseases());
+        if (event.allergies() != null) {
+          if (event.allergies().isBlank()) {
+            patient.setAllergies(Collections.emptySet());
+          } else {
+            patient.setAllergies(
+              Arrays.stream(event.allergies().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet())
+            );
+          }
+        }
 
         patientRepository.save(patient);
         log.info("Perfil de Paciente atualizado com sucesso para userId: {}", event.userId());

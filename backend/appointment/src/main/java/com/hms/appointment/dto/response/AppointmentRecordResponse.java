@@ -8,22 +8,30 @@ import java.util.List;
 public record AppointmentRecordResponse(
   Long id,
   Long appointmentId,
+  String chiefComplaint,
+  String historyOfPresentIllness,
+  String physicalExamNotes,
   List<String> symptoms,
-  String diagnosis,
-  List<String> tests,
+  String diagnosisCid10,
+  String diagnosisDescription,
+  String treatmentPlan,
+  List<String> requestedTests,
   String notes,
-  List<String> prescription,
   LocalDateTime createdAt
 ) {
   public static AppointmentRecordResponse fromEntity(AppointmentRecord record) {
     return new AppointmentRecordResponse(
       record.getId(),
       record.getAppointment().getId(),
+      record.getChiefComplaint(),
+      record.getHistoryOfPresentIllness(),
+      record.getPhysicalExamNotes(),
       record.getSymptoms(),
-      record.getDiagnosis(),
-      record.getTests(),
+      record.getDiagnosisCid10(),
+      record.getDiagnosisDescription(),
+      record.getTreatmentPlan(),
+      record.getRequestedTests(),
       record.getNotes(),
-      record.getPrescription(),
       record.getCreatedAt()
     );
   }

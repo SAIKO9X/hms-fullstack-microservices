@@ -6,6 +6,7 @@ import com.hms.profile.enums.Gender;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.Set;
 
 public record PatientResponse(
   Long id,
@@ -19,8 +20,9 @@ public record PatientResponse(
   String address,
   String emergencyContactName,
   String emergencyContactPhone,
-  String allergies,
-  String chronicDiseases,
+  Set<String> allergies,
+  String chronicConditions,
+  String familyHistory,
   String profilePictureUrl
 ) implements Serializable {
 
@@ -38,7 +40,8 @@ public record PatientResponse(
       patient.getEmergencyContactName(),
       patient.getEmergencyContactPhone(),
       patient.getAllergies(),
-      patient.getChronicDiseases(),
+      patient.getChronicConditions(),
+      patient.getFamilyHistory(),
       patient.getProfilePictureUrl()
     );
   }

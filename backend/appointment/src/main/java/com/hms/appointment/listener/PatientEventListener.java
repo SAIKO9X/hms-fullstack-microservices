@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.Optional;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -39,18 +41,19 @@ public class PatientEventListener {
   public void handleUserCreated(UserCreatedEvent event) {
     log.info("Sincronizando Patient ReadModel (User Email): UserID {}", event.userId());
 
-    repository.findByUserId(event.userId()).ifPresentOrElse(
-      patient -> {
-        // Se o paciente já existe, atualiza o email
-        patient.setEmail(event.email());
-        repository.save(patient);
-        log.info("Email atualizado para o paciente ID {}", patient.getPatientId());
-      },
-      () -> {
-        // Em um sistema real, isso iria numa tabela temporária "UserEmailCache".
-        // Para simplificar o projeto apenas logo um aviso.
-        log.warn("Paciente ainda não existe para UserID {}. Email pendente.", event.userId());
-      }
-    );
+    Optional<PatientReadModel> patientOpt = repository.findByUserId(event.userId());
+
+    if (patientOpt.isPresent()) {
+      PatientReadModel patient = patientOpt.get();
+      patient.setEmail(event.email());
+      repository.save(patient);
+      log.info("Email atualizado para o paciente ID {}", patient.getPatientId());
+    } else {
+      log.warn("Paciente ainda não encontrado para UserID {}. O email será atualizado quando o evento do Paciente chegar.", event.userId());
+
+      PatientReadModel partial = new PatientReadModel();
+      partial.setUserId(event.userId());
+      partial.setEmail(event.email());
+    }
   }
 }
