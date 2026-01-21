@@ -42,7 +42,7 @@ export const cancelAppointment = async (id: number): Promise<Appointment> => {
 // Remarcar consulta
 export const rescheduleAppointment = async (
   id: number,
-  newDateTime: string
+  newDateTime: string,
 ): Promise<Appointment> => {
   const { data } = await api.patch(`/appointments/${id}/reschedule`, {
     appointmentDateTime: newDateTime,
@@ -58,21 +58,21 @@ export const getDoctorsForDropdown = async (): Promise<DoctorDropdown[]> => {
 
 export const getDoctorPatients = async (): Promise<PatientSummary[]> => {
   const { data } = await api.get<PatientSummary[]>(
-    "/doctor/appointments/my-patients"
+    "/doctor/appointments/my-patients",
   );
   return data;
 };
 
 // === APPOINTMENT RECORDS ===
 export const createAppointmentRecord = async (
-  data: AppointmentRecordFormData
+  data: AppointmentRecordFormData,
 ): Promise<AppointmentRecord> => {
   const { data: responseData } = await api.post("/records", data);
   return responseData;
 };
 
 export const getAppointmentRecordByAppointmentId = async (
-  appointmentId: number
+  appointmentId: number,
 ): Promise<AppointmentRecord | null> => {
   try {
     const { data } = await api.get(`/records/appointment/${appointmentId}`);
@@ -98,18 +98,18 @@ export const updateAppointmentRecord = async ({
 
 // === PRESCRIPTIONS ===
 export const createPrescription = async (
-  data: PrescriptionFormData
+  data: PrescriptionFormData,
 ): Promise<Prescription> => {
   const { data: responseData } = await api.post("/prescriptions", data);
   return responseData;
 };
 
 export const getPrescriptionByAppointmentId = async (
-  appointmentId: number
+  appointmentId: number,
 ): Promise<Prescription | null> => {
   try {
     const { data } = await api.get(
-      `/prescriptions/appointment/${appointmentId}`
+      `/prescriptions/appointment/${appointmentId}`,
     );
     return data;
   } catch (error: any) {
@@ -123,10 +123,10 @@ export const getPrescriptionByAppointmentId = async (
 export const getPrescriptionsByPatientId = async (
   patientId: number,
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<Prescription>> => {
   const { data } = await api.get(
-    `/prescriptions/patient/${patientId}?page=${page}&size=${size}`
+    `/prescriptions/patient/${patientId}?page=${page}&size=${size}`,
   );
   return data;
 };
@@ -154,7 +154,7 @@ export const getLatestHealthMetric = async (): Promise<HealthMetric | null> => {
 };
 
 export const createHealthMetric = async (
-  metricData: HealthMetricFormData
+  metricData: HealthMetricFormData,
 ): Promise<HealthMetric> => {
   const { data } = await api.post("/health-metrics", metricData);
   return data;
@@ -162,17 +162,17 @@ export const createHealthMetric = async (
 
 // === ADVERSE EFFECTS ===
 export const createAdverseEffectReport = async (
-  reportData: AdverseEffectReportCreateRequest
+  reportData: AdverseEffectReportCreateRequest,
 ): Promise<void> => {
   await api.post("/adverse-effects", reportData);
 };
 
 export const getAdverseEffectReports = async (
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<AdverseEffectReport>> => {
   const { data } = await api.get(
-    `/adverse-effects/doctor?page=${page}&size=${size}`
+    `/adverse-effects/doctor?page=${page}&size=${size}`,
   );
   return data;
 };
@@ -180,10 +180,10 @@ export const getAdverseEffectReports = async (
 // === MEDICAL DOCUMENTS ===
 export const getMyDocuments = async (
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<MedicalDocument>> => {
   const { data } = await api.get(
-    `/documents/patient?page=${page}&size=${size}`
+    `/documents/patient?page=${page}&size=${size}`,
   );
   return data;
 };
@@ -191,16 +191,16 @@ export const getMyDocuments = async (
 export const getDocumentsByPatientId = async (
   patientId: number,
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<MedicalDocument>> => {
   const { data } = await api.get(
-    `/documents/patient/${patientId}?page=${page}&size=${size}`
+    `/documents/patient/${patientId}?page=${page}&size=${size}`,
   );
   return data;
 };
 
 export const createMedicalDocument = async (
-  documentData: MedicalDocumentCreateRequest
+  documentData: MedicalDocumentCreateRequest,
 ): Promise<MedicalDocument> => {
   const { data } = await api.post("/documents", documentData);
   return data;
@@ -212,18 +212,18 @@ export const deleteMedicalDocument = async (id: number): Promise<void> => {
 
 export const getDoctorAvailability = async (doctorId: number) => {
   const { data } = await api.get<AvailabilitySlot[]>(
-    `/doctor/appointments/availability/${doctorId}`
+    `/doctor/appointments/availability/${doctorId}`,
   );
   return data;
 };
 
 export const addDoctorAvailability = async (
   doctorId: number,
-  slot: Omit<AvailabilitySlot, "id">
+  slot: Omit<AvailabilitySlot, "id">,
 ) => {
   const { data } = await api.post<AvailabilitySlot>(
     `/doctor/appointments/availability/${doctorId}`,
-    slot
+    slot,
   );
   return data;
 };
@@ -239,4 +239,16 @@ export const createLabOrder = async (data: LabOrderFormData): Promise<void> => {
 export const getLabOrdersByAppointment = async (appointmentId: number) => {
   const { data } = await api.get(`/appointments/lab-orders/${appointmentId}`);
   return data;
+};
+
+export const addLabResult = async (
+  orderId: number,
+  itemId: number,
+  data: { resultNotes: string; attachmentId: string },
+) => {
+  const response = await api.patch(
+    `/appointments/lab-orders/${orderId}/items/${itemId}/results`,
+    data,
+  );
+  return response.data;
 };

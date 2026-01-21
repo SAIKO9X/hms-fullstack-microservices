@@ -54,6 +54,7 @@ import {
 } from "@/services/queries/appointment-queries";
 import type { AppointmentDetail } from "@/types/appointment.types";
 import { ChatSheet } from "@/features/chat/components/ChatSheet";
+import { LabOrdersManager } from "../components/LabOrdersManager";
 
 const getStatusConfig = (status: string) => {
   const configs = {
@@ -110,7 +111,7 @@ export const DoctorAppointmentsDetailPage = () => {
   const rescheduleAppointmentMutation = useRescheduleAppointment();
 
   const appointment = appointments?.find(
-    (app: AppointmentDetail) => app.id === appointmentId
+    (app: AppointmentDetail) => app.id === appointmentId,
   );
 
   const { data: documentsPage, refetch: refetchDocuments } =
@@ -118,7 +119,7 @@ export const DoctorAppointmentsDetailPage = () => {
       appointment?.patientId,
       docPage,
       docPageSize,
-      !!appointment
+      !!appointment,
     );
 
   const documents = documentsPage?.content || [];
@@ -153,7 +154,7 @@ export const DoctorAppointmentsDetailPage = () => {
 
   const handleRescheduleAppointment = async (
     appointmentId: number,
-    newDateTime: string
+    newDateTime: string,
   ) => {
     try {
       await rescheduleAppointmentMutation.mutateAsync({
@@ -285,7 +286,7 @@ export const DoctorAppointmentsDetailPage = () => {
                   {format(
                     new Date(appointment.appointmentDateTime),
                     "dd/MM/yyyy",
-                    { locale: ptBR }
+                    { locale: ptBR },
                   )}
                 </span>
               </div>
@@ -365,6 +366,11 @@ export const DoctorAppointmentsDetailPage = () => {
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Documentos</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="lab-orders" className="flex items-center gap-2">
+            <TestTube className="h-4 w-4" />
+            <span className="hidden sm:inline">Exames</span>
           </TabsTrigger>
         </TabsList>
 
@@ -626,7 +632,7 @@ export const DoctorAppointmentsDetailPage = () => {
                         setDocPage((old) =>
                           !documentsPage || old >= documentsPage.totalPages - 1
                             ? old
-                            : old + 1
+                            : old + 1,
                         )
                       }
                       disabled={
@@ -642,6 +648,13 @@ export const DoctorAppointmentsDetailPage = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="lab-orders" className="mt-6">
+          <LabOrdersManager
+            appointmentId={appointmentId}
+            patientId={appointment.patientId}
+          />
         </TabsContent>
       </Tabs>
 

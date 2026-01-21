@@ -1,11 +1,14 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.dto.request.AddLabResultRequest;
 import com.hms.appointment.dto.request.LabOrderCreateRequest;
+import com.hms.appointment.dto.response.LabOrderDTO;
 import com.hms.appointment.entities.LabOrder;
 import com.hms.appointment.services.LabOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,5 +30,14 @@ public class LabOrderController {
     return ResponseEntity.ok(labOrderService.getLabOrdersByAppointment(appointmentId));
   }
 
-
+  @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMIN', 'DOCTOR')")
+  @PatchMapping("/{orderId}/items/{itemId}/results")
+  public ResponseEntity<LabOrderDTO> addResultToItem(
+    @PathVariable Long orderId,
+    @PathVariable Long itemId,
+    @RequestBody AddLabResultRequest request
+  ) {
+    LabOrderDTO updatedOrder = labOrderService.addResultToItem(orderId, itemId, request);
+    return ResponseEntity.ok(updatedOrder);
+  }
 }
