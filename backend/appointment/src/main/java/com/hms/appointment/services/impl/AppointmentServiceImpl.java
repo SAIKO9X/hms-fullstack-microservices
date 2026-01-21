@@ -39,6 +39,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final DoctorReadModelRepository doctorReadModelRepository;
   private final PatientReadModelRepository patientReadModelRepository;
   private final DoctorAvailabilityRepository availabilityRepository;
+  private final DoctorUnavailabilityRepository unavailabilityRepository;
   private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
 
@@ -61,7 +62,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     validateMaximumAdvanceBooking(request.appointmentDateTime());
     validatePatientDailyLimit(patientId, request.appointmentDateTime());
     validateDoctorAvailability(request.doctorId(), request.appointmentDateTime());
+    validateDoctorUnavailability(request.doctorId(), request.appointmentDateTime());
     LocalDateTime appointmentEnd = request.appointmentDateTime().plusHours(1);
+
 
     boolean hasOverlap = appointmentRepository.existsByDoctorIdAndTimeRange(
       request.doctorId(),
@@ -656,6 +659,20 @@ public class AppointmentServiceImpl implements AppointmentService {
       }
     } catch (Exception e) {
       log.error("Erro ao processar fila de espera para médico ID: {}", doctorId, e);
+    }
+  }
+
+  private void validateDoctorUnavailability(Long doctorId, LocalDateTime appointmentDateTime) {
+    LocalDateTime appointmentEnd = appointmentDateTime.plusHours(1);
+
+    boolean isBlocked = unavailabilityRepository.hasUnavailability(
+      doctorId,
+      appointmentDateTime,
+      appointmentEnd
+    );
+
+    if (isBlocked) {
+      throw new SchedulingConflictException("O médico não está disponível neste horário (Férias/Bloqueio administrativo).");
     }
   }
 }
