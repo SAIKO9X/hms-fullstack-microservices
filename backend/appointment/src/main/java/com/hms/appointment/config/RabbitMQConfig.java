@@ -32,6 +32,10 @@ public class RabbitMQConfig {
   public static final String USER_SYNC_QUEUE = "appointment.user.sync.queue";
   public static final String USER_ROUTING_KEY = "user.event.created";
 
+  // Fila de Prescrição Aviada
+  public static final String PRESCRIPTION_DISPENSED_QUEUE = "appointment.prescription.dispensed.queue";
+  public static final String PRESCRIPTION_DISPENSED_KEY = "prescription.dispensed";
+
   // Routing Key para envio de status
   @Value("${application.rabbitmq.appointment-status-routing-key:appointment.status.changed}")
   private String appointmentStatusRoutingKey;
@@ -58,10 +62,23 @@ public class RabbitMQConfig {
   }
 
   @Bean
+  public Queue prescriptionDispensedQueue() {
+    return new Queue(PRESCRIPTION_DISPENSED_QUEUE, true);
+  }
+
+  @Bean
   public CustomExchange delayedExchange() {
     Map<String, Object> args = new HashMap<>();
     args.put("x-delayed-type", "topic");
     return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
+  }
+
+  @Bean
+  public Binding prescriptionDispensedBinding(Queue prescriptionDispensedQueue, TopicExchange exchange) {
+    return BindingBuilder
+      .bind(prescriptionDispensedQueue)
+      .to(exchange)
+      .with(PRESCRIPTION_DISPENSED_KEY);
   }
 
   // --- CONFIGURAÇÃO MÉDICO ---

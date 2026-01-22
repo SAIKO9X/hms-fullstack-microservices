@@ -1,5 +1,6 @@
 package com.hms.appointment.entities;
 
+import com.hms.appointment.enums.PrescriptionStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +32,10 @@ public class Prescription {
 
   @CreationTimestamp
   private LocalDateTime createdAt;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private PrescriptionStatus status = PrescriptionStatus.ISSUED;
 
   // Método auxiliar para sincronizar a relação bidirecional
   public void setMedicines(List<Medicine> medicines) {

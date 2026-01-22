@@ -12,6 +12,9 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  CheckCircle,
+  Ban,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -22,6 +25,38 @@ import {
 } from "@/components/ui/accordion";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/utils/utils";
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "ISSUED":
+      return {
+        label: "Disponível",
+        icon: Clock,
+        className:
+          "bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200",
+      };
+    case "DISPENSED":
+      return {
+        label: "Aviada (Comprada)",
+        icon: CheckCircle,
+        className:
+          "bg-green-100 text-green-700 hover:bg-green-200 border-green-200",
+      };
+    case "CANCELLED":
+      return {
+        label: "Cancelada",
+        icon: Ban,
+        className: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200",
+      };
+    default:
+      return {
+        label: status,
+        icon: AlertCircle,
+        className: "bg-gray-100 text-gray-700",
+      };
+  }
+};
 
 export const PatientPrescriptionsPage = () => {
   const [page, setPage] = useState(0);
@@ -142,107 +177,133 @@ export const PatientPrescriptionsPage = () => {
           ) : (
             <div className="space-y-6">
               <Accordion type="single" collapsible className="w-full">
-                {prescriptions.map((p) => (
-                  <AccordionItem key={p.id} value={`item-${p.id}`}>
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Calendar className="h-4 w-4 text-primary" />
+                {prescriptions.map((p) => {
+                  const statusConfig = getStatusConfig(p.status);
+                  const StatusIcon = statusConfig.icon;
+
+                  return (
+                    <AccordionItem key={p.id} value={`item-${p.id}`}>
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 bg-primary/10 rounded-lg">
+                              <Calendar className="h-4 w-4 text-primary" />
+                            </div>
+                            <div className="text-left">
+                              <p className="font-semibold">
+                                {format(
+                                  new Date(p.createdAt),
+                                  "dd 'de' MMMM 'de' yyyy",
+                                  { locale: ptBR },
+                                )}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <p className="text-sm text-muted-foreground">
+                                  {format(new Date(p.createdAt), "HH:mm", {
+                                    locale: ptBR,
+                                  })}
+                                </p>
+
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "gap-1 ml-2",
+                                    statusConfig.className,
+                                  )}
+                                >
+                                  <StatusIcon className="h-3 w-3" />
+                                  {statusConfig.label}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-left">
-                            <p className="font-semibold">
-                              {format(
-                                new Date(p.createdAt),
-                                "dd 'de' MMMM 'de' yyyy",
-                                {
-                                  locale: ptBR,
-                                },
-                              )}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(p.createdAt), "HH:mm", {
-                                locale: ptBR,
-                              })}
-                            </p>
+
+                          <div className="flex items-center gap-2 ml-auto mr-2">
+                            <Badge variant="secondary">
+                              {p.medicines.length}{" "}
+                              {p.medicines.length === 1 ? "item" : "itens"}
+                            </Badge>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="ml-auto mr-2">
-                          {p.medicines.length}{" "}
-                          {p.medicines.length === 1
-                            ? "medicamento"
-                            : "medicamentos"}
-                        </Badge>
-                      </div>
-                    </AccordionTrigger>
+                      </AccordionTrigger>
 
-                    <AccordionContent className="pt-4">
-                      <div className="space-y-4 pl-4">
-                        {/* Lista de medicamentos */}
-                        <div className="space-y-3">
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                            Medicamentos Prescritos
-                          </h4>
-                          {p.medicines.map((med, index) => (
-                            <div
-                              key={index}
-                              className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
-                            >
-                              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                                <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <AccordionContent className="pt-4">
+                        {p.status === "DISPENSED" && (
+                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            Esta receita já foi utilizada e os medicamentos
+                            dispensados.
+                          </div>
+                        )}
+
+                        <div className="space-y-4 pl-4">
+                          {/* Lista de medicamentos */}
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                              Medicamentos Prescritos
+                            </h4>
+                            {p.medicines.map((med, index) => (
+                              <div
+                                key={index}
+                                className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
+                              >
+                                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                                  <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <p className="font-semibold text-base">
+                                    {med.name}
+                                  </p>
+                                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <strong>Dosagem:</strong> {med.dosage}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                      <strong>Frequência:</strong>{" "}
+                                      {med.frequency}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-1">
+                                      <strong>Duração:</strong> {med.duration}{" "}
+                                      dias
+                                    </span>
+                                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                      <AlertCircle className="h-3 w-3" />
+                                      <strong>Válido até:</strong>{" "}
+                                      {format(
+                                        addDays(new Date(p.createdAt), 30), // data de criação + 30 dias
+                                        "dd/MM/yyyy",
+                                        { locale: ptBR },
+                                      )}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex-1 space-y-1">
-                                <p className="font-semibold text-base">
-                                  {med.name}
-                                </p>
-                                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <strong>Dosagem:</strong> {med.dosage}
-                                  </span>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <strong>Frequência:</strong> {med.frequency}
-                                  </span>
-                                  <span>•</span>
-                                  <span className="flex items-center gap-1">
-                                    <strong>Duração:</strong> {med.duration}{" "}
-                                    dias
-                                  </span>
-                                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                    <AlertCircle className="h-3 w-3" />
-                                    <strong>Válido até:</strong>{" "}
-                                    {format(
-                                      addDays(new Date(p.createdAt), 30), // data de criação + 30 dias
-                                      "dd/MM/yyyy",
-                                      { locale: ptBR },
-                                    )}
-                                  </span>
+                            ))}
+                          </div>
+
+                          {/* Notas adicionais */}
+                          {p.notes && (
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
+                              <div className="flex gap-2">
+                                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
+                                    Observações do Médico
+                                  </p>
+                                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                                    {p.notes}
+                                  </p>
                                 </div>
                               </div>
                             </div>
-                          ))}
+                          )}
                         </div>
-
-                        {/* Notas adicionais */}
-                        {p.notes && (
-                          <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
-                            <div className="flex gap-2">
-                              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                              <div>
-                                <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
-                                  Observações do Médico
-                                </p>
-                                <p className="text-sm text-blue-800 dark:text-blue-200">
-                                  {p.notes}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
               </Accordion>
 
               <div className="flex items-center justify-end space-x-2 py-4">

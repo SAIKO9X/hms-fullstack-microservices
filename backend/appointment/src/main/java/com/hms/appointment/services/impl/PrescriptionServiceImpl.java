@@ -9,6 +9,7 @@ import com.hms.appointment.dto.response.PrescriptionResponse;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.Medicine;
 import com.hms.appointment.entities.Prescription;
+import com.hms.appointment.enums.PrescriptionStatus;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.repositories.AppointmentRepository;
@@ -128,9 +129,31 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Override
   @Transactional(readOnly = true)
   public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId) {
-    return prescriptionRepository.findById(prescriptionId)
-      .map(PrescriptionForPharmacyResponse::fromEntity)
+    Prescription prescription = prescriptionRepository.findById(prescriptionId)
       .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
+
+    if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
+      throw new IllegalStateException("Esta prescrição já foi aviada e não pode ser consultada novamente.");
+    }
+
+    return PrescriptionForPharmacyResponse.fromEntity(prescription);
+  }
+
+  @Override
+  @Transactional
+  public void markAsDispensed(Long prescriptionId) {
+    Prescription prescription = prescriptionRepository.findById(prescriptionId)
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição ID " + prescriptionId + " não encontrada ao tentar marcar como aviada."));
+
+    if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
+      log.warn("Tentativa redundante de marcar prescrição ID {} como aviada.", prescriptionId);
+      return;
+    }
+
+    prescription.setStatus(PrescriptionStatus.DISPENSED);
+    prescriptionRepository.save(prescription);
+
+    log.info("Prescrição ID {} atualizada com sucesso para STATUS: DISPENSED.", prescriptionId);
   }
 
   @Override

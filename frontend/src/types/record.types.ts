@@ -29,6 +29,7 @@ export interface Prescription {
   notes?: string;
   medicines: Medicine[];
   createdAt: string;
+  status: "ISSUED" | "DISPENSED" | "CANCELLED";
 }
 
 export interface Medicine {

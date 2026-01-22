@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.pharmacy.dto.event.PrescriptionDispensedEvent;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.EmailRequest;
 import com.hms.pharmacy.dto.request.PharmacySaleRequest;
@@ -50,6 +51,9 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
+
+  @Value("${application.rabbitmq.prescription-dispensed-routing-key:prescription.dispensed}")
+  private String prescriptionDispensedRoutingKey;
 
   @Override
   @Transactional
@@ -183,6 +187,19 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     );
 
     PharmacySaleResponse response = createSale(saleRequest);
+
+    try {
+      PrescriptionDispensedEvent event = new PrescriptionDispensedEvent(
+        prescriptionId,
+        response.id(),
+        LocalDateTime.now()
+      );
+
+      rabbitTemplate.convertAndSend(exchange, prescriptionDispensedRoutingKey, event);
+      log.info("Evento de receita aviada enviado: Prescription ID {}", prescriptionId);
+    } catch (Exception e) {
+      log.error("Falha ao notificar o serviço de agendamento sobre a receita aviada.", e);
+    }
 
     prescription.setProcessed(true);
     prescriptionCopyRepository.save(prescription);

@@ -1,6 +1,7 @@
 package com.hms.appointment.dto.response;
 
 import com.hms.appointment.entities.Prescription;
+import com.hms.appointment.enums.PrescriptionStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,7 +13,8 @@ public record PrescriptionResponse(
   Long patientId,
   String notes,
   List<MedicineResponse> medicines,
-  LocalDateTime createdAt
+  LocalDateTime createdAt,
+  PrescriptionStatus status
 ) {
   public static PrescriptionResponse fromEntity(Prescription prescription) {
     return new PrescriptionResponse(
@@ -23,7 +25,8 @@ public record PrescriptionResponse(
       prescription.getMedicines().stream()
         .map(MedicineResponse::fromEntity)
         .collect(Collectors.toList()),
-      prescription.getCreatedAt()
+      prescription.getCreatedAt(),
+      prescription.getStatus()
     );
   }
 }
