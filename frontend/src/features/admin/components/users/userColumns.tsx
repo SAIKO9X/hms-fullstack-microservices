@@ -172,19 +172,19 @@ export const patientColumns = ({
                 createSuccessNotification(
                   `Utilizador ${
                     newStatus ? "ativado" : "desativado"
-                  } com sucesso!`
-                )
+                  } com sucesso!`,
+                ),
               );
             },
             onError: (error: any) => {
               setNotification(
                 createErrorNotification(
                   "Erro ao atualizar status",
-                  getErrorMessage(error)
-                )
+                  getErrorMessage(error),
+                ),
               );
             },
-          }
+          },
         );
       };
 
@@ -232,8 +232,8 @@ export const patientColumns = ({
               {isPending
                 ? "A atualizar..."
                 : patient.active
-                ? "Desativar"
-                : "Ativar"}
+                  ? "Desativar"
+                  : "Ativar"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -366,19 +366,19 @@ export const doctorColumns = ({
                 createSuccessNotification(
                   `Utilizador ${
                     newStatus ? "ativado" : "desativado"
-                  } com sucesso!`
-                )
+                  } com sucesso!`,
+                ),
               );
             },
             onError: (error: any) => {
               setNotification(
                 createErrorNotification(
                   "Erro ao atualizar status",
-                  getErrorMessage(error)
-                )
+                  getErrorMessage(error),
+                ),
               );
             },
-          }
+          },
         );
       };
 
@@ -423,8 +423,8 @@ export const doctorColumns = ({
               {isPending
                 ? "A atualizar..."
                 : doctor.active
-                ? "Desativar"
-                : "Ativar"}
+                  ? "Desativar"
+                  : "Ativar"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

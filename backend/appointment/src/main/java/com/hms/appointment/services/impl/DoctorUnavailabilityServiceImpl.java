@@ -39,7 +39,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
       throw new InvalidUpdateException("Já existe um período de indisponibilidade registrado neste intervalo.");
     }
 
-    boolean hasAppointments = appointmentRepository.existsActiveAppointmentsInPeriod(
+    boolean hasAppointments = appointmentRepository.hasDoctorConflict(
       request.doctorId(),
       request.startDateTime(),
       request.endDateTime()

@@ -30,6 +30,12 @@ public class Appointment {
   @Column(nullable = false)
   private LocalDateTime appointmentDateTime;
 
+  @Column(nullable = false)
+  private Integer duration;
+
+  @Column(nullable = false)
+  private LocalDateTime appointmentEndTime;
+
   @Lob
   private String reason;
 

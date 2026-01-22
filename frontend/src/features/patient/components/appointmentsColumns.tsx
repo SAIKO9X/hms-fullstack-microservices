@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, addMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Appointment, AppointmentStatus } from "@/types/appointment.types";
 
@@ -33,7 +33,6 @@ const getStatusBadge = (status: AppointmentStatus) => {
   );
 };
 
-// 1. Adicionamos handleViewDetails à tipagem das opções
 export const columns = (options: {
   handleCancelAppointment: (appointmentId: number) => void;
   handleViewDetails: (appointmentId: number) => void;
@@ -65,12 +64,20 @@ export const columns = (options: {
       </Button>
     ),
     cell: ({ row }) => {
-      const date = new Date(row.getValue("appointmentDateTime"));
+      const appointment = row.original;
+      const start = new Date(appointment.appointmentDateTime);
+      // calcula o fim com base no campo calculado do backend ou fallback para 60min
+      const end = appointment.appointmentEndTime
+        ? new Date(appointment.appointmentEndTime)
+        : addMinutes(start, appointment.duration || 60);
+
       return (
         <div>
-          <div>{format(date, "dd/MM/yyyy", { locale: ptBR })}</div>
-          <div className="text-sm text-muted-foreground">
-            {format(date, "HH:mm")}
+          <div className="font-medium">
+            {format(start, "dd/MM/yyyy", { locale: ptBR })}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {format(start, "HH:mm")} - {format(end, "HH:mm")}
           </div>
         </div>
       );
@@ -108,17 +115,12 @@ export const columns = (options: {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Ações</DropdownMenuLabel>
-            {/* 2. Chamamos a função de navegação aqui */}
             <DropdownMenuItem
               onClick={() => options.handleViewDetails(appointment.id)}
               className="cursor-pointer"
             >
               Ver Detalhes
             </DropdownMenuItem>
-
-            {/* Reagendar pode ser implementado futuramente */}
-            <DropdownMenuItem disabled>Reagendar</DropdownMenuItem>
-
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => options.handleCancelAppointment(appointment.id)}

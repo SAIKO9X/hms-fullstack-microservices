@@ -20,7 +20,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { MedicineInventory } from "@/types/medicine.types";
-import { columns } from "@/features/admin/components/inventory/columns";
+import { inventoryColumns } from "@/features/admin/components/inventory/inventoryColumns";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { AddEditInventoryDialog } from "@/features/admin/components/inventory/AddEditInventoryDialog";
 import {
@@ -110,11 +110,11 @@ export const AdminInventoryPage = () => {
       nearExpiry: inventoryList.filter(
         (item) =>
           new Date(item.expiryDate) < thirtyDaysFromNow &&
-          new Date(item.expiryDate) > now
+          new Date(item.expiryDate) > now,
       ).length,
       inStock: inventoryList.reduce((acc, item) => acc + item.quantity, 0),
       lowStock: inventoryList.filter(
-        (item) => item.quantity > 0 && item.quantity < 10
+        (item) => item.quantity > 0 && item.quantity < 10,
       ).length,
     };
   }, [inventoryList, inventoryPage]);
@@ -132,7 +132,7 @@ export const AdminInventoryPage = () => {
   const handleDelete = async (inventoryItem: MedicineInventory) => {
     if (
       window.confirm(
-        `Tem certeza de que deseja excluir o lote ${inventoryItem.batchNo}? Esta ação não pode ser desfeita.`
+        `Tem certeza de que deseja excluir o lote ${inventoryItem.batchNo}? Esta ação não pode ser desfeita.`,
       )
     ) {
       await deleteInventoryMutation.mutateAsync(inventoryItem.id, {
@@ -283,7 +283,7 @@ export const AdminInventoryPage = () => {
                               "mr-2 h-4 w-4",
                               statusFilter === option.value
                                 ? "opacity-100"
-                                : "opacity-0"
+                                : "opacity-0",
                             )}
                           />
                           {option.label}
@@ -318,7 +318,7 @@ export const AdminInventoryPage = () => {
           ) : (
             <div className="space-y-4">
               <DataTable
-                columns={columns({
+                columns={inventoryColumns({
                   onEdit: handleEdit,
                   onDelete: handleDelete,
                   onViewDetails: handleViewDetails,
@@ -326,7 +326,6 @@ export const AdminInventoryPage = () => {
                 data={filteredInventory}
               />
 
-              {/* Controles de Paginação */}
               <div className="flex items-center justify-end space-x-2 py-4">
                 <Button
                   variant="outline"
@@ -347,7 +346,7 @@ export const AdminInventoryPage = () => {
                     setPage((old) =>
                       !inventoryPage || old >= inventoryPage.totalPages - 1
                         ? old
-                        : old + 1
+                        : old + 1,
                     )
                   }
                   disabled={

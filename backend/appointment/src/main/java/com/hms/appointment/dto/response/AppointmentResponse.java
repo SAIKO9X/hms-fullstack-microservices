@@ -2,6 +2,7 @@ package com.hms.appointment.dto.response;
 
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.enums.AppointmentStatus;
+
 import java.time.LocalDateTime;
 
 public record AppointmentResponse(
@@ -9,6 +10,8 @@ public record AppointmentResponse(
   Long patientId,
   Long doctorId,
   LocalDateTime appointmentDateTime,
+  Integer duration,
+  LocalDateTime appointmentEndTime,
   String reason,
   AppointmentStatus status,
   String notes
@@ -19,6 +22,8 @@ public record AppointmentResponse(
       appointment.getPatientId(),
       appointment.getDoctorId(),
       appointment.getAppointmentDateTime(),
+      appointment.getDuration(),
+      appointment.getAppointmentEndTime(),
       appointment.getReason(),
       appointment.getStatus(),
       appointment.getNotes()

@@ -1,8 +1,10 @@
 package com.hms.appointment.dto.request;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDateTime;
 
 public record AppointmentCreateRequest(
@@ -13,6 +15,10 @@ public record AppointmentCreateRequest(
   @Future(message = "A data do agendamento deve ser no futuro.")
   LocalDateTime appointmentDateTime,
 
+  @Min(value = 15, message = "A duração mínima é de 15 minutos.")
+  Integer duration,
+
   @NotBlank(message = "O motivo da consulta é obrigatório.")
   String reason
-) {}
+) {
+}

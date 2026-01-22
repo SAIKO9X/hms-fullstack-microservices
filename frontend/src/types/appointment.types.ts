@@ -20,6 +20,8 @@ export interface Appointment {
   doctorId: number;
   doctorName?: string;
   appointmentDateTime: string; // ISO string format
+  duration?: number;
+  appointmentEndTime?: string;
   reason: string;
   status: AppointmentStatus;
   notes?: string | null;
@@ -33,21 +35,25 @@ export interface AppointmentDetail {
   doctorId: number;
   doctorName: string;
   appointmentDateTime: string;
+  duration?: number;
+  appointmentEndTime?: string;
   status: AppointmentStatus;
   reason?: string;
   notes?: string;
 }
 
 export interface AppointmentFormInput {
-  doctorId: string; // String no form, será convertido para number
+  doctorId: string;
   appointmentDate: Date;
-  appointmentTime: string; // "HH:mm" format
+  appointmentTime: string;
+  duration?: number;
   reason: string;
 }
 
 export interface AppointmentCreateRequest {
   doctorId: number;
-  appointmentDateTime: string; // ISO string
+  appointmentDateTime: string;
+  duration?: number; // Enviado ao backend
   reason: string;
 }
 

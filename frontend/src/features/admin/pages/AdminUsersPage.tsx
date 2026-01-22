@@ -137,10 +137,10 @@ export const AdminUsersPage = () => {
     PatientWithDetails | DoctorWithDetails | null
   >(null);
   const [editingUserType, setEditingUserType] = useState<"patient" | "doctor">(
-    "patient"
+    "patient",
   );
   const [notification, setNotification] = useState<ActionNotification | null>(
-    null
+    null,
   );
 
   const handleEditPatient = (patient: PatientWithDetails) => {
@@ -159,9 +159,10 @@ export const AdminUsersPage = () => {
   const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
   const { data: users, isLoading: isLoadingUsers } = useAllUsers();
 
-  const patientsWithDetails = useMemo(() => {
-    if (!patients || !users) return [];
-    return patients.map((patient) => {
+  const patientsWithDetails = useMemo<PatientWithDetails[]>(() => {
+    if (!patients || !Array.isArray(patients) || !users) return [];
+
+    return patients.map((patient: PatientProfile) => {
       const user = users.find((u) => u.id === patient.userId);
       return {
         ...patient,
@@ -171,9 +172,10 @@ export const AdminUsersPage = () => {
     });
   }, [patients, users]);
 
-  const doctorsWithDetails = useMemo(() => {
-    if (!doctors || !users) return [];
-    return doctors.map((doctor) => {
+  const doctorsWithDetails = useMemo<DoctorWithDetails[]>(() => {
+    if (!doctors || !Array.isArray(doctors) || !users) return [];
+
+    return doctors.map((doctor: DoctorProfile) => {
       const user = users.find((u) => u.id === doctor.userId);
       return {
         ...doctor,
@@ -185,18 +187,18 @@ export const AdminUsersPage = () => {
 
   const [isCreateUserOpen, setCreateUserOpen] = useState(false);
 
-  const filteredPatients = useMemo(() => {
+  const filteredPatients = useMemo<PatientWithDetails[]>(() => {
     if (!patientsWithDetails) return [];
     const searchTerm = searchPatients.toLowerCase();
     return patientsWithDetails.filter(
       (patient) =>
         patient.name?.toLowerCase().includes(searchTerm) ||
         patient.email?.toLowerCase().includes(searchTerm) ||
-        patient.cpf?.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, ""))
+        patient.cpf?.replace(/\D/g, "").includes(searchTerm.replace(/\D/g, "")),
     );
   }, [patientsWithDetails, searchPatients]);
 
-  const filteredDoctors = useMemo(() => {
+  const filteredDoctors = useMemo<DoctorWithDetails[]>(() => {
     if (!doctorsWithDetails) return [];
     const searchTerm = searchDoctors.toLowerCase();
     return doctorsWithDetails.filter(
@@ -204,7 +206,7 @@ export const AdminUsersPage = () => {
         doctor.name?.toLowerCase().includes(searchTerm) ||
         doctor.email?.toLowerCase().includes(searchTerm) ||
         doctor.crmNumber?.toLowerCase().includes(searchTerm) ||
-        doctor.specialization?.toLowerCase().includes(searchTerm)
+        doctor.specialization?.toLowerCase().includes(searchTerm),
     );
   }, [doctorsWithDetails, searchDoctors]);
 
