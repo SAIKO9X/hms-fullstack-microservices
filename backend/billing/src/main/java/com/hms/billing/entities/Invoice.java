@@ -24,6 +24,9 @@ public class Invoice {
   @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
 
+  @Column(name = "pharmacy_sale_id")
+  private Long pharmacySaleId;
+
   private Long appointmentId;
   private String patientId;
   private String doctorId;

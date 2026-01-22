@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { billingService } from "@/services/billing";
+import { BillingService } from "@/services/billing";
 import { InvoicesList } from "../components/InvoicesList";
 import {
   Card,
@@ -27,8 +27,6 @@ export default function PatientBillingPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [providers, setProviders] = useState<InsuranceProvider[]>([]);
   const [isPaying, setIsPaying] = useState<string | null>(null);
-
-  // State para form de seguro simples
   const [selectedProvider, setSelectedProvider] = useState("");
   const [policyNumber, setPolicyNumber] = useState("");
 
@@ -41,8 +39,8 @@ export default function PatientBillingPage() {
   const loadData = async () => {
     try {
       const [invData, provData] = await Promise.all([
-        billingService.getPatientInvoices(user!.id.toString()),
-        billingService.getProviders(),
+        BillingService.getPatientInvoices(user!.id.toString()),
+        BillingService.getProviders(),
       ]);
       setInvoices(invData);
       setProviders(provData);
@@ -54,9 +52,9 @@ export default function PatientBillingPage() {
   const handlePay = async (id: string) => {
     setIsPaying(id);
     try {
-      await billingService.payInvoice(id);
+      await BillingService.payInvoice(id);
       toast.success("Pagamento realizado com sucesso!");
-      loadData(); // Recarrega status
+      loadData();
     } catch (error) {
       toast.error("Erro ao processar pagamento.");
     } finally {
@@ -68,13 +66,12 @@ export default function PatientBillingPage() {
     if (!selectedProvider || !policyNumber)
       return toast.error("Preencha os dados do convênio");
     try {
-      await billingService.registerInsurance(
+      await BillingService.registerInsurance(
         user!.id.toString(),
         Number(selectedProvider),
         policyNumber,
       );
       toast.success("Convênio vinculado!");
-      // O ideal seria recarregar info do seguro aqui
     } catch (error) {
       toast.error("Erro ao vincular convênio");
     }
@@ -85,7 +82,6 @@ export default function PatientBillingPage() {
       <h1 className="text-3xl font-bold">Financeiro & Convênios</h1>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Card de Convênio */}
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle>Meu Convênio</CardTitle>
@@ -124,7 +120,6 @@ export default function PatientBillingPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Faturas */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Histórico de Faturas</CardTitle>

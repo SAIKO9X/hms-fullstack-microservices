@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.pharmacy.dto.event.PharmacySaleCreatedEvent;
 import com.hms.pharmacy.dto.event.PrescriptionDispensedEvent;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.EmailRequest;
@@ -54,6 +55,8 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   @Value("${application.rabbitmq.prescription-dispensed-routing-key:prescription.dispensed}")
   private String prescriptionDispensedRoutingKey;
+
+  private static final String PHARMACY_SALE_ROUTING_KEY = "pharmacy.sale.created";
 
   @Override
   @Transactional
@@ -108,6 +111,21 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     sale.setTotalAmount(totalAmount);
 
     PharmacySale savedSale = saleRepository.save(sale);
+
+    try {
+      PharmacySaleCreatedEvent event = new PharmacySaleCreatedEvent(
+        savedSale.getId(),
+        savedSale.getPatientId(),
+        savedSale.getBuyerName(),
+        savedSale.getTotalAmount(),
+        savedSale.getSaleDate()
+      );
+
+      rabbitTemplate.convertAndSend(exchange, PHARMACY_SALE_ROUTING_KEY, event);
+      log.info("Evento financeiro enviado para Billing: Sale ID {}", savedSale.getId());
+    } catch (Exception e) {
+      log.error("FALHA ao enviar evento financeiro para Billing", e);
+    }
 
     sendEmailNotification(patientEmail, savedSale);
 

@@ -15,4 +15,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
   Optional<Invoice> findByAppointmentId(Long appointmentId);
 
   List<Invoice> findByStatus(InvoiceStatus status);
+
+  Optional<Invoice> findByPharmacySaleId(Long pharmacySaleId);
 }

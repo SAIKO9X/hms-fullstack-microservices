@@ -21,14 +21,18 @@ export interface PatientInsurance {
 
 export interface Invoice {
   id: string;
-  appointmentId: number;
+  appointmentId?: number;
+  pharmacySaleId?: number;
   patientId: string;
-  doctorId: string;
+  doctorId?: string;
   totalAmount: number;
   insuranceCovered: number;
   patientPayable: number;
   status: InvoiceStatus;
+
+  createdAt: string;
   issuedAt: string;
+
   paidAt?: string;
   patientPaidAt?: string;
   insurancePaidAt?: string;

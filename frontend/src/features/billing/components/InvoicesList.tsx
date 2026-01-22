@@ -9,7 +9,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatCurrency } from "@/utils/utils";
-import { Loader2, CheckCircle2, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  ShoppingBag,
+  Stethoscope,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
 
 interface InvoicesListProps {
@@ -22,13 +31,19 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
   const getStatusBadge = (inv: Invoice) => {
     if (inv.status === "PAID") {
       return (
-        <Badge className="bg-green-600 hover:bg-green-700">Concluído</Badge>
+        <Badge className="bg-green-600 hover:bg-green-700 gap-1">
+          <CheckCircle2 className="h-3 w-3" />
+          Concluído
+        </Badge>
       );
     }
 
     if (inv.patientPaidAt && inv.status === "INSURANCE_PENDING") {
       return (
-        <Badge variant="secondary" className="gap-1">
+        <Badge
+          variant="secondary"
+          className="gap-1 bg-blue-100 text-blue-800 hover:bg-blue-200"
+        >
           <Clock className="h-3 w-3" />
           Aguardando Convênio
         </Badge>
@@ -39,9 +54,14 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
       return <Badge variant="destructive">Cancelado</Badge>;
     }
 
+    // se não pagou a parte do paciente e tem valor a pagar
     if (!inv.patientPaidAt && inv.patientPayable > 0) {
       return (
-        <Badge variant="outline" className="border-orange-500 text-orange-600">
+        <Badge
+          variant="outline"
+          className="border-orange-500 text-orange-600 bg-orange-50 gap-1"
+        >
+          <AlertCircle className="h-3 w-3" />
           Pagamento Pendente
         </Badge>
       );
@@ -55,6 +75,7 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Origem</TableHead>
             <TableHead>Data</TableHead>
             <TableHead>Total</TableHead>
             <TableHead className="hidden md:table-cell">Convênio</TableHead>
@@ -67,8 +88,8 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
           {invoices.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={6}
-                className="text-center h-32 text-muted-foreground"
+                colSpan={7}
+                className="text-center py-12 text-muted-foreground"
               >
                 Nenhuma fatura encontrada.
               </TableCell>
@@ -79,10 +100,42 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                 !inv.patientPaidAt && inv.patientPayable > 0;
               const isFullyPaid = inv.status === "PAID";
 
+              const dateToDisplay = inv.createdAt
+                ? new Date(inv.createdAt)
+                : new Date(inv.issuedAt);
+
               return (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">
-                    {new Date(inv.issuedAt).toLocaleDateString()}
+                    {inv.pharmacySaleId ? (
+                      <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                        <div className="p-2 bg-emerald-100 rounded-full">
+                          <ShoppingBag className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span>Farmácia</span>
+                          <span className="text-xs text-muted-foreground font-normal">
+                            Venda #{inv.pharmacySaleId}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                        <div className="p-2 bg-blue-100 rounded-full">
+                          <Stethoscope className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span>Consulta</span>
+                          <span className="text-xs text-muted-foreground font-normal">
+                            Ref. #{inv.appointmentId}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </TableCell>
+
+                  <TableCell>
+                    {format(dateToDisplay, "dd/MM/yyyy", { locale: ptBR })}
                   </TableCell>
 
                   <TableCell className="text-muted-foreground">
@@ -93,7 +146,7 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                     {inv.insuranceCovered > 0 ? (
                       <span>-{formatCurrency(inv.insuranceCovered)}</span>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-300">-</span>
                     )}
                   </TableCell>
 
@@ -109,11 +162,6 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                       >
                         {formatCurrency(inv.patientPayable)}
                       </span>
-                      {inv.patientPaidAt && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Pago
-                        </span>
-                      )}
                     </div>
                   </TableCell>
 
@@ -130,14 +178,23 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                         {isPaying === inv.id ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         ) : null}
-                        Pagar {formatCurrency(inv.patientPayable)}
+                        Pagar
                       </Button>
+                    ) : inv.pharmacySaleId && isFullyPaid ? (
+                      <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+                        Pago na Loja
+                      </span>
                     ) : (
-                      <Button size="sm" variant="ghost" disabled>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled
+                        className="opacity-50"
+                      >
                         {isFullyPaid
                           ? "Liquidado"
                           : inv.patientPaidAt
-                            ? "Pago"
+                            ? "Processando"
                             : "-"}
                       </Button>
                     )}

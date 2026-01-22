@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+  public static final String BILLING_PHARMACY_QUEUE = "billing.pharmacy.sale.queue";
+  public static final String PHARMACY_SALE_ROUTING_KEY = "pharmacy.sale.created";
+
   @Value("${rabbitmq.queues.appointment-billing}")
   private String billingQueue;
 
@@ -44,10 +47,23 @@ public class RabbitMQConfig {
     return new Jackson2JsonMessageConverter();
   }
 
+
+  @Bean
+  public Queue billingPharmacyQueue() {
+    return new Queue(BILLING_PHARMACY_QUEUE, true);
+  }
+
   @Bean
   public AmqpTemplate amqpTemplate(ConnectionFactory connectionFactory) {
     RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
     rabbitTemplate.setMessageConverter(converter());
     return rabbitTemplate;
+  }
+
+  @Bean
+  public Binding pharmacySaleBinding(Queue billingPharmacyQueue, TopicExchange exchange) {
+    return BindingBuilder.bind(billingPharmacyQueue)
+      .to(exchange)
+      .with(PHARMACY_SALE_ROUTING_KEY);
   }
 }
