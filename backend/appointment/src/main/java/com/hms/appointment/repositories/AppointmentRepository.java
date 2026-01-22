@@ -25,8 +25,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   List<Appointment> findByStatusAndAppointmentDateTimeBefore(AppointmentStatus status, LocalDateTime dateTime);
 
-  boolean existsByDoctorIdAndAppointmentDateTime(Long doctorId, LocalDateTime appointmentDateTime);
-
   Optional<Appointment> findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
     Long patientId, AppointmentStatus status, LocalDateTime now);
 
@@ -60,7 +58,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   List<Appointment> findByPatientIdAndAppointmentDateTimeBefore(Long patientId, LocalDateTime dateTime);
 
-  // --- Queries de Projeção ---
   @Query("SELECT a.patientId as patientId, p.userId as userId, p.fullName as patientName, p.email as patientEmail, p.profilePicture as profilePicture, COUNT(a) as totalAppointments, MAX(a.appointmentDateTime) as lastAppointmentDate FROM Appointment a JOIN PatientReadModel p ON a.patientId = p.patientId WHERE a.doctorId = :doctorId GROUP BY a.patientId, p.userId, p.fullName, p.email, p.profilePicture")
   List<DoctorPatientSummaryProjection> findPatientsSummaryByDoctor(@Param("doctorId") Long doctorId);
 
@@ -99,4 +96,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     @Param("newStart") LocalDateTime newStart,
     @Param("newEnd") LocalDateTime newEnd,
     @Param("appointmentId") Long appointmentId);
+
+  @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.doctorId = :doctorId AND a.patientId = :patientId AND a.status <> 'CANCELED'")
+  boolean existsByDoctorIdAndPatientId(@Param("doctorId") Long doctorId, @Param("patientId") Long patientId);
 }

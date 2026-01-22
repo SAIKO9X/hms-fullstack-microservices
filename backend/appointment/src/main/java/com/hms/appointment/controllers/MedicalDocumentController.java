@@ -42,7 +42,7 @@ public class MedicalDocumentController {
     @PageableDefault(size = 10, sort = "uploadedAt", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     Long patientId = getUserIdFromToken(token);
-    return documentService.getDocumentsByPatientId(patientId, pageable);
+    return documentService.getDocumentsByPatientId(patientId, pageable, patientId, "PATIENT");
   }
 
   @GetMapping("/patient/{patientId}")
@@ -51,9 +51,13 @@ public class MedicalDocumentController {
   @Auditable(action = "VIEW_PATIENT_DOCUMENTS", resourceName = "MedicalDocument")
   public Page<MedicalDocumentResponse> getDocumentsForPatient(
     @PathVariable Long patientId,
+    @RequestHeader("Authorization") String token,
     @PageableDefault(size = 10, sort = "uploadedAt", direction = Sort.Direction.DESC) Pageable pageable
   ) {
-    return documentService.getDocumentsByPatientId(patientId, pageable);
+    Long requesterId = getUserIdFromToken(token);
+    String requesterRole = jwtService.extractClaim(token.substring(7), claims -> claims.get("role", String.class));
+
+    return documentService.getDocumentsByPatientId(patientId, pageable, requesterId, requesterRole);
   }
 
   @DeleteMapping("/{id}")
