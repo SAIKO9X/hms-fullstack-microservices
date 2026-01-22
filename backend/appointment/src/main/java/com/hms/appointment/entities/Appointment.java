@@ -44,4 +44,10 @@ public class Appointment {
   private AppointmentStatus status;
 
   private String notes;
+
+  @Column(name = "reminder_24h_sent")
+  private boolean reminder24hSent = false;
+
+  @Column(name = "reminder_1h_sent")
+  private boolean reminder1hSent = false;
 }

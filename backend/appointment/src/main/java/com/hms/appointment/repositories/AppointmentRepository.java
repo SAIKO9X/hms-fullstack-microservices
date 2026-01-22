@@ -99,4 +99,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
   @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.doctorId = :doctorId AND a.patientId = :patientId AND a.status <> 'CANCELED'")
   boolean existsByDoctorIdAndPatientId(@Param("doctorId") Long doctorId, @Param("patientId") Long patientId);
+
+  List<Appointment> findByStatusAndReminder24hSentFalseAndAppointmentDateTimeBetween(
+    AppointmentStatus status, LocalDateTime start, LocalDateTime end);
+
+  List<Appointment> findByStatusAndReminder1hSentFalseAndAppointmentDateTimeBetween(
+    AppointmentStatus status, LocalDateTime start, LocalDateTime end);
 }

@@ -9,8 +9,8 @@ public record AppointmentStatusChangedEvent(
   String patientEmail,
   String patientName,
   String doctorName,
-  LocalDateTime appointmentDate,
-  String status, // SCHEDULED, CANCELED, RESCHEDULED
+  LocalDateTime appointmentDateTime,
+  String newStatus,
   String reasonOrNotes
 ) implements Serializable {
 }

@@ -52,6 +52,16 @@ public class RabbitMQConfig {
   }
 
   @Bean
+  public Binding reminderBinding(Queue reminderQueue, TopicExchange internalExchange) {
+    return BindingBuilder.bind(reminderQueue).to(internalExchange).with("appointment.reminder.#");
+  }
+
+  @Bean
+  public Binding statusBinding(Queue statusQueue, TopicExchange internalExchange) {
+    return BindingBuilder.bind(statusQueue).to(internalExchange).with("appointment.status.changed");
+  }
+
+  @Bean
   public Binding userCreatedBinding(TopicExchange exchange) {
     return BindingBuilder.bind(userCreatedQueue())
       .to(exchange)

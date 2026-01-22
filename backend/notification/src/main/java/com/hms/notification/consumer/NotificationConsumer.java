@@ -28,25 +28,72 @@ public class NotificationConsumer {
   private final EmailService emailService;
   private final SpringTemplateEngine templateEngine;
 
+  // notificação genérica de e-mail
   @RabbitListener(queues = "${application.rabbitmq.notification-queue}")
   public void consumeNotification(EmailRequest request) {
     log.info("Mensagem recebida da fila: {}", request);
     emailService.sendEmail(request.to(), request.subject(), request.body());
   }
 
-  @RabbitListener(queues = RabbitMQConfig.REMINDER_QUEUE)
+  // Lembrete de consulta (24h ou 1h antes)
+  @RabbitListener(queues = "${application.rabbitmq.queues.notification-reminder:notification.reminder.queue}")
   public void handleAppointmentReminder(AppointmentEvent event) {
-    log.info("Processando lembrete de consulta para: {}", event.patientEmail());
+    log.info("Lembrete recebido para paciente: {}", event.patientEmail());
 
-    String subject = "Lembrete: Sua consulta é amanhã!";
-    String content = String.format("""
-      <h1>Lembrete de Consulta</h1>
-      <p>Olá,</p>
-      <p>Este é um lembrete de que você tem uma consulta agendada com <b>Dr. %s</b> em <b>%s</b>.</p>
-      <p>Por favor, chegue com 15 minutos de antecedência.</p>
-      """, event.doctorName(), event.appointmentDateTime());
+    String subject = "Lembrete de Consulta - HMS";
+    String formattedDate = event.appointmentDateTime()
+      .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+    String body = String.format(
+      "Olá, este é um lembrete da sua consulta com Dr(a). %s agendada para %s. Por favor, chegue com 15 minutos de antecedência.",
+      event.doctorName(),
+      formattedDate
+    );
 
-    emailService.sendEmail(event.patientEmail(), subject, content);
+    emailService.sendEmail(event.patientEmail(), subject, body);
+  }
+
+  // Notificação de mudança de status da consulta
+  @RabbitListener(queues = "${application.rabbitmq.queues.notification-status:notification.status.queue}")
+  public void handleStatusChange(AppointmentStatusChangedEvent event) {
+    log.info("Evento de status recebido: {} -> {}", event.appointmentId(), event.newStatus());
+
+    if (event.patientEmail() == null || event.patientEmail().isBlank()) {
+      log.warn("E-mail do paciente ausente. Ignorando notificação.");
+      return;
+    }
+
+    String formattedDate = event.appointmentDateTime()
+      .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+
+    String subject = "Atualização da Consulta - HMS";
+    String body = "";
+
+    switch (event.newStatus()) {
+      case "CANCELED":
+        subject = "Consulta Cancelada";
+        body = String.format("<h1>Consulta Cancelada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> para o dia %s foi cancelada.</p>",
+          event.patientName(), event.doctorName(), formattedDate);
+        break;
+      case "RESCHEDULED":
+        subject = "Consulta Reagendada";
+        body = String.format("<h1>Consulta Remarcada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> foi alterada para: <strong>%s</strong>.</p>",
+          event.patientName(), event.doctorName(), formattedDate);
+        break;
+      case "COMPLETED":
+        subject = "Consulta Concluída";
+        body = String.format("<h1>Consulta Concluída</h1><p>Olá %s,</p><p>Sua consulta foi concluída. Acesse o portal para ver sua prescrição e avaliar o atendimento.</p>",
+          event.patientName());
+        break;
+      case "SCHEDULED":
+        subject = "Confirmação de Agendamento";
+        body = String.format("<h1>Consulta Confirmada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> está agendada para: <strong>%s</strong>.</p>",
+          event.patientName(), event.doctorName(), formattedDate);
+        break;
+      default:
+        return; // ignora status desconhecidos
+    }
+
+    emailService.sendEmail(event.patientEmail(), subject, body);
   }
 
   @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
@@ -118,42 +165,5 @@ public class NotificationConsumer {
     } catch (MessagingException e) {
       log.error("Erro ao enviar email", e);
     }
-  }
-
-  @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_NOTIFICATION_QUEUE)
-  public void consumeAppointmentEvent(AppointmentStatusChangedEvent event) {
-    log.info("Processando notificação de agendamento: Status {}", event.status());
-
-    if (event.patientEmail() == null || event.patientEmail().isBlank()) {
-      log.warn("E-mail do paciente não fornecido no evento. Notificação cancelada.");
-      return;
-    }
-
-    String subject;
-    String body;
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    String formattedDate = event.appointmentDate().format(formatter);
-
-    switch (event.status()) {
-      case "SCHEDULED":
-        subject = "Confirmação de Consulta - HMS";
-        body = String.format("<h1>Consulta Confirmada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> está agendada para: <strong>%s</strong>.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      case "CANCELED":
-        subject = "Cancelamento de Consulta - HMS";
-        body = String.format("<h1>Consulta Cancelada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> para o dia %s foi cancelada.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      case "RESCHEDULED":
-        subject = "Consulta Remarcada - HMS";
-        body = String.format("<h1>Consulta Remarcada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> foi alterada para: <strong>%s</strong>.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      default:
-        return;
-    }
-
-    emailService.sendEmail(event.patientEmail(), subject, body);
   }
 }
