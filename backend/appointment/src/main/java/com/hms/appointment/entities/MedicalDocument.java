@@ -1,5 +1,6 @@
 package com.hms.appointment.entities;
 
+import com.hms.appointment.enums.DocumentType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,18 +24,21 @@ public class MedicalDocument {
   @Column(nullable = false)
   private Long uploadedByUserId;
 
-  // Associa a uma consulta específica
   private Long appointmentId;
 
   @Column(nullable = false)
   private String documentName; // Ex: "Exame de Sangue - Hemograma"
 
   @Column(nullable = false)
-  private String documentType; // Ex: "BLOOD_REPORT", "XRAY", "PRESCRIPTION"
+  @Enumerated(EnumType.STRING)
+  private DocumentType documentType;
 
   @Column(nullable = false)
   private String mediaUrl; // URL retornada pelo media-service (ex: "/media/123")
 
   @CreationTimestamp
   private LocalDateTime uploadedAt;
+
+  @Column(name = "is_verified", nullable = false)
+  private boolean isVerified = false;
 }

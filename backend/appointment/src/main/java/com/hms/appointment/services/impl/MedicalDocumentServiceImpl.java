@@ -10,11 +10,13 @@ import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import com.hms.common.audit.AuditChangeTracker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MedicalDocumentServiceImpl implements MedicalDocumentService {
@@ -31,13 +33,18 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
       throw new SecurityException("Acesso negado. Pacientes só podem enviar documentos para si mesmos.");
     }
 
+    validateMediaSecurity(request.mediaUrl());
+
     MedicalDocument document = new MedicalDocument();
     document.setPatientId(request.patientId());
     document.setUploadedByUserId(uploaderId);
     document.setAppointmentId(request.appointmentId());
     document.setDocumentName(request.documentName());
+
     document.setDocumentType(request.documentType());
+
     document.setMediaUrl(request.mediaUrl());
+    document.setVerified(true);
 
     MedicalDocument savedDocument = documentRepository.save(document);
     return MedicalDocumentResponse.fromEntity(savedDocument);
@@ -80,5 +87,28 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     AuditChangeTracker.addChange("documentType", document.getDocumentType(), "DELETED");
 
     documentRepository.delete(document);
+  }
+
+  // Método de validação de segurança para URLs de mídia (simulado)
+  private void validateMediaSecurity(String mediaUrl) {
+    // validações básicas de segurança para URLs de mídia
+    if (mediaUrl == null || mediaUrl.trim().isEmpty()) {
+      throw new SecurityException("A URL do documento não pode ser vazia.");
+    }
+
+    // garante que é uma URL http/https e não um caminho de sistema de arquivos local (ex: file://, C:/)
+    if (!mediaUrl.startsWith("http://") && !mediaUrl.startsWith("https://")) {
+      log.warn("Tentativa de upload com protocolo inválido: {}", mediaUrl);
+      throw new SecurityException("Formato de URL inválido. Apenas links HTTP/HTTPS são permitidos.");
+    }
+
+    // bloqueia extensões de arquivos potencialmente perigosas
+    String lowerUrl = mediaUrl.toLowerCase();
+    if (lowerUrl.endsWith(".exe") || lowerUrl.endsWith(".sh") || lowerUrl.endsWith(".bat") || lowerUrl.endsWith(".php")) {
+      log.error("Bloqueio de segurança: Tentativa de vincular arquivo executável: {}", mediaUrl);
+      throw new SecurityException("Este tipo de arquivo é estritamente proibido por políticas de segurança.");
+    }
+
+    log.info("Verificação de segurança preliminar aprovada para: {}", mediaUrl);
   }
 }

@@ -1,5 +1,6 @@
 package com.hms.appointment.dto.request;
 
+import com.hms.appointment.enums.DocumentType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,8 +14,8 @@ public record MedicalDocumentCreateRequest(
   @NotBlank(message = "O nome do documento é obrigatório.")
   String documentName,
 
-  @NotBlank(message = "O tipo do documento é obrigatório.")
-  String documentType,
+  @NotNull(message = "O tipo do documento é obrigatório.")
+  DocumentType documentType,
 
   @NotBlank(message = "A URL do ficheiro é obrigatória.")
   String mediaUrl

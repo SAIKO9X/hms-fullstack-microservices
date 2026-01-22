@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   useAppointments,
   useCreateMedicalDocument,
@@ -33,26 +32,20 @@ import {
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
 import { format } from "date-fns";
+import { DocumentType } from "@/types/document.types";
+import {
+  DocumentSchema,
+  type DocumentFormData,
+} from "@/lib/schemas/document.schema";
 
-// Schema de validação para o formulário
-const DocumentSchema = z.object({
-  documentName: z.string().min(3, "O nome do documento é obrigatório."),
-  documentType: z.string().min(1, "Selecione um tipo de documento."),
-  appointmentId: z.number().positive("Selecione uma consulta para associar."),
-  file: z.instanceof(File, { message: "Por favor, selecione um ficheiro." }),
-});
-
-type DocumentFormData = z.infer<typeof DocumentSchema>;
-
-// Tipos de documento para o dropdown
-const documentTypes = [
-  { value: "BLOOD_REPORT", label: "Resultado de Exame de Sangue" },
-  { value: "XRAY", label: "Raio-X" },
-  { value: "PRESCRIPTION", label: "Receita Médica" },
-  { value: "MRI", label: "Ressonância Magnética" },
-  { value: "CT_SCAN", label: "Tomografia" },
-  { value: "ULTRASOUND", label: "Ultrassom" },
-  { value: "OTHER", label: "Outro" },
+const documentOptions = [
+  { value: DocumentType.BLOOD_REPORT, label: "Resultado de Exame de Sangue" },
+  { value: DocumentType.XRAY, label: "Raio-X" },
+  { value: DocumentType.PRESCRIPTION, label: "Receita Médica" },
+  { value: DocumentType.MRI, label: "Ressonância Magnética" },
+  { value: DocumentType.CT_SCAN, label: "Tomografia" },
+  { value: DocumentType.ULTRASOUND, label: "Ultrassom" },
+  { value: DocumentType.OTHER, label: "Outro" },
 ];
 
 interface Props {
@@ -74,7 +67,7 @@ export const AddDocumentDialog = ({
     resolver: zodResolver(DocumentSchema),
     defaultValues: {
       documentName: "",
-      documentType: "",
+      documentType: undefined,
       appointmentId: initialAppointmentId || undefined,
     },
   });
@@ -83,9 +76,8 @@ export const AddDocumentDialog = ({
   const createDocumentMutation = useCreateMedicalDocument();
   const appointmentsList = appointmentsPage?.content || [];
 
-  // Filtra as consultas do paciente específico
   const patientAppointments = appointmentsList.filter(
-    (app) => app.patientId === patientId
+    (app) => app.patientId === patientId,
   );
 
   const onSubmit = async (data: DocumentFormData) => {
@@ -128,6 +120,7 @@ export const AddDocumentDialog = ({
                     <Input
                       {...fieldProps}
                       type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -155,6 +148,7 @@ export const AddDocumentDialog = ({
               )}
             />
 
+            {/* Tipo de Documento */}
             <FormField
               control={form.control}
               name="documentType"
@@ -171,7 +165,7 @@ export const AddDocumentDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {documentTypes.map((type) => (
+                      {documentOptions.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
                           {type.label}
                         </SelectItem>
@@ -205,7 +199,7 @@ export const AddDocumentDialog = ({
                             Consulta de{" "}
                             {format(
                               new Date(app.appointmentDateTime),
-                              "dd/MM/yyyy"
+                              "dd/MM/yyyy",
                             )}
                           </SelectItem>
                         ))
