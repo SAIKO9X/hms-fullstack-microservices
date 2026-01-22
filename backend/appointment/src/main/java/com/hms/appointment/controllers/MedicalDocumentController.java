@@ -26,7 +26,7 @@ public class MedicalDocumentController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
-  @Auditable(action = "UPLOAD_DOCUMENT", resourceName = "MedicalDocument")
+  @Auditable(action = "UPLOAD_DOCUMENT", resourceName = "MEDICAL_DOCUMENT")
   public MedicalDocumentResponse uploadDocument(
     @RequestHeader("Authorization") String token,
     @Valid @RequestBody MedicalDocumentCreateRequest request) {
@@ -48,7 +48,7 @@ public class MedicalDocumentController {
   @GetMapping("/patient/{patientId}")
   @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-  @Auditable(action = "VIEW_PATIENT_DOCUMENTS", resourceName = "MedicalDocument")
+  @Auditable(action = "VIEW_PATIENT_DOCUMENTS", resourceName = "MEDICAL_DOCUMENT")
   public Page<MedicalDocumentResponse> getDocumentsForPatient(
     @PathVariable Long patientId,
     @RequestHeader("Authorization") String token,
@@ -61,7 +61,7 @@ public class MedicalDocumentController {
   }
 
   @DeleteMapping("/{id}")
-  @Auditable(action = "DELETE_DOCUMENT", resourceName = "MedicalDocument")
+  @Auditable(action = "DELETE_DOCUMENT", resourceName = "MEDICAL_DOCUMENT")
   public ResponseEntity<Void> deleteDocument(
     @PathVariable Long id,
     @RequestHeader("Authorization") String token

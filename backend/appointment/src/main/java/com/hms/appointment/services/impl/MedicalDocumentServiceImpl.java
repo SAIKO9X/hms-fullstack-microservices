@@ -8,10 +8,12 @@ import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
 import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
+import com.hms.common.audit.AuditChangeTracker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +43,6 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     return MedicalDocumentResponse.fromEntity(savedDocument);
   }
 
-  // Assinatura do método alterada para receber quem está solicitando
   @Override
   public Page<MedicalDocumentResponse> getDocumentsByPatientId(Long patientId, Pageable pageable, Long requesterId, String requesterRole) {
 
@@ -64,6 +65,7 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
   }
 
   @Override
+  @Transactional
   public void deleteDocument(Long documentId, Long patientId) {
     MedicalDocument document = documentRepository.findById(documentId)
       .orElseThrow(() -> new AppointmentNotFoundException("Documento com ID " + documentId + " não encontrado."));
@@ -71,6 +73,11 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     if (!document.getPatientId().equals(patientId)) {
       throw new SecurityException("Acesso negado. Você não tem permissão para apagar este documento.");
     }
+
+    // grava o que foi perdido para fins de auditoria forense se necessário
+    AuditChangeTracker.addChange("documentName", document.getDocumentName(), "DELETED");
+    AuditChangeTracker.addChange("mediaUrl", document.getMediaUrl(), "DELETED");
+    AuditChangeTracker.addChange("documentType", document.getDocumentType(), "DELETED");
 
     documentRepository.delete(document);
   }

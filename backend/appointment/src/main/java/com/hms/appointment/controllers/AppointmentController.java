@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/appointments")
@@ -20,7 +21,6 @@ public class AppointmentController {
 
   private final AppointmentService appointmentService;
   private final JwtService jwtService;
-
 
   @GetMapping("/{id}")
   @ResponseStatus(HttpStatus.OK)
@@ -49,6 +49,19 @@ public class AppointmentController {
     Long requesterId = getUserIdFromToken(token);
     LocalDateTime newDateTime = request.appointmentDateTime();
     return appointmentService.rescheduleAppointment(id, newDateTime, requesterId);
+  }
+
+  @PatchMapping("/{id}/complete")
+  @ResponseStatus(HttpStatus.OK)
+  @Auditable(action = "COMPLETE", resourceName = "APPOINTMENT")
+  public AppointmentResponse completeAppointment(
+    @PathVariable Long id,
+    @RequestBody Map<String, String> payload,
+    @RequestHeader("Authorization") String token
+  ) {
+    Long doctorId = getUserIdFromToken(token);
+    String notes = payload.get("notes");
+    return appointmentService.completeAppointment(id, notes, doctorId);
   }
 
   @PostMapping("/waitlist")

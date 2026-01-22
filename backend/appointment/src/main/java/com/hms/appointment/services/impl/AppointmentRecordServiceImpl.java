@@ -10,9 +10,12 @@ import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.AppointmentRecordRepository;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentRecordService;
+import com.hms.common.audit.AuditChangeTracker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -75,16 +78,42 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
     if (!record.getAppointment().getDoctorId().equals(doctorId)) {
       throw new SecurityException("Acesso negado. Apenas o médico responsável pode editar este registro.");
     }
-
-    if (request.chiefComplaint() != null) record.setChiefComplaint(request.chiefComplaint());
-    if (request.historyOfPresentIllness() != null) record.setHistoryOfPresentIllness(request.historyOfPresentIllness());
-    if (request.physicalExamNotes() != null) record.setPhysicalExamNotes(request.physicalExamNotes());
-    if (request.symptoms() != null) record.setSymptoms(request.symptoms());
-    if (request.diagnosisCid10() != null) record.setDiagnosisCid10(request.diagnosisCid10());
-    if (request.diagnosisDescription() != null) record.setDiagnosisDescription(request.diagnosisDescription());
-    if (request.treatmentPlan() != null) record.setTreatmentPlan(request.treatmentPlan());
-    if (request.requestedTests() != null) record.setRequestedTests(request.requestedTests());
-    if (request.notes() != null) record.setNotes(request.notes());
+    if (request.chiefComplaint() != null && !Objects.equals(record.getChiefComplaint(), request.chiefComplaint())) {
+      AuditChangeTracker.addChange("chiefComplaint", record.getChiefComplaint(), request.chiefComplaint());
+      record.setChiefComplaint(request.chiefComplaint());
+    }
+    if (request.historyOfPresentIllness() != null && !Objects.equals(record.getHistoryOfPresentIllness(), request.historyOfPresentIllness())) {
+      AuditChangeTracker.addChange("historyOfPresentIllness", record.getHistoryOfPresentIllness(), request.historyOfPresentIllness());
+      record.setHistoryOfPresentIllness(request.historyOfPresentIllness());
+    }
+    if (request.physicalExamNotes() != null && !Objects.equals(record.getPhysicalExamNotes(), request.physicalExamNotes())) {
+      AuditChangeTracker.addChange("physicalExamNotes", record.getPhysicalExamNotes(), request.physicalExamNotes());
+      record.setPhysicalExamNotes(request.physicalExamNotes());
+    }
+    if (request.symptoms() != null && !Objects.equals(record.getSymptoms(), request.symptoms())) {
+      AuditChangeTracker.addChange("symptoms", record.getSymptoms(), request.symptoms());
+      record.setSymptoms(request.symptoms());
+    }
+    if (request.diagnosisCid10() != null && !Objects.equals(record.getDiagnosisCid10(), request.diagnosisCid10())) {
+      AuditChangeTracker.addChange("diagnosisCid10", record.getDiagnosisCid10(), request.diagnosisCid10());
+      record.setDiagnosisCid10(request.diagnosisCid10());
+    }
+    if (request.diagnosisDescription() != null && !Objects.equals(record.getDiagnosisDescription(), request.diagnosisDescription())) {
+      AuditChangeTracker.addChange("diagnosisDescription", record.getDiagnosisDescription(), request.diagnosisDescription());
+      record.setDiagnosisDescription(request.diagnosisDescription());
+    }
+    if (request.treatmentPlan() != null && !Objects.equals(record.getTreatmentPlan(), request.treatmentPlan())) {
+      AuditChangeTracker.addChange("treatmentPlan", record.getTreatmentPlan(), request.treatmentPlan());
+      record.setTreatmentPlan(request.treatmentPlan());
+    }
+    if (request.requestedTests() != null && !Objects.equals(record.getRequestedTests(), request.requestedTests())) {
+      AuditChangeTracker.addChange("requestedTests", record.getRequestedTests(), request.requestedTests());
+      record.setRequestedTests(request.requestedTests());
+    }
+    if (request.notes() != null && !Objects.equals(record.getNotes(), request.notes())) {
+      AuditChangeTracker.addChange("notes", record.getNotes(), request.notes());
+      record.setNotes(request.notes());
+    }
 
     return AppointmentRecordResponse.fromEntity(recordRepository.save(record));
   }

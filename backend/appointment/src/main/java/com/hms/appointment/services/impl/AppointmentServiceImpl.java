@@ -15,6 +15,7 @@ import com.hms.appointment.exceptions.ProfileNotFoundException;
 import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
+import com.hms.common.audit.AuditChangeTracker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -56,7 +57,6 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado.");
     }
 
-    // duração padrão de 60 minutos se nulo
     int duration = request.duration() != null ? request.duration() : 60;
     LocalDateTime appointmentStart = request.appointmentDateTime();
     LocalDateTime appointmentEnd = appointmentStart.plusMinutes(duration);
@@ -192,6 +192,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     validateDoctorUnavailability(appointment.getDoctorId(), newDateTime, newEnd);
 
     LocalDateTime oldDate = appointment.getAppointmentDateTime();
+    AuditChangeTracker.addChange("appointmentDateTime", oldDate, newDateTime);
 
     appointment.setAppointmentDateTime(newDateTime);
     appointment.setAppointmentEndTime(newEnd);
@@ -217,6 +218,8 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidUpdateException("Apenas consultas agendadas podem ser canceladas.");
     }
 
+    AuditChangeTracker.addChange("status", appointment.getStatus(), AppointmentStatus.CANCELED);
+
     appointment.setStatus(AppointmentStatus.CANCELED);
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
@@ -231,13 +234,23 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId) {
     Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+
     if (!appointment.getDoctorId().equals(doctorId)) {
       throw new SecurityException("Apenas o doutor responsável pode completar a consulta.");
     }
-    if (appointment.getStatus() != AppointmentStatus.SCHEDULED) {
-      throw new InvalidUpdateException("Apenas consultas agendadas podem ser completadas.");
+    if (appointment.getStatus() != AppointmentStatus.SCHEDULED && appointment.getStatus() != AppointmentStatus.COMPLETED) {
+      throw new InvalidUpdateException("Status inválido para edição de prontuário.");
     }
 
+    String oldNotes = appointment.getNotes();
+    AppointmentStatus oldStatus = appointment.getStatus();
+
+    if (!Objects.equals(oldNotes, notes)) {
+      AuditChangeTracker.addChange("notes", oldNotes, notes);
+    }
+    if (oldStatus != AppointmentStatus.COMPLETED) {
+      AuditChangeTracker.addChange("status", oldStatus, AppointmentStatus.COMPLETED);
+    }
     appointment.setStatus(AppointmentStatus.COMPLETED);
     appointment.setNotes(notes);
 
@@ -392,7 +405,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   @Transactional
   public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
-    // se a duração não foi passada, assume 60min
     int duration = request.duration() != null ? request.duration() : 60;
     LocalDateTime end = request.appointmentDateTime().plusMinutes(duration);
 
@@ -406,7 +418,6 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidUpdateException("Este horário está disponível. Você pode agendá-lo diretamente.");
     }
 
-    // o paciente já está na fila para este médico/data
     boolean alreadyInQueue = waitlistRepository.existsByPatientIdAndDoctorIdAndDate(
       patientId,
       request.doctorId(),
@@ -461,7 +472,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     boolean hasConflict = existingSlots.stream()
       .filter(slot -> slot.getDayOfWeek() == request.dayOfWeek())
       .anyMatch(slot ->
-        // verifica se o novo horário se sobrepõe a um existente
         (request.startTime().isBefore(slot.getEndTime()) && request.endTime().isAfter(slot.getStartTime()))
       );
 

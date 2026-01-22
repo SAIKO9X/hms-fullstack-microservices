@@ -1,9 +1,24 @@
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AuditLog } from "@/types/admin.types";
 import type { ColumnDef } from "@tanstack/react-table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const formatDetailsText = (text: string) => {
+  if (!text) return "Nenhum detalhe disponível.";
+  return text
+    .replace(". Changes:", ".\n\nChanges:")
+    .replace(". Args:", ".\n\nArgs:");
+};
 
 export const auditColumns: ColumnDef<AuditLog>[] = [
   {
@@ -33,7 +48,6 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
     header: "Papel",
     cell: ({ row }) => {
       const role = row.getValue("actorRole") as string;
-      // Define a cor baseada no papel
       const variant =
         role === "ROLE_ADMIN"
           ? "destructive"
@@ -41,7 +55,6 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
             ? "default"
             : "secondary";
 
-      // Remove o prefixo ROLE_ para exibição
       return <Badge variant={variant}>{role.replace("ROLE_", "")}</Badge>;
     },
   },
@@ -65,15 +78,45 @@ export const auditColumns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: "details",
-    header: "Detalhes",
-    cell: ({ row }) => (
-      <div
-        className="max-w-[300px] truncate text-muted-foreground text-xs"
-        title={row.getValue("details")}
-      >
-        {row.getValue("details")}
-      </div>
-    ),
+    header: "Detalhes (Snapshot)",
+    cell: ({ row }) => {
+      const details = row.getValue("details") as string;
+
+      return (
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-full justify-start text-muted-foreground"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              <span className="truncate max-w-[150px] text-xs">
+                {details || "Ver detalhes"}
+              </span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Detalhes da Auditoria</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Log Completo</h4>
+                <p className="text-sm text-muted-foreground">
+                  Visualize o histórico de alterações (De/Para) e argumentos.
+                </p>
+              </div>
+              <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/50 font-mono text-sm">
+                <div className="whitespace-pre-wrap break-words">
+                  {formatDetailsText(details)}
+                </div>
+              </ScrollArea>
+            </div>
+          </DialogContent>
+        </Dialog>
+      );
+    },
   },
   {
     accessorKey: "ipAddress",

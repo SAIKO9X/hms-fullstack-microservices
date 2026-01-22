@@ -24,7 +24,8 @@ public class AuditLog {
   private String resourceName;
   private String resourceId;
 
-  @Column(length = 1000)
+  @Lob
+  @Column(columnDefinition = "LONGTEXT")
   private String details;
 
   private String ipAddress;

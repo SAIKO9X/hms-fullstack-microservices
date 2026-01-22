@@ -5,6 +5,7 @@ import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentRecordResponse;
 import com.hms.appointment.services.AppointmentRecordService;
 import com.hms.appointment.services.JwtService;
+import com.hms.common.security.Auditable;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ public class AppointmentRecordController {
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)
+  @Auditable(action = "CREATE", resourceName = "APPOINTMENT_RECORD")
   public AppointmentRecordResponse createRecord(
     @RequestHeader("Authorization") String token,
     @Valid @RequestBody AppointmentRecordCreateRequest request) {
@@ -38,6 +40,7 @@ public class AppointmentRecordController {
 
   @PutMapping("/{recordId}")
   @ResponseStatus(HttpStatus.OK)
+  @Auditable(action = "UPDATE", resourceName = "APPOINTMENT_RECORD")
   public AppointmentRecordResponse updateRecord(
     @RequestHeader("Authorization") String token,
     @PathVariable Long recordId,

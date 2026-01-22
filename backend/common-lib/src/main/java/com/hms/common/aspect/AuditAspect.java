@@ -1,5 +1,6 @@
 package com.hms.common.aspect;
 
+import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.dto.AuditLogEvent;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.HmsUserPrincipal;
@@ -22,6 +23,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -71,38 +73,55 @@ public class AuditAspect {
 
     } catch (Exception e) {
       log.error("Failed to send audit log", e);
+    } finally {
+      AuditChangeTracker.clear();
     }
   }
 
-  // Constrói detalhes do log, filtrando argumentos irrelevantes
+  // Constrói os detalhes do log de auditoria
   private String buildDetails(Object[] args, String status, String errorMessage) {
+    StringBuilder detailsBuilder = new StringBuilder();
+
     if ("FAILURE".equals(status)) {
-      return "Failed: " + errorMessage;
+      detailsBuilder.append("Failed: ").append(errorMessage);
+    } else {
+      detailsBuilder.append("Success");
     }
 
-    if (args == null || args.length == 0) {
-      return "Success";
+    Map<String, AuditChangeTracker.ChangeDetail> changes = AuditChangeTracker.getChanges();
+    if (!changes.isEmpty()) {
+      detailsBuilder.append(". Changes: [");
+      changes.forEach((field, change) ->
+        detailsBuilder.append(String.format("{field: '%s', from: '%s', to: '%s'}, ",
+          field, change.oldValue(), change.newValue()))
+      );
+      if (detailsBuilder.toString().endsWith(", ")) {
+        detailsBuilder.setLength(detailsBuilder.length() - 2);
+      }
+      detailsBuilder.append("]");
     }
 
-    // filtra objetos técnicos do spring que não serializam bem ou não interessam
-    String argsString = Arrays.stream(args)
-      .filter(arg -> !(arg instanceof HttpServletRequest))
-      .filter(arg -> !(arg instanceof HttpServletResponse))
-      .filter(arg -> !(arg instanceof Authentication))
-      .filter(arg -> !(arg instanceof BindingResult))
-      .filter(Objects::nonNull)
-      .map(Object::toString)
-      .collect(Collectors.joining(", "));
+    if (args != null && args.length > 0) {
+      String argsString = Arrays.stream(args)
+        .filter(arg -> !(arg instanceof HttpServletRequest))
+        .filter(arg -> !(arg instanceof HttpServletResponse))
+        .filter(arg -> !(arg instanceof Authentication))
+        .filter(arg -> !(arg instanceof BindingResult))
+        .filter(Objects::nonNull)
+        .map(Object::toString)
+        .collect(Collectors.joining(", "));
 
-    // limita o tamanho para não estourar banco de dados se houver um PDF em base64
-    if (argsString.length() > 500) {
-      argsString = argsString.substring(0, 500) + "...";
+      // limita o tamanho para não estourar banco de dados se houver um PDF em base64
+      if (argsString.length() > 500) {
+        argsString = argsString.substring(0, 500) + "...";
+      }
+      detailsBuilder.append(". Args: [").append(argsString).append("]");
     }
 
-    return "Success. Args: [" + argsString + "]";
+    return detailsBuilder.toString();
   }
 
-  // Obtém o papel (role) do usuário atual
+  // btém o papel (role) do usuário atual
   private String getCurrentUserRole() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication != null && authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
