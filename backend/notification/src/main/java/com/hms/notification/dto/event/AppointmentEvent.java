@@ -7,6 +7,7 @@ public record AppointmentEvent(
   Long patientId,
   String patientEmail,
   String doctorName,
-  LocalDateTime appointmentDateTime
+  LocalDateTime appointmentDateTime,
+  String meetingUrl
 ) {
 }

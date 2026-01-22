@@ -1,3 +1,5 @@
+export type AppointmentType = "IN_PERSON" | "ONLINE";
+
 export type AppointmentStatus =
   | "SCHEDULED"
   | "COMPLETED"
@@ -25,6 +27,8 @@ export interface Appointment {
   reason: string;
   status: AppointmentStatus;
   notes?: string | null;
+  type: AppointmentType;
+  meetingUrl?: string | null;
 }
 
 export interface AppointmentDetail {
@@ -48,13 +52,15 @@ export interface AppointmentFormInput {
   appointmentTime: string;
   duration?: number;
   reason: string;
+  type: AppointmentType;
 }
 
 export interface AppointmentCreateRequest {
   doctorId: number;
   appointmentDateTime: string;
-  duration?: number; // Enviado ao backend
+  duration?: number;
   reason: string;
+  type: AppointmentType;
 }
 
 export interface AppointmentUpdateRequest {

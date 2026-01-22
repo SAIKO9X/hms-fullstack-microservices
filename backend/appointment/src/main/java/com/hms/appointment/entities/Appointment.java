@@ -1,6 +1,7 @@
 package com.hms.appointment.entities;
 
 import com.hms.appointment.enums.AppointmentStatus;
+import com.hms.appointment.enums.AppointmentType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -50,4 +51,11 @@ public class Appointment {
 
   @Column(name = "reminder_1h_sent")
   private boolean reminder1hSent = false;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "type")
+  private AppointmentType type = AppointmentType.IN_PERSON;
+
+  @Column(name = "meeting_url")
+  private String meetingUrl;
 }

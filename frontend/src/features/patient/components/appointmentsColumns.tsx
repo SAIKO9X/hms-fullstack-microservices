@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, addMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Appointment, AppointmentStatus } from "@/types/appointment.types";
+import { Video, MapPin, ExternalLink } from "lucide-react";
 
 const getStatusBadge = (status: AppointmentStatus) => {
   const statusConfig = {
@@ -93,6 +94,40 @@ export const columns = (options: {
     cell: ({ row }) => (
       <div className="max-w-[300px] truncate">{row.getValue("reason")}</div>
     ),
+  },
+  {
+    accessorKey: "type",
+    header: "Local",
+    cell: ({ row }) => {
+      const type = row.getValue("type") as string;
+      const meetingUrl = row.original.meetingUrl;
+      const isOnline = type === "ONLINE";
+
+      if (isOnline) {
+        return (
+          <div className="flex flex-col gap-1 items-start">
+            <Badge variant="secondary" className="gap-1">
+              <Video className="h-3 w-3" /> Online
+            </Badge>
+            {meetingUrl && row.original.status === "SCHEDULED" && (
+              <Button
+                variant="link"
+                className="h-auto p-0 text-xs text-blue-600 underline"
+                onClick={() => window.open(meetingUrl, "_blank")}
+              >
+                Entrar na Sala <ExternalLink className="ml-1 h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <Badge variant="outline" className="gap-1">
+          <MapPin className="h-3 w-3" /> Presencial
+        </Badge>
+      );
+    },
   },
   {
     accessorKey: "status",

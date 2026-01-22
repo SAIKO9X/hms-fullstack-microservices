@@ -12,6 +12,9 @@ export const AppointmentFormInputSchema = z.object({
   reason: z
     .string()
     .min(5, { message: "O motivo deve ter pelo menos 5 caracteres." }),
+  type: z.enum(["IN_PERSON", "ONLINE"], {
+    message: "Selecione o tipo de consulta.",
+  }),
 });
 
 export const AppointmentFormSchema = AppointmentFormInputSchema.transform(
@@ -25,6 +28,7 @@ export const AppointmentFormSchema = AppointmentFormInputSchema.transform(
       appointmentDateTime: dateTime.toISOString(),
       duration: parseInt(data.duration, 10),
       reason: data.reason,
+      type: data.type,
     };
   },
 );

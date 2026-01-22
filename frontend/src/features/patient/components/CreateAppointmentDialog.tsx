@@ -4,6 +4,7 @@ import { format, parseISO, addMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Clock } from "lucide-react";
 import { useMemo, useEffect } from "react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AppointmentFormInputSchema,
   AppointmentFormSchema,
@@ -73,6 +74,7 @@ export const CreateAppointmentDialog = ({
       doctorId: defaultDoctorId ? String(defaultDoctorId) : "",
       appointmentTime: "",
       duration: "60",
+      type: "IN_PERSON", // Valor padrão
     },
   });
 
@@ -337,6 +339,41 @@ export const CreateAppointmentDialog = ({
                   onValueChange={field.onChange}
                   disabled={isPending}
                 />
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Tipo de Consulta</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="IN_PERSON" />
+                        </FormControl>
+                        <FormLabel className="font-normal cursor-pointer">
+                          Presencial (Consultório)
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="ONLINE" />
+                        </FormControl>
+                        <FormLabel className="font-normal cursor-pointer">
+                          Online (Telemedicina)
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
             />
 

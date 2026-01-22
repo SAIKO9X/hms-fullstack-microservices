@@ -1,5 +1,6 @@
 package com.hms.appointment.dto.request;
 
+import com.hms.appointment.enums.AppointmentType;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -19,6 +20,8 @@ public record AppointmentCreateRequest(
   Integer duration,
 
   @NotBlank(message = "O motivo da consulta é obrigatório.")
-  String reason
+  String reason,
+
+  AppointmentType type
 ) {
 }

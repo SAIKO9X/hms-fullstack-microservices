@@ -9,6 +9,7 @@ import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.*;
 import com.hms.appointment.enums.AppointmentStatus;
+import com.hms.appointment.enums.AppointmentType;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.exceptions.ProfileNotFoundException;
@@ -84,6 +85,15 @@ public class AppointmentServiceImpl implements AppointmentService {
     appointment.setAppointmentEndTime(appointmentEnd);
     appointment.setReason(request.reason());
     appointment.setStatus(AppointmentStatus.SCHEDULED);
+
+    if (request.type() == AppointmentType.ONLINE) {
+      appointment.setType(AppointmentType.ONLINE);
+      String meetingId = "hms-consult-" + System.currentTimeMillis() + "-" + patientId + "-" + request.doctorId();
+      appointment.setMeetingUrl("https://meet.jit.si/" + meetingId);
+    } else {
+      appointment.setType(AppointmentType.IN_PERSON);
+      appointment.setMeetingUrl(null);
+    }
 
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
@@ -196,6 +206,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     appointment.setAppointmentDateTime(newDateTime);
     appointment.setAppointmentEndTime(newEnd);
+    appointment.setReminder24hSent(false);
+    appointment.setReminder1hSent(false);
 
     Appointment savedAppointment = appointmentRepository.save(appointment);
 
@@ -625,7 +637,8 @@ public class AppointmentServiceImpl implements AppointmentService {
           appointment.getPatientId(),
           patient.getEmail(),
           doctor.getFullName(),
-          appointment.getAppointmentDateTime()
+          appointment.getAppointmentDateTime(),
+          appointment.getMeetingUrl()
         );
 
         rabbitTemplate.convertAndSend(

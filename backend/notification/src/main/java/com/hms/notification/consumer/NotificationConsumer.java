@@ -43,10 +43,15 @@ public class NotificationConsumer {
     String subject = "Lembrete de Consulta - HMS";
     String formattedDate = event.appointmentDateTime()
       .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+    String locationText = "no consultório.";
+    if (event.meetingUrl() != null && !event.meetingUrl().isBlank()) {
+      locationText = "ONLINE. Link de acesso: " + event.meetingUrl();
+    }
     String body = String.format(
-      "Olá, este é um lembrete da sua consulta com Dr(a). %s agendada para %s. Por favor, chegue com 15 minutos de antecedência.",
+      "Olá, este é um lembrete da sua consulta com Dr(a). %s agendada para %s. Local: %s",
       event.doctorName(),
-      formattedDate
+      formattedDate,
+      locationText
     );
 
     emailService.sendEmail(event.patientEmail(), subject, body);
