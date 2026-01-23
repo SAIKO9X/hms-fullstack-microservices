@@ -40,13 +40,17 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
     document.setUploadedByUserId(uploaderId);
     document.setAppointmentId(request.appointmentId());
     document.setDocumentName(request.documentName());
-
     document.setDocumentType(request.documentType());
-
     document.setMediaUrl(request.mediaUrl());
     document.setVerified(true);
 
     MedicalDocument savedDocument = documentRepository.save(document);
+
+    AuditChangeTracker.addChange("documentId", null, savedDocument.getId());
+    AuditChangeTracker.addChange("documentName", null, savedDocument.getDocumentName());
+    AuditChangeTracker.addChange("documentType", null, savedDocument.getDocumentType());
+    AuditChangeTracker.addChange("uploadedBy", null, uploaderId);
+
     return MedicalDocumentResponse.fromEntity(savedDocument);
   }
 

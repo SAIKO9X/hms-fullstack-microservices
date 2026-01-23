@@ -60,7 +60,7 @@ application:
     exchange: internal.exchange
     notification-queue: notification.queue
     routing-key: notification.email
-    user-created-queue: user.created.queue
+    user-created-queue: notification.user.created.queue
     user-created-routing-key: user.event.created
     lab-queue-name: notification.lab.completed.queue
 

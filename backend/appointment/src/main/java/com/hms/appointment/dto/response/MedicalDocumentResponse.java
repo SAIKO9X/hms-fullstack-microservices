@@ -1,6 +1,7 @@
 package com.hms.appointment.dto.response;
 
 import com.hms.appointment.entities.MedicalDocument;
+import com.hms.appointment.enums.DocumentType;
 
 import java.time.LocalDateTime;
 
@@ -10,7 +11,7 @@ public record MedicalDocumentResponse(
   Long uploadedByUserId,
   Long appointmentId,
   String documentName,
-  String documentType,
+  DocumentType documentType,
   String mediaUrl,
   LocalDateTime uploadedAt
 ) {

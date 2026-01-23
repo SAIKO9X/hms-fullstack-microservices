@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { billingService } from "@/services/billing";
+import { BillingService } from "@/services/billing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -28,7 +28,7 @@ export default function DoctorFinancePage() {
 
   const loadData = async () => {
     try {
-      const data = await billingService.getDoctorInvoices(user!.id.toString());
+      const data = await BillingService.getDoctorInvoices(user!.id.toString());
       setInvoices(data);
     } catch (error) {
       console.error("Erro ao carregar finanças", error);

@@ -31,6 +31,11 @@ public class UserEventConsumer {
   public void consumeUserCreatedEvent(UserCreatedEvent event) {
     log.info("Recebido evento de criação de usuário: ID {}, Role {}", event.userId(), event.role());
 
+    if (event.cpf() == null && event.crm() == null) {
+      log.info("Evento ignorado: CPF e CRM nulos (provável reenvio de código de verificação).");
+      return;
+    }
+
     try {
       if ("PATIENT".equalsIgnoreCase(event.role())) {
         createPatientProfile(event);
@@ -41,7 +46,6 @@ public class UserEventConsumer {
       }
     } catch (Exception e) {
       log.error("Erro ao processar evento de criação de perfil para usuário ID: {}", event.userId(), e);
-      throw e;
     }
   }
 

@@ -653,6 +653,37 @@ services:
       - prometheus
 
   # ====================================================
+  # LOGGING (PLG Stack)
+  # ====================================================
+  loki:
+    image: grafana/loki:3.6.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - hms-network
+    volumes:
+      - ./observability/loki/loki-config.yaml:/etc/loki/local-config.yaml:z
+    restart: always
+
+  promtail:
+    image: grafana/promtail:3.6.0
+    container_name: promtail
+    user: "0:0"
+    privileged: true
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./observability/promtail/promtail-config.yaml:/etc/promtail/config.yml:z
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - hms-network
+    depends_on:
+      - loki
+    restart: always
+
+  # ====================================================
   # FRONTEND
   # ====================================================
   frontend:

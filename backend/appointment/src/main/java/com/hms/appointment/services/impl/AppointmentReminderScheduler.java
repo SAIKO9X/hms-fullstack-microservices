@@ -81,7 +81,8 @@ public class AppointmentReminderScheduler {
         app.getPatientId(),
         patient.getEmail(),
         doctor.getFullName(),
-        app.getAppointmentDateTime()
+        app.getAppointmentDateTime(),
+        null
       );
 
       // routing key diferencia: "appointment.reminder.24h" ou "appointment.reminder.1h"

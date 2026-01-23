@@ -6,6 +6,7 @@ import com.hms.profile.enums.Gender;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.Set;
 
 public record PatientResponse(
@@ -39,7 +40,7 @@ public record PatientResponse(
       patient.getAddress(),
       patient.getEmergencyContactName(),
       patient.getEmergencyContactPhone(),
-      patient.getAllergies(),
+      patient.getAllergies() != null ? new HashSet<>(patient.getAllergies()) : new HashSet<>(),
       patient.getChronicConditions(),
       patient.getFamilyHistory(),
       patient.getProfilePictureUrl()

@@ -77,14 +77,25 @@ public class GlobalExceptionHandler {
    */
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorInfo> handleGenericException(Exception ex) {
-    // É uma boa prática logar o erro real no servidor para depuração
-    // log.error("Ocorreu um erro inesperado", ex);
+    ex.printStackTrace();
 
     ErrorInfo errorInfo = new ErrorInfo(
       (long) HttpStatus.INTERNAL_SERVER_ERROR.value(),
-      "Ocorreu um erro inesperado no servidor. Tente novamente mais tarde.",
+      "Erro interno no servidor: " + ex.getMessage(),
       LocalDateTime.now()
     );
     return new ResponseEntity<>(errorInfo, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorInfo> handleIllegalArgumentException(IllegalArgumentException ex) {
+    return new ResponseEntity<>(
+      new ErrorInfo(
+        (long) HttpStatus.BAD_REQUEST.value(),
+        ex.getMessage(),
+        LocalDateTime.now()
+      ),
+      HttpStatus.BAD_REQUEST
+    );
   }
 }

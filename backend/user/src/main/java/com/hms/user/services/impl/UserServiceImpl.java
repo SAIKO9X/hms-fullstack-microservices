@@ -218,8 +218,12 @@ public class UserServiceImpl implements UserService {
       throw new IllegalArgumentException("Conta já verificada.");
     }
 
+    if (user.getVerificationCode() == null || user.getVerificationCodeExpiresAt() == null) {
+      throw new IllegalArgumentException("Código de verificação inválido ou inexistente.");
+    }
+
     if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-      throw new IllegalArgumentException("Código expirado. Solicite um novo.");
+      throw new IllegalArgumentException("Código expirado.");
     }
 
     if (!user.getVerificationCode().equals(code)) {

@@ -100,7 +100,7 @@ export const AppRoutes = () => {
               <Route path="dashboard" element={<DoctorDashboardPage />} />
               <Route path="profile" element={<DoctorProfilePage />} />
               <Route path="appointments" element={<DoctorAppointmentsPage />} />
-              <Route path="/doctor/finance" element={<DoctorFinancePage />} />
+              <Route path="finance" element={<DoctorFinancePage />} />
               <Route
                 path="appointments/:id"
                 element={<DoctorAppointmentsDetailPage />}
@@ -132,7 +132,7 @@ export const AppRoutes = () => {
             <Route path="sales/:id" element={<AdminSaleDetailPage />} />
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />
-            <Route path="/admin/insurance" element={<AdminInsurancePage />} />
+            <Route path="insurance" element={<AdminInsurancePage />} />
             <Route
               path="users/patient/:id/history"
               element={<AdminPatientMedicalHistoryPage />}

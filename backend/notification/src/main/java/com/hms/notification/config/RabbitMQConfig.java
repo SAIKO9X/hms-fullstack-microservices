@@ -42,6 +42,13 @@ public class RabbitMQConfig {
   }
 
   @Bean
+  public CustomExchange delayedExchange() {
+    Map<String, Object> args = new HashMap<>();
+    args.put("x-delayed-type", "topic");
+    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
+  }
+
+  @Bean
   public Queue userCreatedQueue() {
     return new Queue(userCreatedQueue, true);
   }
@@ -52,13 +59,23 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public Binding reminderBinding(Queue reminderQueue, TopicExchange internalExchange) {
-    return BindingBuilder.bind(reminderQueue).to(internalExchange).with("appointment.reminder.#");
+  public Queue notificationQueue() {
+    return new Queue(notificationQueue, true);
   }
 
   @Bean
-  public Binding statusBinding(Queue statusQueue, TopicExchange internalExchange) {
-    return BindingBuilder.bind(statusQueue).to(internalExchange).with("appointment.status.changed");
+  public Queue appointmentNotificationQueue() {
+    return new Queue(APPOINTMENT_NOTIFICATION_QUEUE, true);
+  }
+
+  @Bean
+  public Queue reminderQueue() {
+    return new Queue(REMINDER_QUEUE, true);
+  }
+
+  @Bean
+  public Queue waitlistQueue() {
+    return new Queue(WAITLIST_QUEUE, true);
   }
 
   @Bean
@@ -68,20 +85,9 @@ public class RabbitMQConfig {
       .with(userCreatedRoutingKey);
   }
 
-
-  @Bean
-  public Queue notificationQueue() {
-    return new Queue(notificationQueue, true);
-  }
-
   @Bean
   public Binding binding(Queue notificationQueue, TopicExchange exchange) {
     return BindingBuilder.bind(notificationQueue).to(exchange).with(routingKey);
-  }
-
-  @Bean
-  public Queue appointmentNotificationQueue() {
-    return new Queue(APPOINTMENT_NOTIFICATION_QUEUE, true);
   }
 
   @Bean
@@ -99,28 +105,11 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public CustomExchange delayedExchange() {
-    Map<String, Object> args = new HashMap<>();
-    args.put("x-delayed-type", "topic");
-    return new CustomExchange(DELAYED_EXCHANGE, "x-delayed-message", true, false, args);
-  }
-
-  @Bean
-  public Queue reminderQueue() {
-    return new Queue(REMINDER_QUEUE, true);
-  }
-
-  @Bean
-  public Binding reminderBinding() {
+  public Binding delayedReminderBinding() {
     return BindingBuilder.bind(reminderQueue())
       .to(delayedExchange())
       .with("appointment.reminder")
       .noargs();
-  }
-
-  @Bean
-  public Queue waitlistQueue() {
-    return new Queue(WAITLIST_QUEUE, true);
   }
 
   @Bean

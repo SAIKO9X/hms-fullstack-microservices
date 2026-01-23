@@ -37,7 +37,7 @@ spring:
 application:
   rabbitmq:
     exchange: internal.exchange
-    user-created-queue: profile.user-created.queue
+    user-created-queue: profile.user.created.queue
     user-created-routing-key: user.event.created
     user-updated-queue: profile.user-updated.queue
     user-updated-routing-key: user.event.updated
