@@ -23,13 +23,23 @@ export default function VerifyAccountPage() {
   const handleVerify = async () => {
     setIsLoading(true);
     setError(null);
+    setSuccessMsg(null); // limpa mensagens de sucesso anteriores
+
     try {
       await verifyAccount(emailParam, code);
       navigate("/auth", {
-        state: { message: "Conta verificada com sucesso! Faça login." },
+        replace: true,
+        state: {
+          message: "Sua conta foi verificada! Agora você pode entrar.",
+          type: "success",
+        },
       });
     } catch (err: any) {
-      setError(err.message || "Erro ao verificar conta.");
+      if (err.message?.includes("já verificada")) {
+        navigate("/auth");
+        return;
+      }
+      setError(err.message || "Código inválido ou expirado.");
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +56,6 @@ export default function VerifyAccountPage() {
       await resendVerificationCode(emailParam);
       setSuccessMsg("Novo código enviado! Verifique seu e-mail.");
 
-      // Inicia cooldown de 30 segundos
       setResendCooldown(30);
       const interval = setInterval(() => {
         setResendCooldown((prev) => {
@@ -182,8 +191,8 @@ export default function VerifyAccountPage() {
                   {isResending
                     ? "Enviando..."
                     : resendCooldown > 0
-                    ? `Aguarde ${resendCooldown}s`
-                    : "Reenviar"}
+                      ? `Aguarde ${resendCooldown}s`
+                      : "Reenviar"}
                 </button>
               </p>
             </div>

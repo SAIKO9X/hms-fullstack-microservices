@@ -31,6 +31,7 @@ public class RabbitMQConfig {
   private String userCreatedRoutingKey;
 
   public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
+  public static final String NOTIFICATION_STATUS_QUEUE = "notification.status.queue";
   public static final String LAB_COMPLETED_QUEUE = "notification.lab.completed.queue";
   public static final String REMINDER_QUEUE = "notification.reminder.queue";
   public static final String WAITLIST_QUEUE = "notification.waitlist.queue";
@@ -39,6 +40,19 @@ public class RabbitMQConfig {
   @Bean
   public TopicExchange exchange() {
     return new TopicExchange(exchange);
+  }
+
+  @Bean
+  public Queue notificationStatusQueue() {
+    return new Queue(NOTIFICATION_STATUS_QUEUE, true);
+  }
+
+  @Bean
+  public Binding notificationStatusBinding(Queue notificationStatusQueue, TopicExchange exchange) {
+    return BindingBuilder
+      .bind(notificationStatusQueue)
+      .to(exchange)
+      .with("notification.status.#");
   }
 
   @Bean

@@ -53,10 +53,9 @@ export const DoctorSidebar = () => {
       icon: FileText,
     },
     {
-      title: "Mensagens",
-      url: "/doctor/messages",
-      icon: MessageSquare,
-      restricted: true,
+      title: "Financeiro",
+      url: "/doctor/finance",
+      icon: DollarSign,
     },
   ];
 
@@ -67,9 +66,10 @@ export const DoctorSidebar = () => {
       icon: UserPen,
     },
     {
-      title: "Financeiro",
-      url: "/doctor/finance",
-      icon: DollarSign,
+      title: "Mensagens",
+      url: "/doctor/messages",
+      icon: MessageSquare,
+      restricted: true,
     },
   ];
 
@@ -102,11 +102,11 @@ export const DoctorSidebar = () => {
       <SidebarContent className="py-4 bg-sidebar">
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Visão Geral
+            Conta
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {accountItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={isActive(item.url)}
@@ -126,11 +126,11 @@ export const DoctorSidebar = () => {
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Conta
+            Visão Geral
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
             <SidebarMenu>
-              {accountItems.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={isActive(item.url)}

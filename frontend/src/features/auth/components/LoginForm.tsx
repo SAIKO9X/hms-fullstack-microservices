@@ -14,12 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { LoginSchema } from "@/lib/schemas/auth.schema";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import type { NotificationState } from "@/features/auth/pages/AuthPage";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser } from "@/store/slices/authSlice";
 import { useLocation, useNavigate } from "react-router";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface LoginFormProps {
   notification: NotificationState;
@@ -34,9 +35,8 @@ export const LoginForm = ({
   const location = useLocation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const { status, error } = useAppSelector((state) => state.auth);
-
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: "", password: "" },
@@ -48,21 +48,40 @@ export const LoginForm = ({
         type: "success",
         message: location.state.message,
       });
+      setUnverifiedEmail(null);
 
-      // limpa o estado para que a mensagem não apareça se o usuário der F5
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, setNotification, navigate]);
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
-    dispatch(loginUser(values));
+    setUnverifiedEmail(null);
+
+    const resultAction = await dispatch(loginUser(values));
+
+    if (loginUser.rejected.match(resultAction)) {
+      const errorMessage = resultAction.payload as string;
+
+      if (
+        errorMessage &&
+        (errorMessage.toLowerCase().includes("não verificada") ||
+          errorMessage.toLowerCase().includes("verifique seu e-mail"))
+      ) {
+        setUnverifiedEmail(values.email);
+      }
+    }
   }
+
+  const handleNavigateToVerify = () => {
+    if (unverifiedEmail) {
+      navigate(`/auth/verify?email=${encodeURIComponent(unverifiedEmail)}`);
+    }
+  };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <CardContent className="space-y-6 px-8">
-          {/* Notificação de sucesso vinda do registro */}
           {notification?.type === "success" && (
             <CustomNotification
               variant="success"
@@ -72,8 +91,30 @@ export const LoginForm = ({
             />
           )}
 
-          {/* Notificação de erro vinda do estado do Redux */}
-          {status === "failed" && error && (
+          {unverifiedEmail && (
+            <Alert
+              variant="destructive"
+              className="border-red-500/50 bg-red-500/10"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Conta não verificada</AlertTitle>
+              <AlertDescription className="mt-2 flex flex-col gap-2">
+                <p>Sua conta precisa ser verificada antes de entrar.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-background/50 hover:bg-background border-red-200 text-red-600 hover:text-red-700"
+                  onClick={handleNavigateToVerify}
+                >
+                  Digitar Código de Verificação
+                  <ArrowRight className="ml-2 w-3 h-3" />
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {status === "failed" && error && !unverifiedEmail && (
             <CustomNotification variant="error" title={error} />
           )}
 
