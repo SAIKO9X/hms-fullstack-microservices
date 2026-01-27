@@ -63,6 +63,10 @@ application:
     user-created-queue: notification.user.created.queue
     user-created-routing-key: user.event.created
     lab-queue-name: notification.lab.completed.queue
+    notification-reminder: notification.reminder.queue
+    notification-status: notification.status.queue
+    notification-prescription: notification.prescription.queue
+    chat-notification: notification.chat.queue
 
 management:
   endpoints:

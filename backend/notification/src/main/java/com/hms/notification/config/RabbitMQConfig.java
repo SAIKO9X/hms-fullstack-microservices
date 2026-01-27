@@ -15,44 +15,26 @@ import java.util.Map;
 @Configuration
 public class RabbitMQConfig {
 
-  @Value("${application.rabbitmq.notification-queue}")
-  private String notificationQueue;
-
-  @Value("${application.rabbitmq.user-created-queue}")
-  private String userCreatedQueue;
-
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
-  @Value("${application.rabbitmq.routing-key}")
-  private String routingKey;
-
-  @Value("${application.rabbitmq.user-created-routing-key:user.event.created}")
-  private String userCreatedRoutingKey;
-
-  public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
   public static final String NOTIFICATION_STATUS_QUEUE = "notification.status.queue";
   public static final String LAB_COMPLETED_QUEUE = "notification.lab.completed.queue";
   public static final String REMINDER_QUEUE = "notification.reminder.queue";
   public static final String WAITLIST_QUEUE = "notification.waitlist.queue";
+  public static final String APPOINTMENT_NOTIFICATION_QUEUE = "notification.appointment.queue";
+  public static final String CHAT_QUEUE = "notification.chat.queue";
+  public static final String PRESCRIPTION_QUEUE = "notification.prescription.queue";
+  public static final String USER_CREATED_QUEUE = "notification.user.created.queue";
+
+  @Value("${application.rabbitmq.routing-key}")
+  private String routingKey;
+
   public static final String DELAYED_EXCHANGE = "delayed.exchange";
 
   @Bean
   public TopicExchange exchange() {
     return new TopicExchange(exchange);
-  }
-
-  @Bean
-  public Queue notificationStatusQueue() {
-    return new Queue(NOTIFICATION_STATUS_QUEUE, true);
-  }
-
-  @Bean
-  public Binding notificationStatusBinding(Queue notificationStatusQueue, TopicExchange exchange) {
-    return BindingBuilder
-      .bind(notificationStatusQueue)
-      .to(exchange)
-      .with("notification.status.#");
   }
 
   @Bean
@@ -63,23 +45,13 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public Queue userCreatedQueue() {
-    return new Queue(userCreatedQueue, true);
+  public Queue notificationStatusQueue() {
+    return new Queue(NOTIFICATION_STATUS_QUEUE, true);
   }
 
   @Bean
   public Queue labCompletedQueue() {
     return new Queue(LAB_COMPLETED_QUEUE, true);
-  }
-
-  @Bean
-  public Queue notificationQueue() {
-    return new Queue(notificationQueue, true);
-  }
-
-  @Bean
-  public Queue appointmentNotificationQueue() {
-    return new Queue(APPOINTMENT_NOTIFICATION_QUEUE, true);
   }
 
   @Bean
@@ -93,44 +65,63 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  public Binding userCreatedBinding(TopicExchange exchange) {
-    return BindingBuilder.bind(userCreatedQueue())
-      .to(exchange)
-      .with(userCreatedRoutingKey);
+  public Queue appointmentNotificationQueue() {
+    return new Queue(APPOINTMENT_NOTIFICATION_QUEUE, true);
   }
 
   @Bean
-  public Binding binding(Queue notificationQueue, TopicExchange exchange) {
-    return BindingBuilder.bind(notificationQueue).to(exchange).with(routingKey);
+  public Queue chatQueue() {
+    return new Queue(CHAT_QUEUE, true);
   }
 
   @Bean
-  public Binding appointmentBinding(TopicExchange exchange) {
-    return BindingBuilder.bind(appointmentNotificationQueue())
-      .to(exchange)
-      .with("appointment.status.changed");
+  public Queue prescriptionQueue() {
+    return new Queue(PRESCRIPTION_QUEUE, true);
   }
 
   @Bean
-  public Binding labCompletedBinding(Queue labCompletedQueue, TopicExchange exchange) {
-    return BindingBuilder.bind(labCompletedQueue)
-      .to(exchange)
-      .with("notification.lab.completed");
+  public Queue userCreatedQueue() {
+    return new Queue(USER_CREATED_QUEUE, true);
   }
 
   @Bean
-  public Binding delayedReminderBinding() {
-    return BindingBuilder.bind(reminderQueue())
-      .to(delayedExchange())
-      .with("appointment.reminder")
-      .noargs();
+  public Binding notificationStatusBinding() {
+    return BindingBuilder.bind(notificationStatusQueue()).to(exchange()).with("notification.status.#");
+  }
+
+  @Bean
+  public Binding labCompletedBinding() {
+    return BindingBuilder.bind(labCompletedQueue()).to(exchange()).with("notification.lab.completed");
   }
 
   @Bean
   public Binding waitlistBinding() {
-    return BindingBuilder.bind(waitlistQueue())
-      .to(exchange())
-      .with("appointment.waitlist.available");
+    return BindingBuilder.bind(waitlistQueue()).to(exchange()).with("notification.waitlist.available");
+  }
+
+  @Bean
+  public Binding appointmentBinding() {
+    return BindingBuilder.bind(appointmentNotificationQueue()).to(exchange()).with("appointment.event.#");
+  }
+
+  @Bean
+  public Binding chatBinding() {
+    return BindingBuilder.bind(chatQueue()).to(exchange()).with("notification.chat.#");
+  }
+
+  @Bean
+  public Binding prescriptionBinding() {
+    return BindingBuilder.bind(prescriptionQueue()).to(exchange()).with("notification.prescription.#");
+  }
+
+  @Bean
+  public Binding userCreatedBinding() {
+    return BindingBuilder.bind(userCreatedQueue()).to(exchange()).with("user.event.created");
+  }
+
+  @Bean
+  public Binding delayedReminderBinding() {
+    return BindingBuilder.bind(reminderQueue()).to(delayedExchange()).with("notification.appointment.reminder").noargs();
   }
 
   @Bean

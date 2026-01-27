@@ -10,31 +10,30 @@ export const chatKeys = {
 
 export const useChatMessages = (
   senderId: number | undefined,
-  recipientId: number | undefined
+  recipientId: number | undefined,
 ) => {
   return useQuery({
     queryKey: chatKeys.conversation(senderId!, recipientId!),
     queryFn: () => ChatService.fetchChatMessages(senderId!, recipientId!),
-    // Só executa se tiver os dois IDs
+    // só executa se tiver os dois IDs
     enabled: !!senderId && !!recipientId,
     staleTime: Infinity,
   });
 };
 
-// Hook auxiliar para atualizar o cache manualmente quando chega uma mensagem via WebSocket
 export const useChatCacheUpdater = () => {
   const queryClient = useQueryClient();
 
   const addMessageToCache = (
     senderId: number,
     recipientId: number,
-    newMessage: ChatMessageResponse
+    newMessage: ChatMessageResponse,
   ) => {
     const key = chatKeys.conversation(senderId, recipientId);
 
     queryClient.setQueryData<ChatMessageResponse[]>(key, (oldMessages) => {
       if (!oldMessages) return [newMessage];
-      // Evita duplicados verificando o ID
+      // evita mensagens duplicadas
       if (oldMessages.some((m) => m.id === newMessage.id)) return oldMessages;
       return [...oldMessages, newMessage];
     });

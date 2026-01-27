@@ -14,15 +14,12 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
   @Override
   public void apply(RequestTemplate template) {
-    // Tenta obter os atributos da requisição atual
     ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
     if (attributes != null) {
       HttpServletRequest request = attributes.getRequest();
-      // Obtém o cabeçalho de autorização da requisição original
       String authorizationHeader = request.getHeader(AUTHORIZATION_HEADER);
 
-      // Se o cabeçalho existir, anexa-o à nova requisição do Feign
       if (authorizationHeader != null && !authorizationHeader.isEmpty()) {
         template.header(AUTHORIZATION_HEADER, authorizationHeader);
       }

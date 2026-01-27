@@ -98,17 +98,17 @@ export const usePatientsDropdown = () => {
   });
 };
 
-export const useAllPatients = () => {
+export const useAllPatients = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: profileKeys.allPatients,
-    queryFn: ProfileService.getAllPatients,
+    queryKey: [...profileKeys.allPatients, page, size],
+    queryFn: () => ProfileService.getAllPatients(page, size),
   });
 };
 
-export const useAllDoctors = () => {
+export const useAllDoctors = (page = 0, size = 10) => {
   return useQuery({
-    queryKey: profileKeys.allDoctors,
-    queryFn: ProfileService.getAllDoctors,
+    queryKey: [...profileKeys.allDoctors, page, size],
+    queryFn: () => ProfileService.getAllDoctors(page, size),
   });
 };
 

@@ -3,6 +3,9 @@ package com.hms.notification.consumer;
 import com.hms.notification.config.RabbitMQConfig;
 import com.hms.notification.dto.event.*;
 import com.hms.notification.dto.request.EmailRequest;
+import com.hms.notification.entities.Notification;
+import com.hms.notification.enums.NotificationType;
+import com.hms.notification.repositories.NotificationRepository;
 import com.hms.notification.services.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -27,148 +30,206 @@ public class NotificationConsumer {
   private final JavaMailSender mailSender;
   private final EmailService emailService;
   private final SpringTemplateEngine templateEngine;
+  private final NotificationRepository notificationRepository;
 
-  // notificação genérica de e-mail
+  // Método auxiliar para evitar duplicação de código
+  private void saveInAppNotification(Long userId, String title, String message, NotificationType type) {
+    if (userId == null) {
+      log.warn("Tentativa de salvar notificação sem userId. Title: {}", title);
+      return;
+    }
+    try {
+      Notification notification = Notification.builder()
+        .userId(userId)
+        .title(title)
+        .message(message)
+        .type(type)
+        .build();
+      notificationRepository.save(notification);
+    } catch (Exception e) {
+      log.error("Erro ao salvar notificação para user {}: {}", userId, e.getMessage());
+    }
+  }
+
   @RabbitListener(queues = "${application.rabbitmq.notification-queue}")
-  public void consumeNotification(EmailRequest request) {
-    log.info("Mensagem recebida da fila: {}", request);
+  public void consumeGenericEmail(EmailRequest request) {
+    log.info("Email genérico para: {}", request.to());
     emailService.sendEmail(request.to(), request.subject(), request.body());
   }
 
-  // Lembrete de consulta (24h ou 1h antes)
   @RabbitListener(queues = "${application.rabbitmq.queues.notification-reminder:notification.reminder.queue}")
   public void handleAppointmentReminder(AppointmentEvent event) {
-    log.info("Lembrete recebido para paciente: {}", event.patientEmail());
+    log.info("Processando lembrete para consulta ID: {}", event.appointmentId());
 
-    String subject = "Lembrete de Consulta - HMS";
-    String formattedDate = event.appointmentDateTime()
-      .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
-    String locationText = "no consultório.";
-    if (event.meetingUrl() != null && !event.meetingUrl().isBlank()) {
-      locationText = "ONLINE. Link de acesso: " + event.meetingUrl();
-    }
-    String body = String.format(
-      "Olá, este é um lembrete da sua consulta com Dr(a). %s agendada para %s. Local: %s",
-      event.doctorName(),
-      formattedDate,
-      locationText
-    );
+    String formattedDate = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+    String shortTime = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("HH:mm"));
 
+    String subject = "Lembrete de Consulta";
+    String body = String.format("Olá %s, lembrete da consulta com Dr(a). %s em %s.",
+      event.patientName(), event.doctorName(), formattedDate);
     emailService.sendEmail(event.patientEmail(), subject, body);
+
+    saveInAppNotification(
+      event.patientId(),
+      "Consulta Amanhã",
+      "Consulta com Dr(a). " + event.doctorName() + " às " + shortTime,
+      NotificationType.APPOINTMENT_REMINDER
+    );
   }
 
-  // Notificação de mudança de status da consulta
   @RabbitListener(queues = "${application.rabbitmq.queues.notification-status:notification.status.queue}")
   public void handleStatusChange(AppointmentStatusChangedEvent event) {
-    log.info("Evento de status recebido: {} -> {}", event.appointmentId(), event.newStatus());
+    String formattedDate = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
 
-    if (event.patientEmail() == null || event.patientEmail().isBlank()) {
-      log.warn("E-mail do paciente ausente. Ignorando notificação.");
-      return;
+    processPatientStatusNotification(event, formattedDate);
+
+    if (event.triggeredByPatient() && event.doctorId() != null) {
+      processDoctorStatusNotification(event, formattedDate);
     }
+  }
 
-    String formattedDate = event.appointmentDateTime()
-      .format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
-
-    String subject = "Atualização da Consulta - HMS";
-    String body = "";
+  private void processPatientStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
+    String title = "";
+    String message = "";
 
     switch (event.newStatus()) {
-      case "CANCELED":
-        subject = "Consulta Cancelada";
-        body = String.format("<h1>Consulta Cancelada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> para o dia %s foi cancelada.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      case "RESCHEDULED":
-        subject = "Consulta Reagendada";
-        body = String.format("<h1>Consulta Remarcada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> foi alterada para: <strong>%s</strong>.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      case "COMPLETED":
-        subject = "Consulta Concluída";
-        body = String.format("<h1>Consulta Concluída</h1><p>Olá %s,</p><p>Sua consulta foi concluída. Acesse o portal para ver sua prescrição e avaliar o atendimento.</p>",
-          event.patientName());
-        break;
-      case "SCHEDULED":
-        subject = "Confirmação de Agendamento";
-        body = String.format("<h1>Consulta Confirmada</h1><p>Olá %s,</p><p>Sua consulta com <strong>Dr(a). %s</strong> está agendada para: <strong>%s</strong>.</p>",
-          event.patientName(), event.doctorName(), formattedDate);
-        break;
-      default:
-        return; // ignora status desconhecidos
+      case "CANCELED" -> {
+        title = "Consulta Cancelada";
+        message = "A consulta com Dr(a). " + event.doctorName() + " foi cancelada.";
+      }
+      case "RESCHEDULED" -> {
+        title = "Consulta Reagendada";
+        message = "Sua consulta mudou para " + formattedDate;
+      }
+      case "COMPLETED" -> {
+        title = "Consulta Finalizada";
+        message = "Consulta concluída. Toque para avaliar seu atendimento.";
+      }
+      case "SCHEDULED" -> {
+        title = "Agendamento Confirmado";
+        message = "Consulta confirmada para " + formattedDate;
+      }
     }
 
-    emailService.sendEmail(event.patientEmail(), subject, body);
+    if (!title.isEmpty()) {
+      saveInAppNotification(event.patientId(), title, message, NotificationType.STATUS_CHANGE);
+    }
+  }
+
+  private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
+    String title = "";
+    String message = "";
+
+    switch (event.newStatus()) {
+      case "CANCELED" -> {
+        title = "Cancelamento de Paciente";
+        message = "O paciente " + event.patientName() + " cancelou a consulta de " + formattedDate;
+      }
+      case "RESCHEDULED" -> {
+        title = "Reagendamento de Paciente";
+        message = "O paciente " + event.patientName() + " solicitou reagendamento para " + formattedDate;
+      }
+    }
+
+    if (!title.isEmpty()) {
+      saveInAppNotification(event.doctorId(), title, message, NotificationType.SYSTEM_ALERT);
+    }
   }
 
   @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
   public void handleWaitlistNotification(WaitlistNotificationEvent event) {
-    log.info("Notificando paciente da fila de espera: {}", event.email());
+    // email
+    String content = "Surgiu uma vaga com Dr. " + event.doctorName() + " em " + event.availableDateTime();
+    emailService.sendEmail(event.email(), "Vaga Disponível!", content);
 
-    String subject = "Vaga Disponível com Dr. " + event.doctorName();
-    String content = String.format("""
-      <h1>Boa Notícia!</h1>
-      <p>Olá %s,</p>
-      <p>Surgiu uma vaga com <b>Dr. %s</b> para o dia <b>%s</b>.</p>
-      <p>Acesse o sistema agora para confirmar este horário antes que seja ocupado.</p>
-      """, event.patientName(), event.doctorName(), event.availableDateTime());
-
-    emailService.sendEmail(event.email(), subject, content);
+    // in-App
+    saveInAppNotification(
+      event.userId(),
+      "Vaga na Lista de Espera!",
+      "Uma vaga surgiu para " + event.availableDateTime() + ". Acesse para agendar.",
+      NotificationType.WAITLIST_ALERT
+    );
   }
 
-  @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
-  public void consumeUserCreated(UserCreatedEvent event) {
-    log.info("Novo usuário criado. Enviando código para: {}", event.email());
+  @RabbitListener(queues = "${application.rabbitmq.queues.notification-prescription:notification.prescription.queue}")
+  public void handlePrescriptionIssued(PrescriptionIssuedEvent event) {
+    log.info("Nova receita para paciente ID: {}", event.patientId());
 
-    String subject = "Confirme sua conta - HMS";
-    String content = String.format("""
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Bem-vindo ao HMS, %s!</h2>
-          <p>Obrigado por se cadastrar. Use o código abaixo para ativar sua conta:</p>
-          <h1 style="color: #2563eb; letter-spacing: 5px;">%s</h1>
-          <p>Este código expira em 15 minutos.</p>
-      </div>
-      """, event.name(), event.verificationCode());
+    // email
+    String subject = "Nova Receita Médica";
+    String body = String.format("<p>Olá %s, o Dr(a). %s emitiu uma nova receita digital.</p>",
+      event.patientName(), event.doctorName());
+    emailService.sendEmail(event.patientEmail(), subject, body);
 
-    emailService.sendEmail(event.email(), subject, content);
+    // in-App
+    saveInAppNotification(
+      event.patientId(),
+      "Nova Receita",
+      "Dr(a). " + event.doctorName() + " emitiu uma receita. Acesse 'Meus Medicamentos'.",
+      NotificationType.PRESCRIPTION
+    );
   }
 
   @RabbitListener(queues = "${application.rabbitmq.lab-queue-name:notification.lab.completed.queue}")
   public void handleLabResult(LabOrderCompletedEvent event) {
-    log.info("Processando notificação de exame: ID Pedido {}", event.labOrderNumber());
+    log.info("Resultado de exame pronto. Pedido: {}", event.labOrderNumber());
 
-    String doctorEmail = event.doctorEmail();
-
-    if (doctorEmail == null || doctorEmail.isBlank()) {
-      log.warn("Email ausente no evento para o pedido {}", event.labOrderNumber());
-      return;
+    // Notificar Médico
+    if (event.doctorEmail() != null) {
+      sendLabResultEmailToDoctor(event);
+      saveInAppNotification(event.doctorId(),
+        "Exame Pronto",
+        "Resultado disponível do paciente: " + event.patientName(),
+        NotificationType.LAB_RESULT);
     }
 
+    // Notificar Paciente
+    if (event.patientId() != null) {
+      saveInAppNotification(
+        event.patientId(),
+        "Exame Concluído",
+        "Os resultados do pedido " + event.labOrderNumber() + " estão disponíveis.",
+        NotificationType.LAB_RESULT
+      );
+    }
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.queues.chat-notification:notification.chat.queue}")
+  public void handleNewChatMessage(ChatMessageEvent event) {
+    saveInAppNotification(
+      event.recipientId(),
+      "Nova Mensagem de " + event.senderName(),
+      event.content(), // exibe um preview da mensagem ou texto genérico
+      NotificationType.NEW_MESSAGE
+    );
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
+  public void consumeUserCreated(UserCreatedEvent event) {
+    String subject = "Bem-vindo ao HMS";
+    String content = String.format("<h1>Código: %s</h1><p>Use este código para ativar sua conta.</p>", event.verificationCode());
+    emailService.sendEmail(event.email(), subject, content);
+  }
+
+  private void sendLabResultEmailToDoctor(LabOrderCompletedEvent event) {
     try {
       Context context = new Context();
       context.setVariables(Map.of(
         "doctorName", event.doctorName(),
         "patientName", event.patientName(),
         "orderNumber", event.labOrderNumber(),
-        "orderDate", event.completionDate(),
         "actionUrl", event.resultUrl()
       ));
-
       String htmlBody = templateEngine.process("lab-result-email", context);
 
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
-
-      helper.setTo(doctorEmail);
-      helper.setSubject("Resultados de Exames Disponíveis - Pedido " + event.labOrderNumber());
+      helper.setTo(event.doctorEmail());
+      helper.setSubject("Resultados: Pedido " + event.labOrderNumber());
       helper.setText(htmlBody, true);
-      helper.setFrom("no-reply@hms.com");
-
       mailSender.send(message);
-      log.info("Email enviado para {}", doctorEmail);
-
     } catch (MessagingException e) {
-      log.error("Erro ao enviar email", e);
+      log.error("Erro email médico", e);
     }
   }
 }

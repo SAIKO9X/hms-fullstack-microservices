@@ -1,13 +1,11 @@
-// Tipos para as notificações da aplicação
 export interface ActionNotification {
   variant: "success" | "error" | "info";
   title: string;
   description?: string;
 }
 
-// Type guard para verificar se a notificação é válida
 export const isValidNotification = (
-  notification: ActionNotification | null
+  notification: ActionNotification | null,
 ): notification is ActionNotification => {
   return (
     notification !== null &&
@@ -16,10 +14,9 @@ export const isValidNotification = (
   );
 };
 
-// Helpers para criar notificações específicas
 export const createSuccessNotification = (
   title: string,
-  description?: string
+  description?: string,
 ): ActionNotification => ({
   variant: "success",
   title,
@@ -28,7 +25,7 @@ export const createSuccessNotification = (
 
 export const createErrorNotification = (
   title: string,
-  description?: string
+  description?: string,
 ): ActionNotification => ({
   variant: "error",
   title,
@@ -37,9 +34,32 @@ export const createErrorNotification = (
 
 export const createInfoNotification = (
   title: string,
-  description?: string
+  description?: string,
 ): ActionNotification => ({
   variant: "info",
   title,
   description,
 });
+
+export const NotificationType = {
+  APPOINTMENT_REMINDER: "APPOINTMENT_REMINDER",
+  STATUS_CHANGE: "STATUS_CHANGE",
+  WAITLIST_ALERT: "WAITLIST_ALERT",
+  LAB_RESULT: "LAB_RESULT",
+  PRESCRIPTION: "PRESCRIPTION",
+  NEW_MESSAGE: "NEW_MESSAGE",
+  SYSTEM_ALERT: "SYSTEM_ALERT",
+} as const;
+
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export interface Notification {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: NotificationType;
+  read: boolean;
+  createdAt: string;
+}
