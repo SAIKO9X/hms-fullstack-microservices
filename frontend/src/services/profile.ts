@@ -12,27 +12,37 @@ import type {
   ReviewResponse,
 } from "@/types/review.types";
 
+// PATIENT PROFILE
 export const getMyPatientProfile = async (): Promise<PatientProfile> => {
   const { data } = await api.get("/profile/patients");
   return data;
 };
 
 export const updateMyPatientProfile = async (
-  profileData: PatientProfileFormData
+  profileData: PatientProfileFormData,
 ): Promise<PatientProfile> => {
   const { data } = await api.patch("/profile/patients", profileData);
   return data;
 };
 
-export const getMyDoctorProfile = async (): Promise<DoctorProfile> => {
-  const { data } = await api.get("/profile/doctors");
+export const updateMyPatientProfilePicture = async (
+  pictureUrl: string,
+): Promise<void> => {
+  await api.put("/profile/patients/picture", { pictureUrl });
+};
+
+export const getPatientById = async (id: number): Promise<PatientProfile> => {
+  const { data } = await api.get(`/profile/patients/${id}`);
   return data;
 };
 
-export const updateMyDoctorProfile = async (
-  profileData: DoctorProfileFormData
-): Promise<DoctorProfile> => {
-  const { data } = await api.patch("/profile/doctors", profileData);
+export const getAllPatients = async (
+  page = 0,
+  size = 10,
+): Promise<Page<PatientProfile>> => {
+  const { data } = await api.get(
+    `/profile/patients/all?page=${page}&size=${size}`,
+  );
   return data;
 };
 
@@ -43,29 +53,23 @@ export const getPatientsForDropdown = async (): Promise<
   return data;
 };
 
-export const getAllPatients = async (
-  page = 0,
-  size = 10
-): Promise<Page<PatientProfile>> => {
-  const { data } = await api.get(
-    `/profile/patients/all?page=${page}&size=${size}`
-  );
+// DOCTOR PROFILE
+export const getMyDoctorProfile = async (): Promise<DoctorProfile> => {
+  const { data } = await api.get("/profile/doctors");
   return data;
 };
 
-export const getAllDoctors = async (
-  page = 0,
-  size = 10
-): Promise<Page<DoctorProfile>> => {
-  const { data } = await api.get(
-    `/profile/doctors/all?page=${page}&size=${size}`
-  );
+export const updateMyDoctorProfile = async (
+  profileData: DoctorProfileFormData,
+): Promise<DoctorProfile> => {
+  const { data } = await api.patch("/profile/doctors", profileData);
   return data;
 };
 
-export const getPatientById = async (id: number): Promise<PatientProfile> => {
-  const { data } = await api.get(`/profile/patients/${id}`);
-  return data;
+export const updateMyDoctorProfilePicture = async (
+  pictureUrl: string,
+): Promise<void> => {
+  await api.put("/profile/doctors/picture", { pictureUrl });
 };
 
 export const getDoctorById = async (id: number): Promise<DoctorProfile> => {
@@ -73,34 +77,33 @@ export const getDoctorById = async (id: number): Promise<DoctorProfile> => {
   return data;
 };
 
-export const updateMyPatientProfilePicture = async (
-  pictureUrl: string
-): Promise<void> => {
-  await api.put("/profile/patients/picture", { pictureUrl });
+export const getAllDoctors = async (
+  page = 0,
+  size = 10,
+): Promise<Page<DoctorProfile>> => {
+  const { data } = await api.get(
+    `/profile/doctors/all?page=${page}&size=${size}`,
+  );
+  return data;
 };
 
-export const updateMyDoctorProfilePicture = async (
-  pictureUrl: string
-): Promise<void> => {
-  await api.put("/profile/doctors/picture", { pictureUrl });
-};
-
+// REVIEWS
 export const createReview = async (
-  reviewData: ReviewRequest
+  reviewData: ReviewRequest,
 ): Promise<ReviewResponse> => {
   const { data } = await api.post("/profile/reviews", reviewData);
   return data;
 };
 
 export const getDoctorStats = async (
-  doctorId: number
+  doctorId: number,
 ): Promise<DoctorRatingStats> => {
   const { data } = await api.get(`/profile/reviews/doctor/${doctorId}/stats`);
   return data;
 };
 
 export const getDoctorReviews = async (
-  doctorId: number
+  doctorId: number,
 ): Promise<ReviewResponse[]> => {
   const { data } = await api.get(`/profile/reviews/doctor/${doctorId}`);
   return data;

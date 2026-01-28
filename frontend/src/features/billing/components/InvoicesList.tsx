@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -18,8 +19,11 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
+import { BillingService } from "@/services/billing";
+import { toast } from "sonner";
 
 interface InvoicesListProps {
   invoices: Invoice[];
@@ -28,6 +32,21 @@ interface InvoicesListProps {
 }
 
 export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadPdf = async (id: string) => {
+    try {
+      setDownloadingId(id);
+      await BillingService.downloadInvoicePdf(id);
+      toast.success("Fatura baixada com sucesso!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao baixar fatura.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const getStatusBadge = (inv: Invoice) => {
     if (inv.status === "PAID") {
       return (
@@ -168,36 +187,53 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                   <TableCell>{getStatusBadge(inv)}</TableCell>
 
                   <TableCell className="text-right">
-                    {needsPatientPayment && inv.status !== "CANCELLED" ? (
+                    <div className="flex items-center justify-end gap-2">
                       <Button
-                        size="sm"
-                        onClick={() => onPay(inv.id)}
-                        disabled={!!isPaying}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        {isPaying === inv.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : null}
-                        Pagar
-                      </Button>
-                    ) : inv.pharmacySaleId && isFullyPaid ? (
-                      <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded">
-                        Pago na Loja
-                      </span>
-                    ) : (
-                      <Button
-                        size="sm"
+                        size="icon"
                         variant="ghost"
-                        disabled
-                        className="opacity-50"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        title="Baixar Fatura (PDF)"
+                        onClick={() => handleDownloadPdf(inv.id)}
+                        disabled={downloadingId === inv.id}
                       >
-                        {isFullyPaid
-                          ? "Liquidado"
-                          : inv.patientPaidAt
-                            ? "Processando"
-                            : "-"}
+                        {downloadingId === inv.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4" />
+                        )}
                       </Button>
-                    )}
+
+                      {needsPatientPayment && inv.status !== "CANCELLED" ? (
+                        <Button
+                          size="sm"
+                          onClick={() => onPay(inv.id)}
+                          disabled={!!isPaying}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {isPaying === inv.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Pagar
+                        </Button>
+                      ) : inv.pharmacySaleId && isFullyPaid ? (
+                        <span className="text-xs text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+                          Pago na Loja
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled
+                          className="opacity-50"
+                        >
+                          {isFullyPaid
+                            ? "Liquidado"
+                            : inv.patientPaidAt
+                              ? "Processando"
+                              : "-"}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );

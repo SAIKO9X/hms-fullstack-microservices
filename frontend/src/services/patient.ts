@@ -6,7 +6,7 @@ import type { Page } from "@/types/pagination.types";
 import type { MedicalHistory, PatientProfile } from "@/types/patient.types";
 import type { Prescription } from "@/types/record.types";
 
-// Buscar consultas como paciente
+// APPOINTMENTS
 export const getMyAppointments = async (
   page = 0,
   size = 10,
@@ -17,7 +17,6 @@ export const getMyAppointments = async (
   return data;
 };
 
-// Criar nova consulta
 export const createAppointment = async (
   appointmentData: AppointmentFormData,
 ): Promise<Appointment> => {
@@ -25,7 +24,6 @@ export const createAppointment = async (
   return data;
 };
 
-// Buscar a próxima consulta do paciente logado
 export const getNextAppointment = async (): Promise<Appointment | null> => {
   try {
     const { data } = await api.get("/appointments/patient/next");
@@ -36,13 +34,12 @@ export const getNextAppointment = async (): Promise<Appointment | null> => {
   }
 };
 
-// Buscar estatísticas de agendamentos do paciente logado
 export const getAppointmentStats = async (): Promise<AppointmentStats> => {
   const { data } = await api.get("/appointments/patient/stats");
   return data;
 };
 
-// Buscar prescrição mais recente do paciente logado
+// PRESCRIPTIONS
 export const getLatestPrescription = async (): Promise<Prescription | null> => {
   try {
     const { data } = await api.get("/prescriptions/patient/latest");
@@ -53,7 +50,6 @@ export const getLatestPrescription = async (): Promise<Prescription | null> => {
   }
 };
 
-// Buscar histórico de prescrições do paciente logado
 export const getMyPrescriptionsHistory = async (
   page = 0,
   size = 10,
@@ -64,22 +60,23 @@ export const getMyPrescriptionsHistory = async (
   return data;
 };
 
-// Buscar histórico médico do paciente
+// MEDICAL HISTORY
 export const getMedicalHistory = async (
   patientId: number,
 ): Promise<MedicalHistory> => {
-  const response = await api.get<MedicalHistory>(
+  const { data } = await api.get<MedicalHistory>(
     `/profile/patient/medical-history/${patientId}`,
   );
-  return response.data;
+  return data;
 };
 
-// Buscar perfil do paciente por ID
+// PATIENT PROFILE
 export const getPatientById = async (id: number): Promise<PatientProfile> => {
   const { data } = await api.get<PatientProfile>(`/profile/patients/${id}`);
   return data;
 };
 
+// DOCTORS
 export const getMyDoctors = async (): Promise<DoctorSummary[]> => {
   const { data } = await api.get("/appointments/patient/my-doctors");
   return data;

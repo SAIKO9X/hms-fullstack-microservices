@@ -7,6 +7,7 @@ import * as PharmacyService from "./pharmacy";
 import * as ProfileService from "./profile";
 import * as ChatService from "./chat";
 import * as BillingService from "./billing";
+import * as NotificationService from "./notification";
 
 export {
   AdminService,
@@ -18,4 +19,5 @@ export {
   ProfileService,
   ChatService,
   BillingService,
+  NotificationService,
 };

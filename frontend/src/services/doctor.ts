@@ -8,7 +8,7 @@ import type {
 import type { PatientSummary } from "@/types/doctor.types";
 import type { Page } from "@/types/pagination.types";
 
-// Buscar consultas como médico
+// APPOINTMENTS
 export const getMyAppointmentsAsDoctor = async (
   page = 0,
   size = 10,
@@ -19,7 +19,6 @@ export const getMyAppointmentsAsDoctor = async (
   return data;
 };
 
-// Buscar detalhes das consultas do médico com filtro de data
 export const getDoctorAppointmentDetails = async (
   dateFilter?: "today" | "week" | "month",
 ): Promise<AppointmentDetail[]> => {
@@ -30,7 +29,6 @@ export const getDoctorAppointmentDetails = async (
   return data;
 };
 
-// Completar consulta (para médicos)
 export const completeAppointment = async (
   id: number,
   notes?: string,
@@ -41,25 +39,24 @@ export const completeAppointment = async (
   return data;
 };
 
-// Obter estatísticas da dashboard do médico
+// DASHBOARD & STATISTICS
 export const getDoctorDashboardStats =
   async (): Promise<DoctorDashboardStats> => {
     const { data } = await api.get("/doctor/appointments/dashboard-stats");
     return data;
   };
 
-// Obter contagem de pacientes únicos do médico
 export const getUniquePatientsCount = async (): Promise<number> => {
   const { data } = await api.get("/doctor/appointments/patients-count");
   return data;
 };
 
-// Obter grupos de pacientes do médico
 export const getDoctorPatientGroups = async (): Promise<PatientGroup[]> => {
   const { data } = await api.get("/doctor/appointments/patient-groups");
   return data;
 };
 
+// PATIENTS
 export const getMyPatients = async (): Promise<PatientSummary[]> => {
   const { data } = await api.get<PatientSummary[]>(
     "/doctor/appointments/my-patients",

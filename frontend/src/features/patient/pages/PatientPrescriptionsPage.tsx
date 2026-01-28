@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMyPrescriptionsHistory } from "@/services/queries/appointment-queries";
+import { downloadPrescriptionPdf } from "@/services/appointment";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,6 +16,8 @@ import {
   Clock,
   CheckCircle,
   Ban,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,6 +29,7 @@ import {
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/utils/utils";
+import { toast } from "sonner";
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -61,13 +65,27 @@ const getStatusConfig = (status: string) => {
 export const PatientPrescriptionsPage = () => {
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
   const { data: prescriptionsPage, isLoading } = useMyPrescriptionsHistory(
     page,
     pageSize,
   );
 
-  // Lista de prescrições da página atual
   const prescriptions = prescriptionsPage?.content || [];
+
+  const handleDownloadPdf = async (id: number) => {
+    try {
+      setDownloadingId(id);
+      await downloadPrescriptionPdf(id);
+      toast.success("Download iniciado!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao baixar o PDF da receita.");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -92,7 +110,6 @@ export const PatientPrescriptionsPage = () => {
         </div>
       </div>
 
-      {/* Estatísticas rápidas */}
       {!isLoading && prescriptions.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -149,7 +166,6 @@ export const PatientPrescriptionsPage = () => {
         </div>
       )}
 
-      {/* Lista de prescrições */}
       <Card>
         <CardHeader>
           <h2 className="text-xl font-semibold">Histórico de Prescrições</h2>
@@ -228,77 +244,94 @@ export const PatientPrescriptionsPage = () => {
                       </AccordionTrigger>
 
                       <AccordionContent className="pt-4">
-                        {p.status === "DISPENSED" && (
-                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4" />
-                            Esta receita já foi utilizada e os medicamentos
-                            dispensados.
+                        <div className="flex flex-col space-y-4">
+                          <div className="flex justify-end border-b pb-4 mb-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
+                              onClick={() => handleDownloadPdf(p.id)}
+                              disabled={downloadingId === p.id}
+                            >
+                              {downloadingId === p.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              Baixar PDF da Receita
+                            </Button>
                           </div>
-                        )}
 
-                        <div className="space-y-4 pl-4">
-                          {/* Lista de medicamentos */}
-                          <div className="space-y-3">
-                            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                              Medicamentos Prescritos
-                            </h4>
-                            {p.medicines.map((med, index) => (
-                              <div
-                                key={index}
-                                className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
-                              >
-                                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                                  <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          {p.status === "DISPENSED" && (
+                            <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4" />
+                              Esta receita já foi utilizada e os medicamentos
+                              dispensados.
+                            </div>
+                          )}
+
+                          <div className="space-y-4 pl-4">
+                            <div className="space-y-3">
+                              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                                Medicamentos Prescritos
+                              </h4>
+                              {p.medicines.map((med, index) => (
+                                <div
+                                  key={index}
+                                  className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg border border-border"
+                                >
+                                  <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                                    <Pill className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                  </div>
+                                  <div className="flex-1 space-y-1">
+                                    <p className="font-semibold text-base">
+                                      {med.name}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <strong>Dosagem:</strong> {med.dosage}
+                                      </span>
+                                      <span>•</span>
+                                      <span className="flex items-center gap-1">
+                                        <strong>Frequência:</strong>{" "}
+                                        {med.frequency}
+                                      </span>
+                                      <span>•</span>
+                                      <span className="flex items-center gap-1">
+                                        <strong>Duração:</strong> {med.duration}{" "}
+                                        dias
+                                      </span>
+                                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                        <AlertCircle className="h-3 w-3" />
+                                        <strong>Válido até:</strong>{" "}
+                                        {format(
+                                          addDays(new Date(p.createdAt), 30),
+                                          "dd/MM/yyyy",
+                                          { locale: ptBR },
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex-1 space-y-1">
-                                  <p className="font-semibold text-base">
-                                    {med.name}
-                                  </p>
-                                  <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <strong>Dosagem:</strong> {med.dosage}
-                                    </span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <strong>Frequência:</strong>{" "}
-                                      {med.frequency}
-                                    </span>
-                                    <span>•</span>
-                                    <span className="flex items-center gap-1">
-                                      <strong>Duração:</strong> {med.duration}{" "}
-                                      dias
-                                    </span>
-                                    <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                                      <AlertCircle className="h-3 w-3" />
-                                      <strong>Válido até:</strong>{" "}
-                                      {format(
-                                        addDays(new Date(p.createdAt), 30), // data de criação + 30 dias
-                                        "dd/MM/yyyy",
-                                        { locale: ptBR },
-                                      )}
-                                    </span>
+                              ))}
+                            </div>
+
+                            {p.notes && (
+                              <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
+                                <div className="flex gap-2">
+                                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
+                                      Observações do Médico
+                                    </p>
+                                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                                      {p.notes}
+                                    </p>
                                   </div>
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
-
-                          {/* Notas adicionais */}
-                          {p.notes && (
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/20 rounded-lg">
-                              <div className="flex gap-2">
-                                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <p className="font-semibold text-sm text-blue-900 dark:text-blue-100 mb-1">
-                                    Observações do Médico
-                                  </p>
-                                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                                    {p.notes}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </AccordionContent>
                     </AccordionItem>

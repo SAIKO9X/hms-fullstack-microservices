@@ -1,10 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMyDoctors } from "@/services/patient";
 
+import { PatientService } from "@/services";
+
+// QUERY KEYS
+export const patientKeys = {
+  myDoctors: ["my-doctors-chat-list"] as const,
+};
+
+// QUERIES
 export const useMyDoctors = (enabled: boolean = true) => {
   return useQuery({
-    queryKey: ["my-doctors-chat-list"],
-    queryFn: getMyDoctors,
+    queryKey: patientKeys.myDoctors,
+    queryFn: PatientService.getMyDoctors,
     enabled: enabled,
   });
 };

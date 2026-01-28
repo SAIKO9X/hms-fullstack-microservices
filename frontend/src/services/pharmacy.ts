@@ -24,87 +24,80 @@ export type DirectSaleFormData = {
   }[];
 };
 
-// Buscar todos os medicamentos
+// MEDICINES
 export const getAllMedicines = async (
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<Medicine>> => {
   const { data } = await api.get(
-    `/pharmacy/medicines?page=${page}&size=${size}`
+    `/pharmacy/medicines?page=${page}&size=${size}`,
   );
   return data;
 };
 
-// Adicionar um novo medicamento
 export const addMedicine = async (
-  medicineData: MedicineFormData
+  medicineData: MedicineFormData,
 ): Promise<Medicine> => {
   const { data } = await api.post("/pharmacy/medicines", medicineData);
   return data;
 };
 
-// Atualizar um medicamento existente
 export const updateMedicine = async (
   id: number,
-  medicineData: MedicineFormData
+  medicineData: MedicineFormData,
 ): Promise<Medicine> => {
   const { data } = await api.put(`/pharmacy/medicines/${id}`, medicineData);
   return data;
 };
 
-// Buscar todos os itens do inventário
+// INVENTORY
 export const getAllInventory = async (
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<MedicineInventory>> => {
   const { data } = await api.get(
-    `/pharmacy/inventory?page=${page}&size=${size}`
+    `/pharmacy/inventory?page=${page}&size=${size}`,
   );
   return data;
 };
 
-// Adicionar um novo item ao inventário
 export const addInventoryItem = async (
-  inventoryData: InventoryFormData
+  inventoryData: InventoryFormData,
 ): Promise<MedicineInventory> => {
   const { data } = await api.post("/pharmacy/inventory", inventoryData);
   return data;
 };
 
-// Atualizar um item do inventário
 export const updateInventoryItem = async (
   id: number,
-  inventoryData: InventoryFormData
+  inventoryData: InventoryFormData,
 ): Promise<MedicineInventory> => {
   const { data } = await api.put(`/pharmacy/inventory/${id}`, inventoryData);
   return data;
 };
 
-// Deletar um item do inventário
 export const deleteInventoryItem = async (id: number): Promise<void> => {
   await api.delete(`/pharmacy/inventory/${id}`);
 };
 
-// Buscar todas as vendas
+// SALES
 export const getAllSales = async (
   page = 0,
-  size = 10
+  size = 10,
 ): Promise<Page<PharmacySale>> => {
   const { data } = await api.get(`/pharmacy/sales?page=${page}&size=${size}`);
   return data;
 };
 
-// Função para criar uma venda direta
 export const createDirectSale = async (
-  saleData: DirectSaleFormData
+  saleData: DirectSaleFormData,
 ): Promise<PharmacySale> => {
   const { data } = await api.post("/pharmacy/sales/direct", saleData);
   return data;
 };
 
-// Criar venda a partir de uma prescrição
 export const createSaleFromPrescription = async (
-  prescriptionId: number
+  prescriptionId: number,
 ): Promise<PharmacySale> => {
   const { data } = await api.post(
     "/pharmacy/sales/from-prescription",
@@ -113,12 +106,12 @@ export const createSaleFromPrescription = async (
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
   return data;
 };
 
-// Obter estatísticas financeiras da farmácia (últimos 30 dias)
+// STATISTICS
 export const getPharmacyStats = async (): Promise<PharmacyFinancialStats> => {
   const { data } = await api.get("/pharmacy/sales/stats/financial");
   return data;

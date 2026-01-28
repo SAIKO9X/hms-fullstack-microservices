@@ -1,6 +1,5 @@
 import api from "@/config/axios";
 
-// DTO que o media-service retorna
 interface MediaFileDto {
   id: number;
   name: string;
@@ -9,6 +8,7 @@ interface MediaFileDto {
   url: string;
 }
 
+// FILE UPLOAD
 export const uploadFile = async (file: File): Promise<MediaFileDto> => {
   const formData = new FormData();
   formData.append("file", file);
@@ -18,5 +18,6 @@ export const uploadFile = async (file: File): Promise<MediaFileDto> => {
       "Content-Type": "multipart/form-data",
     },
   });
+
   return data;
 };

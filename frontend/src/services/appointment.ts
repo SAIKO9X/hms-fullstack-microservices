@@ -277,3 +277,29 @@ export const getDoctorUnavailability = async (
 export const deleteUnavailability = async (id: number): Promise<void> => {
   await api.delete(`/appointments/unavailability/${id}`);
 };
+
+export const downloadPrescriptionPdf = async (id: number): Promise<void> => {
+  try {
+    const response = await api.get(`/prescriptions/${id}/pdf`, {
+      responseType: "blob",
+    });
+
+    // cria um URL temporário para o blob recebido
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+
+    // define o nome do ficheiro para download
+    link.setAttribute("download", `receita_${id}.pdf`);
+
+    // anexa ao body, clica e remove
+    document.body.appendChild(link);
+    link.click();
+
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Erro ao baixar PDF da receita:", error);
+    throw error;
+  }
+};

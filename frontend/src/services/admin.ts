@@ -9,7 +9,7 @@ interface UpdateUserStatusPayload {
   active: boolean;
 }
 
-// Atualiza o status de um utilizador (ativo/inativo).
+// USER MANAGEMENT
 export const updateUserStatus = async ({
   userId,
   active,
@@ -17,20 +17,18 @@ export const updateUserStatus = async ({
   await api.patch(`/users/${userId}/status`, { active });
 };
 
-// Cria um novo utilizador (paciente ou médico) como administrador.
 export const adminCreateUser = async (
   userData: AdminCreateUserFormData,
 ): Promise<void> => {
   await api.post("/users/admin/create", userData);
 };
 
-// Atualiza os dados de um utilizador (paciente ou médico) como administrador.
 export const adminUpdateUser = async (userData: any): Promise<void> => {
   const { userId, ...payload } = userData;
   await api.put(`/users/admin/update/${userId}`, payload);
 };
 
-// Busca todos os detalhes de consulta para um médico específico (usado pelo Admin).
+// APPOINTMENTS
 export const getAppointmentsByDoctorId = async (
   doctorId: number,
 ): Promise<AppointmentDetail[]> => {
@@ -38,7 +36,7 @@ export const getAppointmentsByDoctorId = async (
   return data;
 };
 
-// Busca o histórico médico completo para um paciente específico (usado pelo Admin).
+// MEDICAL HISTORY
 export const getPatientMedicalHistoryById = async (
   patientId: number,
 ): Promise<MedicalHistory> => {
@@ -48,13 +46,13 @@ export const getPatientMedicalHistoryById = async (
   return data;
 };
 
-// Busca logs de auditoria com paginação.
+// AUDIT LOGS
 export const getAuditLogs = async (
   page = 0,
   size = 20,
 ): Promise<AuditLogResponse> => {
-  const response = await api.get<AuditLogResponse>(`/audit/logs`, {
-    params: { page, size, sort: "timestamp,desc" }, // garante ordem cronológica reversa
+  const { data } = await api.get<AuditLogResponse>("/audit/logs", {
+    params: { page, size, sort: "timestamp,desc" },
   });
-  return response.data;
+  return data;
 };
