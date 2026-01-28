@@ -12,7 +12,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -73,7 +76,6 @@ public class PrescriptionController {
     @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     Long patientId = getUserIdFromToken(token);
-    // Reutiliza o método de serviço existente, passando o ID do próprio paciente
     return prescriptionService.getPrescriptionsByPatientId(patientId, patientId, pageable);
   }
 
@@ -89,6 +91,27 @@ public class PrescriptionController {
   public PrescriptionResponse getLatestPrescription(@RequestHeader("Authorization") String token) {
     Long patientId = getUserIdFromToken(token);
     return prescriptionService.getLatestPrescriptionByPatientId(patientId);
+  }
+
+  @GetMapping("/{id}/pdf")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasAnyRole('DOCTOR', 'PATIENT', 'ADMIN')")
+  public ResponseEntity<byte[]> downloadPrescriptionPdf(@RequestHeader("Authorization") String token, @PathVariable Long id) {
+    Long requesterId = getUserIdFromToken(token);
+    byte[] pdfBytes = prescriptionService.generatePrescriptionPdf(id, requesterId);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_PDF);
+    headers.setContentDisposition(
+      org.springframework.http.ContentDisposition
+        .attachment()
+        .filename("receita_" + id + ".pdf")
+        .build()
+    );
+
+    return ResponseEntity.ok()
+      .headers(headers)
+      .body(pdfBytes);
   }
 
   private Long getUserIdFromToken(String token) {

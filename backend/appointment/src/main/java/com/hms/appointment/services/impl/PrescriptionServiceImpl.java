@@ -1,6 +1,9 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.dto.event.PrescriptionIssuedEvent;
+import com.hms.appointment.dto.external.DoctorProfile;
+import com.hms.appointment.dto.external.PatientProfile;
 import com.hms.appointment.dto.request.MedicineRequest;
 import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
@@ -15,6 +18,7 @@ import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
+import com.hms.common.services.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -25,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,6 +39,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   private final PrescriptionRepository prescriptionRepository;
   private final AppointmentRepository appointmentRepository;
+  private final ProfileFeignClient profileClient;
+  private final PdfGeneratorService pdfGeneratorService;
   private final RabbitTemplate rabbitTemplate;
 
   @Value("${application.rabbitmq.exchange}")
@@ -162,6 +169,50 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     return prescriptionRepository.findFirstByAppointmentPatientIdOrderByCreatedAtDesc(patientId)
       .map(PrescriptionResponse::fromEntity)
       .orElse(null);
+  }
+
+  @Override
+  public byte[] generatePrescriptionPdf(Long prescriptionId, Long requesterId) {
+    Prescription prescription = prescriptionRepository.findById(prescriptionId)
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada"));
+
+    Long doctorId = prescription.getAppointment().getDoctorId();
+    Long patientId = prescription.getAppointment().getPatientId();
+
+    if (!requesterId.equals(doctorId) && !requesterId.equals(patientId)) {
+      throw new SecurityException("Acesso negado. Você não tem permissão para gerar este PDF.");
+    }
+
+    String doctorName = "Dr. Desconhecido";
+    String doctorCrm = "N/A";
+    String patientName = "Paciente";
+
+    try {
+      DoctorProfile doctor = profileClient.getDoctor(doctorId);
+      if (doctor != null) {
+        doctorName = doctor.name();
+        doctorCrm = doctor.crmNumber();
+      }
+
+      PatientProfile patient = profileClient.getPatient(patientId);
+      if (patient != null) {
+        patientName = patient.name();
+      }
+    } catch (Exception e) {
+      log.warn("Não foi possível buscar detalhes do perfil para o PDF: {}", e.getMessage());
+    }
+
+    Map<String, Object> data = Map.of(
+      "prescriptionId", prescription.getId(),
+      "createdAt", prescription.getCreatedAt(),
+      "patientName", patientName,
+      "doctorName", doctorName,
+      "doctorCrm", doctorCrm,
+      "medicines", prescription.getMedicines(),
+      "notes", prescription.getNotes() != null ? prescription.getNotes() : ""
+    );
+
+    return pdfGeneratorService.generatePdfFromHtml("prescription", data);
   }
 
   private List<Medicine> mapToMedicineEntities(List<MedicineRequest> medicineRequests) {

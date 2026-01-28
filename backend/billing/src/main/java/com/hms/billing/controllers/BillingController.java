@@ -4,7 +4,11 @@ import com.hms.billing.entities.Invoice;
 import com.hms.billing.entities.PatientInsurance;
 import com.hms.billing.services.BillingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,6 +60,25 @@ public class BillingController {
     return billingService.getPendingInsuranceInvoices();
   }
 
+  @GetMapping("/invoices/{id}/pdf")
+  @ResponseStatus(HttpStatus.OK)
+  @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN', 'DOCTOR')")
+  public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable String id) {
+    byte[] pdfBytes = billingService.generateInvoicePdf(id);
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_PDF);
+    headers.setContentDisposition(
+      org.springframework.http.ContentDisposition
+        .attachment()
+        .filename("fatura_" + id + ".pdf")
+        .build()
+    );
+
+    return ResponseEntity.ok()
+      .headers(headers)
+      .body(pdfBytes);
+  }
 
   // DTO Interno simples para o Request
   public record InsuranceRequest(

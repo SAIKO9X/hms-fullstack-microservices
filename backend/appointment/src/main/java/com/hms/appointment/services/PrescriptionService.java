@@ -22,4 +22,6 @@ public interface PrescriptionService {
   void markAsDispensed(Long prescriptionId);
 
   PrescriptionResponse getLatestPrescriptionByPatientId(Long patientId);
+
+  byte[] generatePrescriptionPdf(Long prescriptionId, Long requesterId);
 }

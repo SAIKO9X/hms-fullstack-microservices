@@ -18,5 +18,7 @@ public interface BillingService {
 
   void processInsurancePayment(String invoiceId);
 
+  byte[] generateInvoicePdf(String invoiceId);
+
   List<Invoice> getPendingInsuranceInvoices();
 }
