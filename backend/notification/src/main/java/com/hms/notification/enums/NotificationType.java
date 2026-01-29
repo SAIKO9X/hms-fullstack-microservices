@@ -7,5 +7,6 @@ public enum NotificationType {
   LAB_RESULT,
   PRESCRIPTION,
   NEW_MESSAGE,
-  SYSTEM_ALERT
+  SYSTEM_ALERT,
+  LOW_STOCK
 }

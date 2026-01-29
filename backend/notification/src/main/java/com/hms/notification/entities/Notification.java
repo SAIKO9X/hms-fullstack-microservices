@@ -19,7 +19,7 @@ public class Notification {
   private Long id;
 
   @Column(nullable = false)
-  private Long userId;
+  private String recipientId;
 
   private String title;
 

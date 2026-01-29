@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 
 import { PatientService } from "@/services";
 
-// QUERY KEYS
+// === QUERY KEYS ===
 export const patientKeys = {
   myDoctors: ["my-doctors-chat-list"] as const,
 };
 
-// QUERIES
+// === QUERIES ===
 export const useMyDoctors = (enabled: boolean = true) => {
   return useQuery({
     queryKey: patientKeys.myDoctors,

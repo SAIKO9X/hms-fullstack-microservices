@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { NotificationService } from "@/services";
 
-// QUERY KEYS
+// === QUERY KEYS ===
 export const notificationKeys = {
   all: ["notifications"] as const,
   user: (userId: number) => [...notificationKeys.all, "user", userId] as const,
 };
 
-// QUERIES
+// === QUERIES ===
 export const useUserNotifications = (userId: number | undefined) => {
   return useQuery({
     queryKey: notificationKeys.user(userId!),
@@ -18,7 +18,7 @@ export const useUserNotifications = (userId: number | undefined) => {
   });
 };
 
-// MUTATIONS
+// === MUTATIONS ===
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();
 

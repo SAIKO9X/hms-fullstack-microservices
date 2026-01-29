@@ -5,8 +5,8 @@ import com.hms.notification.dto.event.*;
 import com.hms.notification.dto.request.EmailRequest;
 import com.hms.notification.entities.Notification;
 import com.hms.notification.enums.NotificationType;
-import com.hms.notification.repositories.NotificationRepository;
 import com.hms.notification.services.EmailService;
+import com.hms.notification.services.NotificationService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -30,26 +30,7 @@ public class NotificationConsumer {
   private final JavaMailSender mailSender;
   private final EmailService emailService;
   private final SpringTemplateEngine templateEngine;
-  private final NotificationRepository notificationRepository;
-
-  // Método auxiliar para evitar duplicação de código
-  private void saveInAppNotification(Long userId, String title, String message, NotificationType type) {
-    if (userId == null) {
-      log.warn("Tentativa de salvar notificação sem userId. Title: {}", title);
-      return;
-    }
-    try {
-      Notification notification = Notification.builder()
-        .userId(userId)
-        .title(title)
-        .message(message)
-        .type(type)
-        .build();
-      notificationRepository.save(notification);
-    } catch (Exception e) {
-      log.error("Erro ao salvar notificação para user {}: {}", userId, e.getMessage());
-    }
-  }
+  private final NotificationService notificationService;
 
   @RabbitListener(queues = "${application.rabbitmq.notification-queue}")
   public void consumeGenericEmail(EmailRequest request) {
@@ -116,26 +97,6 @@ public class NotificationConsumer {
     }
   }
 
-  private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
-    String title = "";
-    String message = "";
-
-    switch (event.newStatus()) {
-      case "CANCELED" -> {
-        title = "Cancelamento de Paciente";
-        message = "O paciente " + event.patientName() + " cancelou a consulta de " + formattedDate;
-      }
-      case "RESCHEDULED" -> {
-        title = "Reagendamento de Paciente";
-        message = "O paciente " + event.patientName() + " solicitou reagendamento para " + formattedDate;
-      }
-    }
-
-    if (!title.isEmpty()) {
-      saveInAppNotification(event.doctorId(), title, message, NotificationType.SYSTEM_ALERT);
-    }
-  }
-
   @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
   public void handleWaitlistNotification(WaitlistNotificationEvent event) {
     // email
@@ -174,7 +135,7 @@ public class NotificationConsumer {
   public void handleLabResult(LabOrderCompletedEvent event) {
     log.info("Resultado de exame pronto. Pedido: {}", event.labOrderNumber());
 
-    // Notificar Médico
+    // notificar Médico
     if (event.doctorEmail() != null) {
       sendLabResultEmailToDoctor(event);
       saveInAppNotification(event.doctorId(),
@@ -183,7 +144,7 @@ public class NotificationConsumer {
         NotificationType.LAB_RESULT);
     }
 
-    // Notificar Paciente
+    // notificar Paciente
     if (event.patientId() != null) {
       saveInAppNotification(
         event.patientId(),
@@ -199,7 +160,7 @@ public class NotificationConsumer {
     saveInAppNotification(
       event.recipientId(),
       "Nova Mensagem de " + event.senderName(),
-      event.content(), // exibe um preview da mensagem ou texto genérico
+      event.content(),
       NotificationType.NEW_MESSAGE
     );
   }
@@ -211,6 +172,61 @@ public class NotificationConsumer {
     emailService.sendEmail(event.email(), subject, content);
   }
 
+  @RabbitListener(queues = RabbitMQConfig.STOCK_LOW_QUEUE)
+  public void handleLowStockEvent(StockLowEvent event) {
+    log.info("Recebido alerta de stock baixo para o medicamento: {}", event.medicineName());
+
+    Notification notification = new Notification();
+    notification.setRecipientId("ADMIN");
+    notification.setTitle("Alerta de Stock Baixo");
+    notification.setMessage(String.format("O medicamento %s atingiu níveis críticos. Restam apenas %d unidades (Limite: %d).",
+      event.medicineName(), event.currentQuantity(), event.threshold()));
+    notification.setType(NotificationType.LOW_STOCK);
+
+    notificationService.sendNotification(notification);
+  }
+
+  // método auxiliar atualizado para receber String ou Long convertido
+  private void saveInAppNotification(String recipientId, String title, String message, NotificationType type) {
+    if (recipientId == null) {
+      log.warn("Tentativa de salvar notificação sem recipientId. Title: {}", title);
+      return;
+    }
+    try {
+      Notification notification = Notification.builder()
+        .recipientId(recipientId)
+        .title(title)
+        .message(message)
+        .type(type)
+        .build();
+      notificationService.sendNotification(notification);
+    } catch (Exception e) {
+      log.error("Erro ao salvar notificação para {}: {}", recipientId, e.getMessage());
+    }
+  }
+
+  // método auxiliar para processar notificação ao médico
+  private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
+    String title = "";
+    String message = "";
+
+    switch (event.newStatus()) {
+      case "CANCELED" -> {
+        title = "Cancelamento de Paciente";
+        message = "O paciente " + event.patientName() + " cancelou a consulta de " + formattedDate;
+      }
+      case "RESCHEDULED" -> {
+        title = "Reagendamento de Paciente";
+        message = "O paciente " + event.patientName() + " solicitou reagendamento para " + formattedDate;
+      }
+    }
+
+    if (!title.isEmpty()) {
+      saveInAppNotification(event.doctorId(), title, message, NotificationType.SYSTEM_ALERT);
+    }
+  }
+
+  // método auxiliar para enviar email ao médico com resultado de exame
   private void sendLabResultEmailToDoctor(LabOrderCompletedEvent event) {
     try {
       Context context = new Context();
@@ -231,5 +247,10 @@ public class NotificationConsumer {
     } catch (MessagingException e) {
       log.error("Erro email médico", e);
     }
+  }
+
+  // sobrecarga para Long userid
+  private void saveInAppNotification(Long userId, String title, String message, NotificationType type) {
+    saveInAppNotification(String.valueOf(userId), title, message, type);
   }
 }

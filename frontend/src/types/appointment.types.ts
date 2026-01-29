@@ -31,6 +31,10 @@ export interface Appointment {
   meetingUrl?: string | null;
 }
 
+export interface AppointmentWithDoctor extends Appointment {
+  doctorSpecialty?: string;
+}
+
 export interface AppointmentDetail {
   id: number;
   patientId: number;

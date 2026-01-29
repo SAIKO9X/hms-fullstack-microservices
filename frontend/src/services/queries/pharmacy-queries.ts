@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData } from "@tanstack/react-query";
 import { PharmacyService } from "@/services";
 import type {
   DirectSaleFormData,
   InventoryFormData,
   MedicineFormData,
 } from "@/services/pharmacy";
-import { keepPreviousData } from "@tanstack/react-query";
 
+// === QUERY KEYS ===
 export const pharmacyKeys = {
   medicines: (page?: number, size?: number) =>
     ["medicines", { page, size }] as const,
@@ -16,6 +17,43 @@ export const pharmacyKeys = {
   stats: ["pharmacyStats"] as const,
 };
 
+// === MEDICINES QUERIES ===
+export const useMedicines = (page = 0, size = 10) => {
+  return useQuery({
+    queryKey: pharmacyKeys.medicines(page, size),
+    queryFn: () => PharmacyService.getAllMedicines(page, size),
+    placeholderData: keepPreviousData,
+  });
+};
+
+// === INVENTORY QUERIES ===
+export const useInventory = (page = 0, size = 10) => {
+  return useQuery({
+    queryKey: pharmacyKeys.inventory(page, size),
+    queryFn: () => PharmacyService.getAllInventory(page, size),
+    placeholderData: keepPreviousData,
+  });
+};
+
+// === SALES QUERIES ===
+export const useSales = (page = 0, size = 10) => {
+  return useQuery({
+    queryKey: pharmacyKeys.sales(page, size),
+    queryFn: () => PharmacyService.getAllSales(page, size),
+    placeholderData: keepPreviousData,
+  });
+};
+
+// === STATISTICS QUERIES ===
+export const usePharmacyStats = () => {
+  return useQuery({
+    queryKey: pharmacyKeys.stats,
+    queryFn: PharmacyService.getPharmacyStats,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// === MEDICINES MUTATIONS ===
 export const useAddMedicine = () => {
   const queryClient = useQueryClient();
 
@@ -23,7 +61,6 @@ export const useAddMedicine = () => {
     mutationFn: (medicineData: MedicineFormData) =>
       PharmacyService.addMedicine(medicineData),
     onSuccess: () => {
-      // Invalida todas as queries de medicines, independente da página
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
   });
@@ -41,22 +78,7 @@ export const useUpdateMedicine = () => {
   });
 };
 
-export const useMedicines = (page = 0, size = 10) => {
-  return useQuery({
-    queryKey: pharmacyKeys.medicines(page, size),
-    queryFn: () => PharmacyService.getAllMedicines(page, size),
-    placeholderData: keepPreviousData, // Mantém os dados antigos enquanto carrega a próxima página
-  });
-};
-
-export const useInventory = (page = 0, size = 10) => {
-  return useQuery({
-    queryKey: pharmacyKeys.inventory(page, size),
-    queryFn: () => PharmacyService.getAllInventory(page, size),
-    placeholderData: keepPreviousData,
-  });
-};
-
+// === INVENTORY MUTATIONS ===
 export const useAddInventoryItem = () => {
   const queryClient = useQueryClient();
 
@@ -95,6 +117,7 @@ export const useDeleteInventoryItem = () => {
   });
 };
 
+// === SALES MUTATIONS ===
 export const useCreateDirectSale = () => {
   const queryClient = useQueryClient();
 
@@ -120,21 +143,5 @@ export const useCreateSaleFromPrescription = () => {
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["medicines"] });
     },
-  });
-};
-
-export const useSales = (page = 0, size = 10) => {
-  return useQuery({
-    queryKey: pharmacyKeys.sales(page, size),
-    queryFn: () => PharmacyService.getAllSales(page, size),
-    placeholderData: keepPreviousData,
-  });
-};
-
-export const usePharmacyStats = () => {
-  return useQuery({
-    queryKey: pharmacyKeys.stats,
-    queryFn: PharmacyService.getPharmacyStats,
-    staleTime: 5 * 60 * 1000,
   });
 };

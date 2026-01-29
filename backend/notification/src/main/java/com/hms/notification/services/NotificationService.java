@@ -14,8 +14,12 @@ public class NotificationService {
 
   private final NotificationRepository notificationRepository;
 
-  public List<Notification> getUserNotifications(Long userId) {
-    return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+  public void sendNotification(Notification notification) {
+    notificationRepository.save(notification);
+  }
+
+  public List<Notification> getUserNotifications(String recipientId) {
+    return notificationRepository.findByRecipientIdOrderByCreatedAtDesc(recipientId);
   }
 
   @Transactional
@@ -27,8 +31,8 @@ public class NotificationService {
   }
 
   @Transactional
-  public void markAllAsRead(Long userId) {
-    List<Notification> list = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+  public void markAllAsRead(String recipientId) {
+    List<Notification> list = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(recipientId);
     list.forEach(n -> n.setRead(true));
     notificationRepository.saveAll(list);
   }

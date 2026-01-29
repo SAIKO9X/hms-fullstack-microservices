@@ -16,7 +16,7 @@ public class NotificationController {
   private final NotificationService notificationService;
 
   @GetMapping("/user/{userId}")
-  public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable Long userId) {
+  public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable String userId) {
     return ResponseEntity.ok(notificationService.getUserNotifications(userId));
   }
 
@@ -27,7 +27,7 @@ public class NotificationController {
   }
 
   @PatchMapping("/user/{userId}/read-all")
-  public ResponseEntity<Void> markAllAsRead(@PathVariable Long userId) {
+  public ResponseEntity<Void> markAllAsRead(@PathVariable String userId) {
     notificationService.markAllAsRead(userId);
     return ResponseEntity.noContent().build();
   }

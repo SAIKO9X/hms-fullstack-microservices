@@ -2,14 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChatService } from "@/services";
 import type { ChatMessageResponse } from "@/types/chat.types";
 
-// QUERY KEYS
+// === QUERY KEYS ===
 export const chatKeys = {
   all: ["chat"] as const,
   conversation: (senderId: number, recipientId: number) =>
     [...chatKeys.all, "conversation", senderId, recipientId] as const,
 };
 
-// QUERIES
+// === QUERIES ===
 export const useChatMessages = (
   senderId: number | undefined,
   recipientId: number | undefined,
@@ -22,7 +22,7 @@ export const useChatMessages = (
   });
 };
 
-// CACHE UTILITIES
+// === CACHE UTILITIES ===
 export const useChatCacheUpdater = () => {
   const queryClient = useQueryClient();
 

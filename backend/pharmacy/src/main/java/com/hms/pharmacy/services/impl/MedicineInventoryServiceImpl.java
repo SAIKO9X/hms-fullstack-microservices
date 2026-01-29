@@ -1,5 +1,6 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.pharmacy.dto.event.StockLowEvent;
 import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
 import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.entities.Medicine;
@@ -12,6 +13,8 @@ import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.MedicineService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,8 +29,14 @@ import java.util.List;
 public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
   private final MedicineInventoryRepository inventoryRepository;
+  private final RabbitTemplate rabbitTemplate;
   private final MedicineRepository medicineRepository;
   private final MedicineService medicineService;
+
+  @Value("${application.rabbitmq.exchange}")
+  private String exchange;
+
+  private static final int LOW_STOCK_THRESHOLD = 10;
 
   @Override
   public MedicineInventoryResponse addInventory(MedicineInventoryRequest request) {
@@ -101,7 +110,7 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
     MedicineInventory inventory = inventoryRepository.findById(inventoryId)
       .orElseThrow(() -> new MedicineNotFoundException("Item de inventário com ID " + inventoryId + " não encontrado."));
 
-    // Remove a quantidade do stock total ANTES de apagar
+    // remove o stock associado ao inventário
     medicineService.removeStock(inventory.getMedicine().getId(), inventory.getQuantity());
 
     inventoryRepository.delete(inventory);
@@ -113,16 +122,18 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
       .findByMedicineIdAndStatusAndQuantityGreaterThanOrderByExpiryDateAsc(medicineId, StockStatus.ACTIVE, 0);
 
     int totalAvailable = availableBatches.stream().mapToInt(MedicineInventory::getQuantity).sum();
+
     if (totalAvailable < quantityToSell) {
       throw new InsufficientStockException("Estoque insuficiente. Disponível: " + totalAvailable + ", Requisitado: " + quantityToSell);
     }
 
+    String medicineName = availableBatches.isEmpty() ? "Desconhecido" : availableBatches.get(0).getMedicine().getName();
     StringBuilder batchDetails = new StringBuilder();
     int remainingToSell = quantityToSell;
 
     for (MedicineInventory batch : availableBatches) {
       if (remainingToSell <= 0) {
-        break; // Já foi vendida a quantidade necessária
+        break;
       }
 
       int quantityFromThisBatch = Math.min(batch.getQuantity(), remainingToSell);
@@ -138,6 +149,22 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
     inventoryRepository.saveAll(availableBatches);
     medicineService.removeStock(medicineId, quantityToSell);
+
+    int remainingStock = totalAvailable - quantityToSell;
+
+    if (remainingStock <= LOW_STOCK_THRESHOLD) {
+      StockLowEvent event = new StockLowEvent(
+        medicineId,
+        medicineName,
+        remainingStock,
+        LOW_STOCK_THRESHOLD
+      );
+      rabbitTemplate.convertAndSend(exchange, "pharmacy.stock.low", event);
+
+      System.out.println("Alerta de stock baixo enviado para: " + medicineName);
+    }
+    // ---------------------------------------------
+
     return batchDetails.toString().trim();
   }
 }

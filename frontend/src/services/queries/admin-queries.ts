@@ -1,11 +1,13 @@
 import {
-  keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
+  keepPreviousData,
 } from "@tanstack/react-query";
+
 import api from "@/config/axios";
 import { AdminService } from "@/services";
+
 import type {
   AdminDashboardStats,
   DailyActivity,
@@ -16,21 +18,26 @@ import type { UserResponse } from "@/types/auth.types";
 import type { AppointmentDetail } from "@/types/appointment.types";
 import type { MedicalHistory } from "@/types/patient.types";
 
+// === QUERY KEYS ===
 export const adminKeys = {
-  stats: ["adminDashboardStats"] as const,
-  appointmentsToday: ["appointmentsTodayCount"] as const,
-  dailyActivity: ["dailyActivity"] as const,
-  doctorsStatus: ["doctorsStatus"] as const,
-  allUsers: ["allUsers"] as const,
-  doctorAppointments: (id: number) => ["adminDoctorAppointments", id] as const,
-  patientHistory: (id: number) => ["adminPatientMedicalHistory", id] as const,
+  all: ["admin"] as const,
+  stats: () => [...adminKeys.all, "stats"] as const,
+  appointmentsToday: () => [...adminKeys.all, "appointments-today"] as const,
+  dailyActivity: () => [...adminKeys.all, "daily-activity"] as const,
+  doctorsStatus: () => [...adminKeys.all, "doctors-status"] as const,
+  users: () => [...adminKeys.all, "users"] as const,
   auditLogs: (page: number, size: number) =>
-    ["audit-logs", page, size] as const,
+    [...adminKeys.all, "audit-logs", { page, size }] as const,
+  doctorAppointments: (id: number) =>
+    [...adminKeys.all, "doctor-appointments", id] as const,
+  patientHistory: (id: number) =>
+    [...adminKeys.all, "patient-history", id] as const,
 };
 
+// === QUERIES ===
 export const useAdminProfileCounts = () => {
   return useQuery<AdminDashboardStats>({
-    queryKey: adminKeys.stats,
+    queryKey: adminKeys.stats(),
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/counts");
       return data;
@@ -41,7 +48,7 @@ export const useAdminProfileCounts = () => {
 
 export const useAppointmentsTodayCount = () => {
   return useQuery<number>({
-    queryKey: adminKeys.appointmentsToday,
+    queryKey: adminKeys.appointmentsToday(),
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/appointments-today");
       return data;
@@ -52,7 +59,7 @@ export const useAppointmentsTodayCount = () => {
 
 export const useDailyActivity = () => {
   return useQuery<DailyActivity[]>({
-    queryKey: adminKeys.dailyActivity,
+    queryKey: adminKeys.dailyActivity(),
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/daily-activity");
       return data;
@@ -63,59 +70,19 @@ export const useDailyActivity = () => {
 
 export const useDoctorsStatus = () => {
   return useQuery<DoctorStatus[]>({
-    queryKey: adminKeys.doctorsStatus,
+    queryKey: adminKeys.doctorsStatus(),
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/doctors-status");
       return data;
     },
     staleTime: 1 * 60 * 1000,
-    refetchInterval: 1 * 60 * 1000,
-  });
-};
-
-export const useUpdateUserStatusMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: AdminService.updateUserStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
-      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
-    },
-  });
-};
-
-export const useAdminCreateUserMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (userData: AdminCreateUserFormData) =>
-      AdminService.adminCreateUser(userData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
-      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
-    },
-  });
-};
-
-export const useAdminUpdateUserMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: AdminService.adminUpdateUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["allPatients"] });
-      queryClient.invalidateQueries({ queryKey: ["allDoctors"] });
-      queryClient.invalidateQueries({ queryKey: adminKeys.allUsers });
-    },
+    refetchInterval: 60 * 1000,
   });
 };
 
 export const useAllUsers = () => {
   return useQuery<UserResponse[]>({
-    queryKey: adminKeys.allUsers,
+    queryKey: adminKeys.users(),
     queryFn: async () => {
       const { data } = await api.get("/users/all");
       return data;
@@ -144,10 +111,52 @@ export const useAdminPatientMedicalHistory = (
   });
 };
 
-export const useAuditLogs = (page: number, size: number) => {
+export const useAuditLogs = (page = 0, size = 10) => {
   return useQuery({
     queryKey: adminKeys.auditLogs(page, size),
     queryFn: () => AdminService.getAuditLogs(page, size),
     placeholderData: keepPreviousData,
+  });
+};
+
+// === MUTATIONS ===
+export const useUpdateUserStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: AdminService.updateUserStatus,
+    onSuccess: () => {
+      // invalida listas de usuários e dropdowns específicos se existirem
+      queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctors"] });
+    },
+  });
+};
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userData: AdminCreateUserFormData) =>
+      AdminService.adminCreateUser(userData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctors"] });
+    },
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: AdminService.adminUpdateUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.users() });
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctors"] });
+    },
   });
 };
