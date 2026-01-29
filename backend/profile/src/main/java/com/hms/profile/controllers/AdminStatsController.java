@@ -5,11 +5,10 @@ import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.services.DoctorService;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,16 +23,14 @@ public class AdminStatsController {
   private final DoctorService doctorService;
 
   @GetMapping("/counts")
-  @ResponseStatus(HttpStatus.OK)
-  public AdminDashboardStatsResponse getDashboardCounts() {
+  public ResponseEntity<AdminDashboardStatsResponse> getDashboardCounts() {
     long totalPatients = patientService.countAllPatients();
     long totalDoctors = doctorService.countAllDoctors();
-    return new AdminDashboardStatsResponse(totalPatients, totalDoctors);
+    return ResponseEntity.ok(new AdminDashboardStatsResponse(totalPatients, totalDoctors));
   }
 
   @GetMapping("/doctors-status")
-  @ResponseStatus(HttpStatus.OK)
-  public List<DoctorStatusResponse> getDoctorsStatus() {
-    return doctorService.getDoctorsWithStatus();
+  public ResponseEntity<List<DoctorStatusResponse>> getDoctorsStatus() {
+    return ResponseEntity.ok(doctorService.getDoctorsWithStatus());
   }
 }

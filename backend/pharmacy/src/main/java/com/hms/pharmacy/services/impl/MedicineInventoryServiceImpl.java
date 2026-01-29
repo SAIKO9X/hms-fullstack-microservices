@@ -13,6 +13,7 @@ import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
 import com.hms.pharmacy.services.MedicineService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -41,7 +43,7 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
   @Override
   public MedicineInventoryResponse addInventory(MedicineInventoryRequest request) {
     Medicine medicine = medicineRepository.findById(request.medicineId())
-      .orElseThrow(() -> new MedicineNotFoundException("Medicamento com ID " + request.medicineId() + " não encontrado."));
+      .orElseThrow(() -> new MedicineNotFoundException("Medicamento não encontrado: " + request.medicineId()));
 
     MedicineInventory newInventory = new MedicineInventory();
     newInventory.setMedicine(medicine);
@@ -51,120 +53,94 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
     newInventory.setAddedDate(LocalDate.now());
     newInventory.setStatus(StockStatus.ACTIVE);
 
-    MedicineInventory savedInventory = inventoryRepository.save(newInventory);
-
+    MedicineInventory saved = inventoryRepository.save(newInventory);
     medicineService.addStock(request.medicineId(), request.quantity());
 
-    return MedicineInventoryResponse.fromEntity(savedInventory);
+    return MedicineInventoryResponse.fromEntity(saved);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Page<MedicineInventoryResponse> getAllInventory(Pageable pageable) {
-    return inventoryRepository.findAll(pageable)
-      .map(MedicineInventoryResponse::fromEntity);
+    return inventoryRepository.findAll(pageable).map(MedicineInventoryResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public MedicineInventoryResponse getInventoryById(Long inventoryId) {
-    return inventoryRepository.findById(inventoryId)
-      .map(MedicineInventoryResponse::fromEntity)
-      .orElseThrow(() -> new MedicineNotFoundException("Item de inventário com ID " + inventoryId + " não encontrado."));
+  public MedicineInventoryResponse getInventoryById(Long id) {
+    return inventoryRepository.findById(id).map(MedicineInventoryResponse::fromEntity).orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + id));
   }
 
   @Override
   public MedicineInventoryResponse updateInventory(Long inventoryId, MedicineInventoryRequest request) {
-    MedicineInventory inventoryToUpdate = inventoryRepository.findById(inventoryId)
-      .orElseThrow(() -> new MedicineNotFoundException("Item de inventário com ID " + inventoryId + " não encontrado."));
+    MedicineInventory inventory = inventoryRepository.findById(inventoryId)
+      .orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + inventoryId));
 
-    int oldQuantity = inventoryToUpdate.getQuantity();
-    int newQuantity = request.quantity();
-    int quantityDifference = newQuantity - oldQuantity;
+    updateStockDifference(inventory, request.quantity());
 
-    // Apenas atualiza o stock se a quantidade mudou
-    if (quantityDifference != 0) {
-      if (quantityDifference > 0) {
-        medicineService.addStock(inventoryToUpdate.getMedicine().getId(), quantityDifference);
-      } else {
-        medicineService.removeStock(inventoryToUpdate.getMedicine().getId(), -quantityDifference);
-      }
-    }
+    inventory.setBatchNo(request.batchNo());
+    inventory.setQuantity(request.quantity());
+    inventory.setExpiryDate(request.expiryDate());
+    inventory.setStatus(request.quantity() <= 0 ? StockStatus.DEPLETED : StockStatus.ACTIVE);
 
-    inventoryToUpdate.setBatchNo(request.batchNo());
-    inventoryToUpdate.setQuantity(newQuantity);
-    inventoryToUpdate.setExpiryDate(request.expiryDate());
-
-    // Se a quantidade for zero marca como esgotado
-    if (newQuantity <= 0) {
-      inventoryToUpdate.setStatus(StockStatus.DEPLETED);
-    } else {
-      inventoryToUpdate.setStatus(StockStatus.ACTIVE);
-    }
-
-    return MedicineInventoryResponse.fromEntity(inventoryRepository.save(inventoryToUpdate));
+    return MedicineInventoryResponse.fromEntity(inventoryRepository.save(inventory));
   }
 
   @Override
   public void deleteInventory(Long inventoryId) {
     MedicineInventory inventory = inventoryRepository.findById(inventoryId)
-      .orElseThrow(() -> new MedicineNotFoundException("Item de inventário com ID " + inventoryId + " não encontrado."));
+      .orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + inventoryId));
 
-    // remove o stock associado ao inventário
     medicineService.removeStock(inventory.getMedicine().getId(), inventory.getQuantity());
-
     inventoryRepository.delete(inventory);
   }
 
   @Override
   public String sellStock(Long medicineId, Integer quantityToSell) {
-    List<MedicineInventory> availableBatches = inventoryRepository
+    List<MedicineInventory> batches = inventoryRepository
       .findByMedicineIdAndStatusAndQuantityGreaterThanOrderByExpiryDateAsc(medicineId, StockStatus.ACTIVE, 0);
 
-    int totalAvailable = availableBatches.stream().mapToInt(MedicineInventory::getQuantity).sum();
-
+    int totalAvailable = batches.stream().mapToInt(MedicineInventory::getQuantity).sum();
     if (totalAvailable < quantityToSell) {
-      throw new InsufficientStockException("Estoque insuficiente. Disponível: " + totalAvailable + ", Requisitado: " + quantityToSell);
+      throw new InsufficientStockException("Estoque insuficiente. Disponível: " + totalAvailable);
     }
 
-    String medicineName = availableBatches.isEmpty() ? "Desconhecido" : availableBatches.get(0).getMedicine().getName();
     StringBuilder batchDetails = new StringBuilder();
-    int remainingToSell = quantityToSell;
+    int remaining = quantityToSell;
 
-    for (MedicineInventory batch : availableBatches) {
-      if (remainingToSell <= 0) {
-        break;
-      }
+    for (MedicineInventory batch : batches) {
+      if (remaining <= 0) break;
 
-      int quantityFromThisBatch = Math.min(batch.getQuantity(), remainingToSell);
-      batch.setQuantity(batch.getQuantity() - quantityFromThisBatch);
-      remainingToSell -= quantityFromThisBatch;
+      int taken = Math.min(batch.getQuantity(), remaining);
+      batch.setQuantity(batch.getQuantity() - taken);
+      if (batch.getQuantity() <= 0) batch.setStatus(StockStatus.DEPLETED);
 
-      if (batch.getQuantity() <= 0) {
-        batch.setStatus(StockStatus.DEPLETED);
-      }
-
-      batchDetails.append(String.format("Lote %s: %d unidades; ", batch.getBatchNo(), quantityFromThisBatch));
+      remaining -= taken;
+      batchDetails.append(String.format("Lote %s: %d; ", batch.getBatchNo(), taken));
     }
 
-    inventoryRepository.saveAll(availableBatches);
+    inventoryRepository.saveAll(batches);
     medicineService.removeStock(medicineId, quantityToSell);
-
-    int remainingStock = totalAvailable - quantityToSell;
-
-    if (remainingStock <= LOW_STOCK_THRESHOLD) {
-      StockLowEvent event = new StockLowEvent(
-        medicineId,
-        medicineName,
-        remainingStock,
-        LOW_STOCK_THRESHOLD
-      );
-      rabbitTemplate.convertAndSend(exchange, "pharmacy.stock.low", event);
-
-      System.out.println("Alerta de stock baixo enviado para: " + medicineName);
-    }
-    // ---------------------------------------------
+    checkLowStock(medicineId, totalAvailable - quantityToSell, batches.get(0).getMedicine().getName());
 
     return batchDetails.toString().trim();
+  }
+
+  private void updateStockDifference(MedicineInventory inventory, int newQuantity) {
+    int diff = newQuantity - inventory.getQuantity();
+    if (diff > 0) medicineService.addStock(inventory.getMedicine().getId(), diff);
+    else if (diff < 0) medicineService.removeStock(inventory.getMedicine().getId(), -diff);
+  }
+
+  private void checkLowStock(Long medicineId, int remainingStock, String medicineName) {
+    if (remainingStock <= LOW_STOCK_THRESHOLD) {
+      try {
+        StockLowEvent event = new StockLowEvent(medicineId, medicineName, remainingStock, LOW_STOCK_THRESHOLD);
+        rabbitTemplate.convertAndSend(exchange, "pharmacy.stock.low", event);
+        log.info("Alerta de stock baixo: {}", medicineName);
+      } catch (Exception e) {
+        log.error("Erro ao enviar alerta de stock baixo", e);
+      }
+    }
   }
 }

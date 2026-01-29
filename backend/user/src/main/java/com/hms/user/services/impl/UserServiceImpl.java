@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -57,31 +56,22 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public UserResponse createUser(UserRequest request) {
-    if (userRepository.findByEmail(request.email()).isPresent()) {
-      throw new UserAlreadyExistsException("Um usuário com o email: '" + request.email() + "' já foi cadastrado.");
-    }
+    validateEmailUnique(request.email(), null);
 
     User user = request.toEntity();
     user.setPassword(encoder.encode(user.getPassword()));
-
     user.setActive(false);
 
-    String code = String.format("%06d", new Random().nextInt(999999));
+    String code = generateVerificationCode();
     user.setVerificationCode(code);
-    user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15)); // Expira em 15 min
+    user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
 
     User savedUser = userRepository.save(user);
-    String cpf = null;
-    String crm = null;
 
-    if (savedUser.getRole() == UserRole.PATIENT) {
-      cpf = request.cpfOuCrm();
-    } else if (savedUser.getRole() == UserRole.DOCTOR) {
-      crm = request.cpfOuCrm();
-    }
+    String cpf = (savedUser.getRole() == UserRole.PATIENT) ? request.cpfOuCrm() : null;
+    String crm = (savedUser.getRole() == UserRole.DOCTOR) ? request.cpfOuCrm() : null;
 
     publishUserCreatedEvent(savedUser, cpf, crm, code);
-
     return UserResponse.fromEntity(savedUser);
   }
 
@@ -89,8 +79,9 @@ public class UserServiceImpl implements UserService {
   @Transactional(readOnly = true)
   @Cacheable(value = "users", key = "#id")
   public UserResponse getUserById(Long id) {
-    User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
-    return UserResponse.fromEntity(user);
+    return userRepository.findById(id)
+      .map(UserResponse::fromEntity)
+      .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
   }
 
   @Override
@@ -104,43 +95,28 @@ public class UserServiceImpl implements UserService {
   @Transactional
   @CachePut(value = "users", key = "#id")
   public UserResponse updateUser(Long id, UserRequest request) {
-    User userToUpdate = userRepository.findById(id)
-      .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
+    User user = findUserByIdOrThrow(id);
+    validateEmailUnique(request.email(), id);
 
-    Optional<User> userWithNewEmail = userRepository.findByEmail(request.email());
-    if (userWithNewEmail.isPresent() && !userWithNewEmail.get().getId().equals(id)) {
-      throw new UserAlreadyExistsException("O e-mail '" + request.email() + "' já está em uso por outro usuário.");
-    }
+    user.setName(request.name());
+    user.setEmail(request.email());
+    user.setRole(request.role());
+    user.setPassword(encoder.encode(request.password()));
 
-    userToUpdate.setName(request.name());
-    userToUpdate.setEmail(request.email());
-    userToUpdate.setRole(request.role());
-
-    userToUpdate.setPassword(encoder.encode(request.password()));
-
-    User updatedUser = userRepository.save(userToUpdate);
-
-    return UserResponse.fromEntity(updatedUser);
+    return UserResponse.fromEntity(userRepository.save(user));
   }
 
   @Override
   public AuthResponse login(LoginRequest request) {
-    authenticationManager.authenticate(
-      new UsernamePasswordAuthenticationToken(
-        request.email(),
-        request.password()
-      )
-    );
+    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
-    var user = userRepository.findByEmail(request.email())
+    User user = userRepository.findByEmail(request.email())
       .orElseThrow(() -> new IllegalStateException("Usuário não encontrado após autenticação."));
 
-    if (!user.isActive()) {
-      throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
-    }
+    if (!user.isActive()) throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
 
-    var jwtToken = jwtService.generateToken(user);
-    var expirationTime = jwtService.getExpirationTime();
+    String jwtToken = jwtService.generateToken(user);
+    long expirationTime = jwtService.getExpirationTime();
 
     return AuthResponse.create(jwtToken, UserResponse.fromEntity(user), expirationTime);
   }
@@ -149,32 +125,25 @@ public class UserServiceImpl implements UserService {
   @Transactional
   @CacheEvict(value = "users", key = "#id")
   public void updateUserStatus(Long id, boolean active) {
-    User userToUpdate = userRepository.findById(id)
-      .orElseThrow(() -> new UserNotFoundException("Utilizador com ID " + id + " não encontrado."));
-    userToUpdate.setActive(active);
-    userRepository.save(userToUpdate);
+    User user = findUserByIdOrThrow(id);
+    user.setActive(active);
+    userRepository.save(user);
   }
 
   @Override
   @Transactional
   public UserResponse adminCreateUser(AdminCreateUserRequest request) {
-    if (userRepository.findByEmail(request.email()).isPresent()) {
-      throw new UserAlreadyExistsException("O email " + request.email() + " já está em uso.");
-    }
+    validateEmailUnique(request.email(), null);
 
     User newUser = new User();
     newUser.setName(request.name());
     newUser.setEmail(request.email());
     newUser.setPassword(encoder.encode(request.password()));
     newUser.setRole(request.role());
-    // admin cria usuários já ativos, então não precisa de código
     newUser.setActive(true);
 
     User savedUser = userRepository.save(newUser);
-    String cpf = request.cpf();
-    String crm = request.crmNumber();
-
-    publishUserCreatedEvent(savedUser, cpf, crm, null);
+    publishUserCreatedEvent(savedUser, request.cpf(), request.crmNumber(), null);
 
     return UserResponse.fromEntity(savedUser);
   }
@@ -182,52 +151,38 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional(readOnly = true)
   public Page<UserResponse> findAllUsers(Pageable pageable) {
-    return userRepository.findAll(pageable)
-      .map(UserResponse::fromEntity);
+    return userRepository.findAll(pageable).map(UserResponse::fromEntity);
   }
 
   @Override
   @Transactional
   @CacheEvict(value = "users", key = "#userId")
   public void adminUpdateUser(Long userId, AdminUpdateUserRequest request) {
-    User user = userRepository.findById(userId)
-      .orElseThrow(() -> new UserNotFoundException("Utilizador não encontrado com o ID: " + userId));
+    User user = findUserByIdOrThrow(userId);
 
     if (request.email() != null && !request.email().isBlank()) {
-      Optional<User> userWithNewEmail = userRepository.findByEmail(request.email());
-      if (userWithNewEmail.isPresent() && !userWithNewEmail.get().getId().equals(userId)) {
-        throw new UserAlreadyExistsException("O e-mail '" + request.email() + "' já está em uso.");
-      }
+      validateEmailUnique(request.email(), userId);
       user.setEmail(request.email());
     }
-
     if (request.name() != null && !request.name().isBlank()) {
       user.setName(request.name());
     }
 
     userRepository.save(user);
-
     publishUserUpdatedEvent(user, request);
   }
 
+  @Override
+  @Transactional
   public void verifyAccount(String email, String code) {
-    User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+    User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
 
-    if (user.isActive()) {
-      throw new IllegalArgumentException("Conta já verificada.");
+    if (user.isActive()) throw new IllegalArgumentException("Conta já verificada.");
+    if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
+      throw new IllegalArgumentException("Código inválido.");
     }
-
-    if (user.getVerificationCode() == null || user.getVerificationCodeExpiresAt() == null) {
-      throw new IllegalArgumentException("Código de verificação inválido ou inexistente.");
-    }
-
     if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
       throw new IllegalArgumentException("Código expirado.");
-    }
-
-    if (!user.getVerificationCode().equals(code)) {
-      throw new IllegalArgumentException("Código inválido.");
     }
 
     user.setActive(true);
@@ -239,79 +194,53 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void resendVerificationCode(String email) {
-    User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new UserNotFoundException("Usuário não encontrado."));
+    User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Usuário não encontrado."));
+    if (user.isActive()) throw new IllegalArgumentException("Conta já verificada.");
 
-    if (user.isActive()) {
-      throw new IllegalArgumentException("Esta conta já está verificada.");
-    }
-
-    // gera novo código e renova expiração (15 min)
-    String newCode = String.format("%06d", new Random().nextInt(999999));
+    String newCode = generateVerificationCode();
     user.setVerificationCode(newCode);
     user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-
     userRepository.save(user);
 
-    //por ser reenvio, não precisa validar CPF/CRM de novo para o evento.
-    String cpf = null;
-    String crm = null;
-
-    publishUserCreatedEvent(user, cpf, crm, newCode);
+    publishUserCreatedEvent(user, null, null, newCode);
   }
 
-  // Método auxiliar para publicar o evento
+  private User findUserByIdOrThrow(Long id) {
+    return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Usuário ID " + id + " não encontrado."));
+  }
+
+  private void validateEmailUnique(String email, Long excludeId) {
+    userRepository.findByEmail(email).ifPresent(u -> {
+      if (!u.getId().equals(excludeId)) {
+        throw new UserAlreadyExistsException("O e-mail '" + email + "' já está em uso.");
+      }
+    });
+  }
+
+  private String generateVerificationCode() {
+    return String.format("%06d", new Random().nextInt(999999));
+  }
+
   private void publishUserCreatedEvent(User user, String cpf, String crm, String code) {
     try {
-      UserCreatedEvent event = new UserCreatedEvent(
-        user.getId(),
-        user.getName(),
-        user.getEmail(),
-        user.getRole(),
-        cpf,
-        crm,
-        code
-      );
+      var event = new UserCreatedEvent(user.getId(), user.getName(), user.getEmail(), user.getRole(), cpf, crm, code);
       rabbitTemplate.convertAndSend(exchange, userCreatedRoutingKey, event);
     } catch (Exception e) {
-      log.error("Erro ao enviar evento", e);
+      log.error("Erro RabbitMQ UserCreated: {}", e.getMessage());
     }
   }
 
-  // Método auxiliar para publicar o evento de atualização
   private void publishUserUpdatedEvent(User user, AdminUpdateUserRequest req) {
     try {
-      UserUpdatedEvent event = new UserUpdatedEvent(
-        user.getId(),
-        user.getName(),
-        user.getEmail(),
-        user.getRole(),
-
-        req.phoneNumber(),
-        req.dateOfBirth(),
-
-        req.cpf(),
-        req.address(),
-        req.emergencyContactName(),
-        req.emergencyContactPhone(),
-        req.bloodGroup(),
-        req.gender(),
-        req.chronicDiseases(),
-        req.allergies(),
-
-        req.crmNumber(),
-        req.specialization(),
-        req.department(),
-        req.biography(),
-        req.qualifications(),
-        req.yearsOfExperience()
+      var event = new UserUpdatedEvent(
+        user.getId(), user.getName(), user.getEmail(), user.getRole(),
+        req.phoneNumber(), req.dateOfBirth(), req.cpf(), req.address(), req.emergencyContactName(), req.emergencyContactPhone(),
+        req.bloodGroup(), req.gender(), req.chronicDiseases(), req.allergies(), req.crmNumber(), req.specialization(),
+        req.department(), req.biography(), req.qualifications(), req.yearsOfExperience()
       );
-
       rabbitTemplate.convertAndSend(exchange, userUpdatedRoutingKey, event);
-      log.info("Evento de atualização de usuário enviado: ID {}, Role {}", user.getId(), user.getRole());
-
     } catch (Exception e) {
-      log.error("Erro ao publicar atualização de usuário para ID {}: {}", user.getId(), e.getMessage(), e);
+      log.error("Erro RabbitMQ UserUpdated: {}", e.getMessage());
     }
   }
 }

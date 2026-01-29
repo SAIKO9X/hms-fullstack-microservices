@@ -49,7 +49,6 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   private final ObjectMapper objectMapper;
   private final PatientReadModelRepository patientReadModelRepository;
 
-
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
@@ -61,245 +60,184 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
   @Override
   @Transactional
   public PharmacySaleResponse createSale(PharmacySaleRequest request) {
-    if (request.originalPrescriptionId() != null && saleRepository.existsByOriginalPrescriptionId(request.originalPrescriptionId())) {
-      throw new IllegalStateException("Já existe uma venda para esta prescrição.");
-    }
+    validateDuplicateSale(request.originalPrescriptionId());
 
-    PatientReadModel patient = patientReadModelRepository.findById(request.patientId())
-      .orElseGet(() -> {
-        // Fallback se a sincronização falhar ou não tiver ocorrido
-        log.warn("Paciente ID {} não encontrado no ReadModel da Farmácia. Usando dados genéricos.", request.patientId());
-        PatientReadModel unknown = new PatientReadModel();
-        unknown.setUserId(request.patientId());
-        unknown.setName("Paciente (Não Sincronizado)");
-        unknown.setPhoneNumber("N/A");
-        unknown.setEmail(null);
-        return unknown;
-      });
+    PatientReadModel patient = resolvePatient(request.patientId());
 
-    String patientEmail = patient.getEmail();
-
-    PharmacySale sale = new PharmacySale();
-    sale.setOriginalPrescriptionId(request.originalPrescriptionId());
-    sale.setPatientId(request.patientId());
-    sale.setBuyerName(patient.getName());
-    sale.setBuyerContact(patient.getPhoneNumber());
-
-    BigDecimal totalAmount = BigDecimal.ZERO;
-    List<PharmacySaleItem> saleItems = new ArrayList<>();
-
-    for (SaleItemRequest itemRequest : request.items()) {
-      Medicine medicine = medicineRepository.findById(itemRequest.medicineId())
-        .orElseThrow(() -> new MedicineNotFoundException("Medicamento com ID " + itemRequest.medicineId() + " não encontrado."));
-
-      String batchDetails = inventoryService.sellStock(itemRequest.medicineId(), itemRequest.quantity());
-
-      PharmacySaleItem saleItem = new PharmacySaleItem();
-      saleItem.setSale(sale);
-      saleItem.setMedicineId(medicine.getId());
-      saleItem.setMedicineName(medicine.getName() + " " + medicine.getDosage());
-      saleItem.setQuantity(itemRequest.quantity());
-      saleItem.setUnitPrice(medicine.getUnitPrice());
-      saleItem.setTotalPrice(medicine.getUnitPrice().multiply(BigDecimal.valueOf(itemRequest.quantity())));
-      saleItem.setBatchNo(batchDetails);
-
-      saleItems.add(saleItem);
-      totalAmount = totalAmount.add(saleItem.getTotalPrice());
-    }
-
-    sale.setItems(saleItems);
-    sale.setTotalAmount(totalAmount);
+    PharmacySale sale = initializeSale(request, patient);
+    processSaleItems(request.items(), sale);
 
     PharmacySale savedSale = saleRepository.save(sale);
 
-    try {
-      PharmacySaleCreatedEvent event = new PharmacySaleCreatedEvent(
-        savedSale.getId(),
-        savedSale.getPatientId(),
-        savedSale.getBuyerName(),
-        savedSale.getTotalAmount(),
-        savedSale.getSaleDate()
-      );
-
-      rabbitTemplate.convertAndSend(exchange, PHARMACY_SALE_ROUTING_KEY, event);
-      log.info("Evento financeiro enviado para Billing: Sale ID {}", savedSale.getId());
-    } catch (Exception e) {
-      log.error("FALHA ao enviar evento financeiro para Billing", e);
-    }
-
-    sendEmailNotification(patientEmail, savedSale);
+    publishFinancialEvent(savedSale);
+    sendEmailNotification(patient.getEmail(), savedSale);
 
     return PharmacySaleResponse.fromEntity(savedSale);
   }
 
   @Override
-  public PharmacySaleResponse getSaleById(Long saleId) {
-    return saleRepository.findById(saleId)
-      .map(PharmacySaleResponse::fromEntity)
-      .orElseThrow(() -> new NoSuchElementException("Venda com ID " + saleId + " não encontrada."));
-  }
-
-  @Override
-  public List<PharmacySaleResponse> getSalesByPatientId(Long patientId) {
-    return saleRepository.findByPatientId(patientId).stream()
-      .map(PharmacySaleResponse::fromEntity)
-      .toList();
-  }
-
-
-  @Override
-  public Page<PharmacySaleResponse> getAllSales(Pageable pageable) {
-    return saleRepository.findAll(pageable)
-      .map(PharmacySaleResponse::fromEntity);
-  }
-
-  @Override
   @Transactional
   public PharmacySaleResponse processPrescriptionAndCreateSale(Long prescriptionId) {
-    if (prescriptionId == null) {
-      throw new IllegalArgumentException("O ID da prescrição é obrigatório.");
-    }
+    PrescriptionCopy prescription = validatePrescription(prescriptionId);
 
-    // Busca na Tabela Local
-    PrescriptionCopy prescription = prescriptionCopyRepository.findById(prescriptionId)
-      .orElseThrow(() -> new IllegalArgumentException("Receita não encontrada ou ainda não sincronizada na Farmácia. ID: " + prescriptionId));
-
-    if (prescription.getValidUntil().isBefore(LocalDate.now())) {
-      throw new IllegalArgumentException("Esta receita expirou em: " + prescription.getValidUntil());
-    }
-
-    if (prescription.isProcessed()) {
-      throw new IllegalArgumentException("Esta receita já foi utilizada.");
-    }
-
-    List<PrescriptionItemDto> prescriptionItems;
-    try {
-      prescriptionItems = objectMapper.readValue(
-        prescription.getItemsJson(),
-        new TypeReference<List<PrescriptionItemDto>>() {
-        }
-      );
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException("Erro ao processar os itens da receita armazenada.", e);
-    }
-
-    // Mapeia Itens da Receita -> Itens de Venda
-    List<SaleItemRequest> saleItems = prescriptionItems.stream()
-      .map(item -> {
-        Medicine medicine = medicineRepository
-          .findByNameIgnoreCaseAndDosageIgnoreCase(item.medicineName(), item.dosage())
-          .orElseThrow(() -> new MedicineNotFoundException(
-            "Medicamento '" + item.medicineName() + " " + item.dosage() + "' prescrito não encontrado no estoque."
-          ));
-
-        int quantityToSell = (item.durationDays() != null && item.durationDays() > 0) ? item.durationDays() : 1;
-
-        return new SaleItemRequest(medicine.getId(), quantityToSell);
-      })
-      .collect(Collectors.toList());
-
-    PharmacySaleRequest saleRequest = new PharmacySaleRequest(
-      prescriptionId,
-      prescription.getPatientId(),
-      saleItems
-    );
+    List<SaleItemRequest> saleItems = mapPrescriptionToSaleItems(prescription);
+    PharmacySaleRequest saleRequest = new PharmacySaleRequest(prescriptionId, prescription.getPatientId(), saleItems);
 
     PharmacySaleResponse response = createSale(saleRequest);
 
-    try {
-      PrescriptionDispensedEvent event = new PrescriptionDispensedEvent(
-        prescriptionId,
-        response.id(),
-        LocalDateTime.now()
-      );
-
-      rabbitTemplate.convertAndSend(exchange, prescriptionDispensedRoutingKey, event);
-      log.info("Evento de receita aviada enviado: Prescription ID {}", prescriptionId);
-    } catch (Exception e) {
-      log.error("Falha ao notificar o serviço de agendamento sobre a receita aviada.", e);
-    }
-
-    prescription.setProcessed(true);
-    prescriptionCopyRepository.save(prescription);
-
+    markPrescriptionProcessed(prescription, response.id());
     return response;
   }
 
   @Override
   @Transactional
   public PharmacySaleResponse createDirectSale(DirectSaleRequest request) {
-    PharmacySaleRequest saleRequest = new PharmacySaleRequest(
-      null, // ID da prescrição é nulo para venda direta
-      request.patientId(),
-      request.items()
-    );
-    return createSale(saleRequest);
+    return createSale(new PharmacySaleRequest(null, request.patientId(), request.items()));
+  }
+
+  @Override
+  public PharmacySaleResponse getSaleById(Long id) {
+    return saleRepository.findById(id).map(PharmacySaleResponse::fromEntity).orElseThrow(() -> new NoSuchElementException("Venda não encontrada: " + id));
+  }
+
+  @Override
+  public List<PharmacySaleResponse> getSalesByPatientId(Long id) {
+    return saleRepository.findByPatientId(id).stream().map(PharmacySaleResponse::fromEntity).toList();
+  }
+
+  @Override
+  public Page<PharmacySaleResponse> getAllSales(Pageable pageable) {
+    return saleRepository.findAll(pageable).map(PharmacySaleResponse::fromEntity);
   }
 
   @Override
   public PharmacyFinancialStatsResponse getFinancialStatsLast30Days() {
-    LocalDateTime endDate = LocalDateTime.now();
-    LocalDateTime startDate = endDate.minusDays(30);
+    LocalDateTime end = LocalDateTime.now();
+    LocalDateTime start = end.minusDays(30);
+    List<PharmacySale> sales = saleRepository.findBySaleDateBetween(start, end);
 
-    List<PharmacySale> sales = saleRepository.findBySaleDateBetween(startDate, endDate);
+    BigDecimal total = sales.stream().map(PharmacySale::getTotalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-    BigDecimal totalRevenue = sales.stream()
-      .map(PharmacySale::getTotalAmount)
-      .reduce(BigDecimal.ZERO, BigDecimal::add);
+    Map<LocalDate, BigDecimal> dailyMap = sales.stream().collect(Collectors.groupingBy(
+      s -> s.getSaleDate().toLocalDate(), Collectors.reducing(BigDecimal.ZERO, PharmacySale::getTotalAmount, BigDecimal::add)));
 
-    Map<LocalDate, BigDecimal> salesByDate = sales.stream()
-      .collect(Collectors.groupingBy(
-        sale -> sale.getSaleDate().toLocalDate(),
-        Collectors.reducing(BigDecimal.ZERO, PharmacySale::getTotalAmount, BigDecimal::add)
-      ));
-
-    List<DailyRevenueDto> dailyBreakdown = new ArrayList<>();
+    List<DailyRevenueDto> daily = new ArrayList<>();
     for (int i = 0; i <= 30; i++) {
-      LocalDate date = LocalDate.now().minusDays(i);
-      BigDecimal amount = salesByDate.getOrDefault(date, BigDecimal.ZERO);
-      dailyBreakdown.add(new DailyRevenueDto(date, amount));
+      LocalDate d = LocalDate.now().minusDays(i);
+      daily.add(new DailyRevenueDto(d, dailyMap.getOrDefault(d, BigDecimal.ZERO)));
     }
+    daily.sort(Comparator.comparing(DailyRevenueDto::date));
 
-    dailyBreakdown.sort(Comparator.comparing(DailyRevenueDto::date));
-
-    return new PharmacyFinancialStatsResponse(totalRevenue, dailyBreakdown);
+    return new PharmacyFinancialStatsResponse(total, daily);
   }
 
-  // Método auxiliar para enviar notificação por e-mail via RabbitMQ
-  private void sendEmailNotification(String patientEmail, PharmacySale savedSale) {
-    if (patientEmail != null) {
-      try {
-        String emailBody = String.format(
-          "<h1>Olá, %s!</h1><p>Sua compra na Farmácia foi realizada com sucesso.</p><p>Valor Total: R$ %s</p><p>Protocolo: %s</p>",
-          savedSale.getBuyerName(),
-          savedSale.getTotalAmount().toString(),
-          savedSale.getId()
-        );
-
-        EmailRequest emailRequest = new EmailRequest(
-          patientEmail,
-          "Comprovante de Compra - HMS Pharmacy",
-          emailBody
-        );
-
-        rabbitTemplate.convertAndSend(exchange, "notification.email", emailRequest);
-        log.info("Solicitação de e-mail enviada para: {}", patientEmail);
-      } catch (Exception e) {
-        log.error("Erro ao enviar notificação de venda: {}", e.getMessage());
-      }
-    } else {
-      log.warn("Notificação ignorada: E-mail do paciente não encontrado.");
+  private void validateDuplicateSale(Long prescriptionId) {
+    if (prescriptionId != null && saleRepository.existsByOriginalPrescriptionId(prescriptionId)) {
+      throw new IllegalStateException("Venda já registrada para esta prescrição.");
     }
   }
 
-  // Record auxiliar para desserializar o JSON salvo na PrescriptionCopy
+  private PatientReadModel resolvePatient(Long patientId) {
+    return patientReadModelRepository.findById(patientId).orElseGet(() -> {
+      log.warn("Paciente ID {} desconhecido. Usando fallback.", patientId);
+      var p = new PatientReadModel();
+      p.setUserId(patientId);
+      p.setName("Cliente (Não Identificado)");
+      p.setPhoneNumber("N/A");
+      return p;
+    });
+  }
+
+  private PharmacySale initializeSale(PharmacySaleRequest req, PatientReadModel p) {
+    PharmacySale sale = new PharmacySale();
+    sale.setOriginalPrescriptionId(req.originalPrescriptionId());
+    sale.setPatientId(req.patientId());
+    sale.setBuyerName(p.getName());
+    sale.setBuyerContact(p.getPhoneNumber());
+    sale.setSaleDate(LocalDateTime.now());
+    return sale;
+  }
+
+  private void processSaleItems(List<SaleItemRequest> items, PharmacySale sale) {
+    List<PharmacySaleItem> saleItems = new ArrayList<>();
+    BigDecimal total = BigDecimal.ZERO;
+
+    for (SaleItemRequest item : items) {
+      Medicine med = medicineRepository.findById(item.medicineId())
+        .orElseThrow(() -> new MedicineNotFoundException("Medicamento não encontrado: " + item.medicineId()));
+
+      String batchInfo = inventoryService.sellStock(item.medicineId(), item.quantity());
+
+      PharmacySaleItem saleItem = new PharmacySaleItem();
+      saleItem.setSale(sale);
+      saleItem.setMedicineId(med.getId());
+      saleItem.setMedicineName(med.getName() + " " + med.getDosage());
+      saleItem.setQuantity(item.quantity());
+      saleItem.setUnitPrice(med.getUnitPrice());
+      saleItem.setTotalPrice(med.getUnitPrice().multiply(BigDecimal.valueOf(item.quantity())));
+      saleItem.setBatchNo(batchInfo);
+
+      saleItems.add(saleItem);
+      total = total.add(saleItem.getTotalPrice());
+    }
+    sale.setItems(saleItems);
+    sale.setTotalAmount(total);
+  }
+
+  private PrescriptionCopy validatePrescription(Long id) {
+    PrescriptionCopy p = prescriptionCopyRepository.findById(id)
+      .orElseThrow(() -> new IllegalArgumentException("Receita não encontrada: " + id));
+    if (p.getValidUntil().isBefore(LocalDate.now())) throw new IllegalArgumentException("Receita expirada.");
+    if (p.isProcessed()) throw new IllegalArgumentException("Receita já processada.");
+    return p;
+  }
+
+  private List<SaleItemRequest> mapPrescriptionToSaleItems(PrescriptionCopy p) {
+    try {
+      List<PrescriptionItemDto> items = objectMapper.readValue(p.getItemsJson(), new TypeReference<>() {
+      });
+      return items.stream().map(i -> {
+        Medicine m = medicineRepository.findByNameIgnoreCaseAndDosageIgnoreCase(i.medicineName(), i.dosage())
+          .orElseThrow(() -> new MedicineNotFoundException("Item não encontrado no estoque: " + i.medicineName()));
+        return new SaleItemRequest(m.getId(), (i.durationDays() != null && i.durationDays() > 0) ? i.durationDays() : 1);
+      }).toList();
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Erro ao processar JSON da receita", e);
+    }
+  }
+
+  private void markPrescriptionProcessed(PrescriptionCopy p, Long saleId) {
+    p.setProcessed(true);
+    prescriptionCopyRepository.save(p);
+    try {
+      rabbitTemplate.convertAndSend(exchange, prescriptionDispensedRoutingKey,
+        new PrescriptionDispensedEvent(p.getPrescriptionId(), saleId, LocalDateTime.now()));
+    } catch (Exception e) {
+      log.error("Erro ao notificar receita aviada", e);
+    }
+  }
+
+  private void publishFinancialEvent(PharmacySale sale) {
+    try {
+      rabbitTemplate.convertAndSend(exchange, PHARMACY_SALE_ROUTING_KEY,
+        new PharmacySaleCreatedEvent(sale.getId(), sale.getPatientId(), sale.getBuyerName(), sale.getTotalAmount(), sale.getSaleDate()));
+    } catch (Exception e) {
+      log.error("Erro RabbitMQ Financeiro", e);
+    }
+  }
+
+  private void sendEmailNotification(String email, PharmacySale sale) {
+    if (email == null) return;
+    try {
+      String body = String.format("<h1>Olá, %s!</h1><p>Compra confirmada.</p><p>Total: %s</p>", sale.getBuyerName(), sale.getTotalAmount());
+      rabbitTemplate.convertAndSend(exchange, "notification.email", new EmailRequest(email, "Comprovante - HMS", body));
+    } catch (Exception e) {
+      log.error("Erro RabbitMQ Email", e);
+    }
+  }
+
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private record PrescriptionItemDto(
-    String medicineName,
-    String dosage,
-    String frequency,
-    Integer durationDays,
-    String instructions
-  ) {
+  private record PrescriptionItemDto(String medicineName, String dosage, Integer durationDays) {
+    // durationDays é opcional e pode ser nulo
   }
 }

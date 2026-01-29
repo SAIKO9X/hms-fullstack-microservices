@@ -6,6 +6,7 @@ import com.hms.appointment.dto.response.*;
 import com.hms.appointment.repositories.DoctorSummaryProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +28,9 @@ public interface AppointmentService {
   AppointmentResponse cancelAppointment(Long appointmentId, Long requesterId);
 
   AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId);
+
+  @Transactional(readOnly = true)
+  AppointmentDetailResponse getAppointmentDetailsById(Long appointmentId, Long requesterId);
 
   AppointmentResponse getNextAppointmentForPatient(Long patientId);
 
@@ -55,4 +59,6 @@ public interface AppointmentService {
   void deleteAvailability(Long availabilityId);
 
   List<DoctorSummaryProjection> getMyDoctors(Long patientId);
+
+  List<Long> getActiveDoctorIdsInLastHour();
 }

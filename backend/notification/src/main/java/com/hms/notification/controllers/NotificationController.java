@@ -1,6 +1,6 @@
 package com.hms.notification.controllers;
 
-import com.hms.notification.entities.Notification;
+import com.hms.notification.dto.response.NotificationResponse;
 import com.hms.notification.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ public class NotificationController {
   private final NotificationService notificationService;
 
   @GetMapping("/user/{userId}")
-  public ResponseEntity<List<Notification>> getUserNotifications(@PathVariable String userId) {
+  public ResponseEntity<List<NotificationResponse>> getUserNotifications(@PathVariable String userId) {
     return ResponseEntity.ok(notificationService.getUserNotifications(userId));
   }
 

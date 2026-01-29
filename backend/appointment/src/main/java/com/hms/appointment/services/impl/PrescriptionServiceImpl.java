@@ -28,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,28 +55,23 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public PrescriptionResponse createPrescription(PrescriptionCreateRequest request, Long doctorId) {
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
-      .orElseThrow(() -> new AppointmentNotFoundException("Consulta com ID " + request.appointmentId() + " não encontrada."));
+      .orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
 
-    if (!appointment.getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado. Apenas o médico responsável pode criar uma prescrição.");
-    }
+    validateDoctorAuthority(appointment, doctorId);
 
     if (prescriptionRepository.findByAppointmentId(request.appointmentId()).isPresent()) {
-      throw new InvalidUpdateException("Uma prescrição para esta consulta já existe.");
+      throw new InvalidUpdateException("Já existe uma prescrição para esta consulta.");
     }
 
     Prescription newPrescription = new Prescription();
     newPrescription.setAppointment(appointment);
     newPrescription.setNotes(request.notes());
+    newPrescription.setMedicines(mapToMedicineEntities(request.medicines()));
 
-    List<Medicine> medicines = mapToMedicineEntities(request.medicines());
-    newPrescription.setMedicines(medicines);
+    Prescription saved = prescriptionRepository.save(newPrescription);
+    publishPrescriptionEvent(saved);
 
-    Prescription savedPrescription = prescriptionRepository.save(newPrescription);
-
-    publishPrescriptionEvent(savedPrescription);
-
-    return PrescriptionResponse.fromEntity(savedPrescription);
+    return PrescriptionResponse.fromEntity(saved);
   }
 
   @Override
@@ -82,11 +79,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   public PrescriptionResponse getPrescriptionByAppointmentId(Long appointmentId, Long requesterId) {
     return prescriptionRepository.findByAppointmentId(appointmentId)
       .map(prescription -> {
-        // Validação de segurança
-        Appointment appointment = prescription.getAppointment();
-        if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
-          throw new SecurityException("Acesso negado. Você não tem permissão para ver esta prescrição.");
-        }
+        validateViewerAuthority(prescription.getAppointment(), requesterId);
         return PrescriptionResponse.fromEntity(prescription);
       })
       .orElse(null);
@@ -96,16 +89,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public PrescriptionResponse updatePrescription(Long prescriptionId, PrescriptionUpdateRequest request, Long doctorId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
 
-    if (!prescription.getAppointment().getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado. Apenas o médico responsável pode editar esta prescrição.");
-    }
+    validateDoctorAuthority(prescription.getAppointment(), doctorId);
 
-    List<Medicine> updatedMedicines = mapToMedicineEntities(request.medicines());
-
-    // Usa o método setMedicines para limpar a lista antiga e adicionar a nova
-    prescription.setMedicines(updatedMedicines);
+    prescription.setMedicines(mapToMedicineEntities(request.medicines()));
     prescription.setNotes(request.notes());
 
     return PrescriptionResponse.fromEntity(prescriptionRepository.save(prescription));
@@ -114,19 +102,14 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Override
   @Transactional(readOnly = true)
   public Page<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId, Pageable pageable) {
-    // se o usuário está pedindo os próprios dados, permite direto
     if (patientId.equals(requesterId)) {
       return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
         .map(PrescriptionResponse::fromEntity);
     }
 
-    // se for um terceiro verifica se tem vínculo
-    List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
-    boolean isAuthorized = appointments.stream()
-      .anyMatch(app -> app.getDoctorId().equals(requesterId));
-
-    if (!isAuthorized) {
-      throw new SecurityException("Acesso negado. Você não tem vínculo com este paciente.");
+    boolean hasRelationship = appointmentRepository.existsByDoctorIdAndPatientId(requesterId, patientId);
+    if (!hasRelationship) {
+      throw new SecurityException("Acesso negado. Você não possui histórico de consultas com este paciente.");
     }
 
     return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
@@ -137,10 +120,10 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional(readOnly = true)
   public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição com ID " + prescriptionId + " não encontrada."));
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
 
     if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
-      throw new IllegalStateException("Esta prescrição já foi aviada e não pode ser consultada novamente.");
+      throw new IllegalStateException("Esta prescrição já foi utilizada.");
     }
 
     return PrescriptionForPharmacyResponse.fromEntity(prescription);
@@ -150,17 +133,15 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public void markAsDispensed(Long prescriptionId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição ID " + prescriptionId + " não encontrada ao tentar marcar como aviada."));
+      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
 
     if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
-      log.warn("Tentativa redundante de marcar prescrição ID {} como aviada.", prescriptionId);
       return;
     }
 
     prescription.setStatus(PrescriptionStatus.DISPENSED);
     prescriptionRepository.save(prescription);
-
-    log.info("Prescrição ID {} atualizada com sucesso para STATUS: DISPENSED.", prescriptionId);
+    log.info("Prescrição ID {} marcada como aviada.", prescriptionId);
   }
 
   @Override
@@ -176,47 +157,27 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
       .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada"));
 
-    Long doctorId = prescription.getAppointment().getDoctorId();
-    Long patientId = prescription.getAppointment().getPatientId();
+    validateViewerAuthority(prescription.getAppointment(), requesterId);
 
-    if (!requesterId.equals(doctorId) && !requesterId.equals(patientId)) {
-      throw new SecurityException("Acesso negado. Você não tem permissão para gerar este PDF.");
-    }
-
-    String doctorName = "Dr. Desconhecido";
-    String doctorCrm = "N/A";
-    String patientName = "Paciente";
-
-    try {
-      DoctorProfile doctor = profileClient.getDoctor(doctorId);
-      if (doctor != null) {
-        doctorName = doctor.name();
-        doctorCrm = doctor.crmNumber();
-      }
-
-      PatientProfile patient = profileClient.getPatient(patientId);
-      if (patient != null) {
-        patientName = patient.name();
-      }
-    } catch (Exception e) {
-      log.warn("Não foi possível buscar detalhes do perfil para o PDF: {}", e.getMessage());
-    }
-
-    Map<String, Object> data = Map.of(
-      "prescriptionId", prescription.getId(),
-      "createdAt", prescription.getCreatedAt(),
-      "patientName", patientName,
-      "doctorName", doctorName,
-      "doctorCrm", doctorCrm,
-      "medicines", prescription.getMedicines(),
-      "notes", prescription.getNotes() != null ? prescription.getNotes() : ""
-    );
+    Map<String, Object> data = buildPdfContext(prescription);
 
     return pdfGeneratorService.generatePdfFromHtml("prescription", data);
   }
 
-  private List<Medicine> mapToMedicineEntities(List<MedicineRequest> medicineRequests) {
-    return medicineRequests.stream().map(dto -> {
+  private void validateDoctorAuthority(Appointment appointment, Long doctorId) {
+    if (!appointment.getDoctorId().equals(doctorId)) {
+      throw new SecurityException("Acesso negado. Apenas o médico responsável pode realizar esta ação.");
+    }
+  }
+
+  private void validateViewerAuthority(Appointment appointment, Long requesterId) {
+    if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
+      throw new SecurityException("Acesso negado. Você não tem permissão para visualizar este registro.");
+    }
+  }
+
+  private List<Medicine> mapToMedicineEntities(List<MedicineRequest> dtos) {
+    return dtos.stream().map(dto -> {
       Medicine med = new Medicine();
       med.setName(dto.name());
       med.setDosage(dto.dosage());
@@ -226,38 +187,62 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     }).collect(Collectors.toList());
   }
 
+  // Constrói o contexto de dados para o PDF da prescrição
+  private Map<String, Object> buildPdfContext(Prescription prescription) {
+    String doctorName = "Dr. Desconhecido";
+    String doctorCrm = "N/A";
+    String patientName = "Paciente";
+
+    try {
+      // tenta buscar dados enriquecidos (se falhar, gera o PDF com dados padrão)
+      DoctorProfile doctor = profileClient.getDoctor(prescription.getAppointment().getDoctorId());
+      if (doctor != null) {
+        doctorName = doctor.name();
+        doctorCrm = doctor.crmNumber();
+      }
+
+      PatientProfile patient = profileClient.getPatient(prescription.getAppointment().getPatientId());
+      if (patient != null) {
+        patientName = patient.name();
+      }
+    } catch (Exception e) {
+      log.warn("Falha ao obter dados de perfil para PDF da prescrição {}: {}", prescription.getId(), e.getMessage());
+    }
+
+    Map<String, Object> data = new HashMap<>();
+    data.put("prescriptionId", prescription.getId());
+    data.put("createdAt", prescription.getCreatedAt());
+    data.put("patientName", patientName);
+    data.put("doctorName", doctorName);
+    data.put("doctorCrm", doctorCrm);
+    data.put("medicines", prescription.getMedicines());
+    data.put("notes", prescription.getNotes() != null ? prescription.getNotes() : "");
+    return data;
+  }
+
   private void publishPrescriptionEvent(Prescription prescription) {
     try {
-      List<Medicine> medicines = prescription.getMedicines() != null ? prescription.getMedicines() : List.of();
-
-      // Medicines -> Event Items
-      List<PrescriptionIssuedEvent.PrescriptionItemEvent> itemEvents = medicines.stream()
+      var itemEvents = prescription.getMedicines().stream()
         .map(item -> new PrescriptionIssuedEvent.PrescriptionItemEvent(
-          item.getName(),
-          item.getDosage(),
-          item.getFrequency(),
-          item.getDuration()
-        )).toList();
+          item.getName(), item.getDosage(), item.getFrequency(), item.getDuration()))
+        .toList();
 
-      // Validade (Lógica de Negócio: Data da criação + 30 dias)
-      java.time.LocalDate validUntilDate = (prescription.getCreatedAt() != null)
+      LocalDate validUntil = prescription.getCreatedAt() != null
         ? prescription.getCreatedAt().toLocalDate().plusDays(30)
-        : java.time.LocalDate.now().plusDays(30);
+        : LocalDate.now().plusDays(30);
 
       PrescriptionIssuedEvent event = new PrescriptionIssuedEvent(
         prescription.getId(),
         prescription.getAppointment().getPatientId(),
         prescription.getAppointment().getDoctorId(),
-        validUntilDate,
+        validUntil,
         prescription.getNotes(),
         itemEvents
       );
 
       rabbitTemplate.convertAndSend(exchange, prescriptionIssuedRoutingKey, event);
-      log.info("Evento de prescrição emitida enviado para fila: Prescription ID {}", prescription.getId());
-
     } catch (Exception e) {
-      log.error("Erro ao enviar evento de prescrição para o RabbitMQ", e);
+      log.error("Erro ao publicar evento de prescrição: {}", e.getMessage());
     }
   }
 }

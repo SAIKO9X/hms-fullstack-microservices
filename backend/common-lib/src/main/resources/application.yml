@@ -1,0 +1,38 @@
+feign:
+  client:
+    config:
+      default:
+        # Timeouts
+        connectTimeout: 5000
+        readTimeout: 10000
+
+        # Retry
+        retryer: feign.Retryer.Default
+
+        # Logger level (NONE, BASIC, HEADERS, FULL)
+        loggerLevel: BASIC
+
+  # Circuit Breaker com Resilience4j
+  circuitbreaker:
+    enabled: true
+    alphanumeric-ids:
+      enabled: true
+
+  # Compressão
+  compression:
+    request:
+      enabled: true
+      mime-types: text/xml,application/xml,application/json
+      min-request-size: 2048
+    response:
+      enabled: true
+
+  # Logging
+  logging:
+    enabled: true
+
+# Logging específico do Feign
+logging:
+  level:
+    com.hms: DEBUG
+    feign: DEBUG

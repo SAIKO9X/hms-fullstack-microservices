@@ -1,7 +1,7 @@
 package com.hms.common.aspect;
 
 import com.hms.common.audit.AuditChangeTracker;
-import com.hms.common.dto.AuditLogEvent;
+import com.hms.common.dto.event.AuditLogEvent;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.HmsUserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;

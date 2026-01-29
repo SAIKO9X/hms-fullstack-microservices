@@ -18,18 +18,16 @@ public class MedicalHistoryController {
 
   private final MedicalHistoryService medicalHistoryService;
 
-
   @PreAuthorize("hasRole('PATIENT')")
   @GetMapping("/patient/medical-history/{patientProfileId}")
   public ResponseEntity<MedicalHistoryResponse> getMedicalHistory(@PathVariable Long patientProfileId) {
-    MedicalHistoryResponse history = medicalHistoryService.getPatientMedicalHistory(patientProfileId);
-    return ResponseEntity.ok(history);
+    return ResponseEntity.ok(medicalHistoryService.getPatientMedicalHistory(patientProfileId));
   }
 
   @PreAuthorize("hasRole('ADMIN')")
   @GetMapping("/admin/patient/{patientProfileId}/medical-history")
   @Auditable(action = "VIEW_MEDICAL_HISTORY_ADMIN", resourceName = "MedicalHistory")
-  public MedicalHistoryResponse getPatientMedicalHistoryByIdForAdmin(@PathVariable Long patientProfileId) {
-    return medicalHistoryService.getMedicalHistoryByPatientProfileId(patientProfileId);
+  public ResponseEntity<MedicalHistoryResponse> getPatientMedicalHistoryByIdForAdmin(@PathVariable Long patientProfileId) {
+    return ResponseEntity.ok(medicalHistoryService.getMedicalHistoryByPatientProfileId(patientProfileId));
   }
 }

@@ -76,45 +76,30 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
       .orElseThrow(() -> new AppointmentNotFoundException("Registro com ID " + recordId + " não encontrado."));
 
     if (!record.getAppointment().getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado. Apenas o médico responsável pode editar este registro.");
-    }
-    if (request.chiefComplaint() != null && !Objects.equals(record.getChiefComplaint(), request.chiefComplaint())) {
-      AuditChangeTracker.addChange("chiefComplaint", record.getChiefComplaint(), request.chiefComplaint());
-      record.setChiefComplaint(request.chiefComplaint());
-    }
-    if (request.historyOfPresentIllness() != null && !Objects.equals(record.getHistoryOfPresentIllness(), request.historyOfPresentIllness())) {
-      AuditChangeTracker.addChange("historyOfPresentIllness", record.getHistoryOfPresentIllness(), request.historyOfPresentIllness());
-      record.setHistoryOfPresentIllness(request.historyOfPresentIllness());
-    }
-    if (request.physicalExamNotes() != null && !Objects.equals(record.getPhysicalExamNotes(), request.physicalExamNotes())) {
-      AuditChangeTracker.addChange("physicalExamNotes", record.getPhysicalExamNotes(), request.physicalExamNotes());
-      record.setPhysicalExamNotes(request.physicalExamNotes());
-    }
-    if (request.symptoms() != null && !Objects.equals(record.getSymptoms(), request.symptoms())) {
-      AuditChangeTracker.addChange("symptoms", record.getSymptoms(), request.symptoms());
-      record.setSymptoms(request.symptoms());
-    }
-    if (request.diagnosisCid10() != null && !Objects.equals(record.getDiagnosisCid10(), request.diagnosisCid10())) {
-      AuditChangeTracker.addChange("diagnosisCid10", record.getDiagnosisCid10(), request.diagnosisCid10());
-      record.setDiagnosisCid10(request.diagnosisCid10());
-    }
-    if (request.diagnosisDescription() != null && !Objects.equals(record.getDiagnosisDescription(), request.diagnosisDescription())) {
-      AuditChangeTracker.addChange("diagnosisDescription", record.getDiagnosisDescription(), request.diagnosisDescription());
-      record.setDiagnosisDescription(request.diagnosisDescription());
-    }
-    if (request.treatmentPlan() != null && !Objects.equals(record.getTreatmentPlan(), request.treatmentPlan())) {
-      AuditChangeTracker.addChange("treatmentPlan", record.getTreatmentPlan(), request.treatmentPlan());
-      record.setTreatmentPlan(request.treatmentPlan());
-    }
-    if (request.requestedTests() != null && !Objects.equals(record.getRequestedTests(), request.requestedTests())) {
-      AuditChangeTracker.addChange("requestedTests", record.getRequestedTests(), request.requestedTests());
-      record.setRequestedTests(request.requestedTests());
-    }
-    if (request.notes() != null && !Objects.equals(record.getNotes(), request.notes())) {
-      AuditChangeTracker.addChange("notes", record.getNotes(), request.notes());
-      record.setNotes(request.notes());
+      throw new SecurityException("Acesso negado.");
     }
 
+    applyChanges(record, request);
+
     return AppointmentRecordResponse.fromEntity(recordRepository.save(record));
+  }
+
+  private void applyChanges(AppointmentRecord record, AppointmentRecordUpdateRequest request) {
+    updateFieldIfChanged("chiefComplaint", record.getChiefComplaint(), request.chiefComplaint(), record::setChiefComplaint);
+    updateFieldIfChanged("historyOfPresentIllness", record.getHistoryOfPresentIllness(), request.historyOfPresentIllness(), record::setHistoryOfPresentIllness);
+    updateFieldIfChanged("physicalExamNotes", record.getPhysicalExamNotes(), request.physicalExamNotes(), record::setPhysicalExamNotes);
+    updateFieldIfChanged("symptoms", record.getSymptoms(), request.symptoms(), record::setSymptoms);
+    updateFieldIfChanged("diagnosisCid10", record.getDiagnosisCid10(), request.diagnosisCid10(), record::setDiagnosisCid10);
+    updateFieldIfChanged("diagnosisDescription", record.getDiagnosisDescription(), request.diagnosisDescription(), record::setDiagnosisDescription);
+    updateFieldIfChanged("treatmentPlan", record.getTreatmentPlan(), request.treatmentPlan(), record::setTreatmentPlan);
+    updateFieldIfChanged("requestedTests", record.getRequestedTests(), request.requestedTests(), record::setRequestedTests);
+    updateFieldIfChanged("notes", record.getNotes(), request.notes(), record::setNotes);
+  }
+
+  private <T> void updateFieldIfChanged(String fieldName, T currentValue, T newValue, java.util.function.Consumer<T> setter) {
+    if (newValue != null && !Objects.equals(currentValue, newValue)) {
+      AuditChangeTracker.addChange(fieldName, currentValue, newValue);
+      setter.accept(newValue);
+    }
   }
 }

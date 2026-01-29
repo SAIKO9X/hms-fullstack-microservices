@@ -9,12 +9,13 @@ import com.hms.profile.entities.Doctor;
 import com.hms.profile.entities.Patient;
 import com.hms.profile.entities.Review;
 import com.hms.profile.enums.AppointmentStatus;
+import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.repositories.ReviewRepository;
-import com.hms.profile.services.JwtService;
 import com.hms.profile.services.ReviewService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
+@Slf4j
+@Transactional
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
 
@@ -29,62 +32,101 @@ public class ReviewServiceImpl implements ReviewService {
   private final DoctorRepository doctorRepository;
   private final PatientRepository patientRepository;
   private final AppointmentFeignClient appointmentClient;
-  private final JwtService jwtService;
 
   @Override
-  @Transactional
-  public ReviewResponse createReview(ReviewCreateRequest request) {
-    if (reviewRepository.existsByAppointmentId(request.appointmentId())) {
-      throw new IllegalStateException("Esta consulta já foi avaliada.");
-    }
+  public ReviewResponse createReview(ReviewCreateRequest request, Long currentUserId) {
+    validateReviewNotExists(request.appointmentId());
 
-    AppointmentResponse appointment;
+    AppointmentResponse appointment = fetchAppointment(request.appointmentId());
+    validateAppointmentStatus(appointment);
+    validateDoctorMatch(appointment, request.doctorId());
+
+    Patient patient = findPatientByUserId(currentUserId);
+    validatePatientOwnership(appointment, patient);
+
+    Doctor doctor = findDoctorByUserId(request.doctorId());
+
+    Review review = buildReview(request, doctor, patient);
+    Review savedReview = reviewRepository.save(review);
+
+    log.info("Avaliação registrada com sucesso: ID={}, Paciente={}, Médico={}",
+      savedReview.getId(), patient.getName(), doctor.getName());
+
+    return mapToResponse(savedReview);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public DoctorRatingDto getDoctorStats(Long doctorId) {
+    Double averageRating = reviewRepository.getAverageRating(doctorId);
+    Long reviewCount = reviewRepository.countByDoctorId(doctorId);
+
+    return new DoctorRatingDto(
+      averageRating != null ? averageRating : 0.0,
+      reviewCount
+    );
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<ReviewResponse> getDoctorReviews(Long doctorId) {
+    return reviewRepository.findByDoctorIdOrderByCreatedAtDesc(doctorId)
+      .stream()
+      .map(this::mapToResponse)
+      .toList();
+  }
+
+  private void validateReviewNotExists(Long appointmentId) {
+    if (reviewRepository.existsByAppointmentId(appointmentId)) {
+      throw new IllegalStateException("Esta consulta já foi avaliada anteriormente.");
+    }
+  }
+
+  private AppointmentResponse fetchAppointment(Long appointmentId) {
     try {
-      appointment = appointmentClient.getAppointmentById(request.appointmentId());
+      return appointmentClient.getAppointmentById(appointmentId);
     } catch (Exception e) {
+      log.error("Falha ao buscar consulta ID {} no microsserviço de Appointment: {}", appointmentId, e.getMessage());
       throw new NoSuchElementException("Consulta não encontrada ou serviço indisponível.");
     }
+  }
 
+  private void validateAppointmentStatus(AppointmentResponse appointment) {
     if (appointment.status() != AppointmentStatus.COMPLETED) {
       throw new IllegalStateException("Apenas consultas concluídas podem ser avaliadas.");
     }
+  }
 
-    if (!appointment.doctorId().equals(request.doctorId())) {
-      throw new IllegalArgumentException("O médico informado não corresponde ao médico da consulta.");
+  private void validateDoctorMatch(AppointmentResponse appointment, Long requestedDoctorId) {
+    if (!appointment.doctorId().equals(requestedDoctorId)) {
+      throw new IllegalArgumentException("O médico informado não corresponde ao médico responsável pela consulta.");
     }
+  }
 
-    Doctor doctor = doctorRepository.findByUserId(request.doctorId())
-      .orElseThrow(() -> new NoSuchElementException("Perfil de médico não encontrado."));
+  private Patient findPatientByUserId(Long userId) {
+    return patientRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil de paciente não encontrado para o usuário atual."));
+  }
 
-    Long currentUserUserId = jwtService.getCurrentUserId();
-    Patient patient = patientRepository.findByUserId(currentUserUserId)
-      .orElseThrow(() -> new NoSuchElementException("Perfil de paciente não encontrado."));
+  private void validatePatientOwnership(AppointmentResponse appointment, Patient patient) {
+    if (!appointment.patientId().equals(patient.getId())) {
+      throw new SecurityException("Acesso negado: Esta consulta não pertence ao seu perfil de paciente.");
+    }
+  }
 
+  private Doctor findDoctorByUserId(Long userId) {
+    return doctorRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil de médico não encontrado."));
+  }
+
+  private Review buildReview(ReviewCreateRequest request, Doctor doctor, Patient patient) {
     Review review = new Review();
     review.setAppointmentId(request.appointmentId());
     review.setDoctorId(doctor.getId());
     review.setPatientId(patient.getId());
     review.setRating(request.rating());
     review.setComment(request.comment());
-
-    Review savedReview = reviewRepository.save(review);
-
-    return mapToResponse(savedReview);
-  }
-
-  @Override
-  public DoctorRatingDto getDoctorStats(Long doctorId) {
-    Double avg = reviewRepository.getAverageRating(doctorId);
-    Long count = reviewRepository.countByDoctorId(doctorId);
-    return new DoctorRatingDto(avg != null ? avg : 0.0, count);
-  }
-
-  @Override
-  public List<ReviewResponse> getDoctorReviews(Long doctorId) {
-    return reviewRepository.findByDoctorIdOrderByCreatedAtDesc(doctorId)
-      .stream()
-      .map(this::mapToResponse)
-      .toList();
+    return review;
   }
 
   private ReviewResponse mapToResponse(Review r) {

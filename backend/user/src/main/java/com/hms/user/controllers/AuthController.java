@@ -5,7 +5,7 @@ import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,20 +18,19 @@ public class AuthController {
   private final UserService userService;
 
   @PostMapping("/login")
-  @ResponseStatus(HttpStatus.OK)
-  public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-    return userService.login(request);
+  public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    return ResponseEntity.ok(userService.login(request));
   }
 
   @PostMapping("/verify")
-  @ResponseStatus(HttpStatus.OK)
-  public void verifyAccount(@RequestParam String email, @RequestParam String code) {
+  public ResponseEntity<Void> verifyAccount(@RequestParam String email, @RequestParam String code) {
     userService.verifyAccount(email, code);
+    return ResponseEntity.ok().build();
   }
 
   @PostMapping("/resend-code")
-  @ResponseStatus(HttpStatus.OK)
-  public void resendCode(@RequestParam String email) {
+  public ResponseEntity<Void> resendCode(@RequestParam String email) {
     userService.resendVerificationCode(email);
+    return ResponseEntity.ok().build();
   }
 }

@@ -22,20 +22,19 @@ public class MediaController {
   @PostMapping("/upload")
   public ResponseEntity<MediaFileDto> uploadFile(@RequestParam("file") MultipartFile file) {
     try {
-      MediaFileDto mediaFileDto = mediaService.storeFile(file);
-      return ResponseEntity.status(HttpStatus.CREATED).body(mediaFileDto);
+      return ResponseEntity.status(HttpStatus.CREATED).body(mediaService.storeFile(file));
     } catch (IOException e) {
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+      return ResponseEntity.internalServerError().build();
     }
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<byte[]> getFile(@PathVariable Long id) {
     return mediaService.getFileById(id)
-      .map(mediaFile -> ResponseEntity.ok()
-        .contentType(MediaType.parseMediaType(mediaFile.getType()))
-        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + mediaFile.getName() + "\"")
-        .body(mediaFile.getData()))
+      .map(file -> ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(file.getType()))
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+        .body(file.getData()))
       .orElse(ResponseEntity.notFound().build());
   }
 }

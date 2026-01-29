@@ -27,7 +27,7 @@ public class AdverseEffectReportServiceImpl implements AdverseEffectReportServic
     report.setDoctorId(request.doctorId());
     report.setPrescriptionId(request.prescriptionId());
     report.setDescription(request.description());
-    report.setStatus(ReportStatus.REPORTED); // Status inicial
+    report.setStatus(ReportStatus.REPORTED); // status inicial
 
     AdverseEffectReport savedReport = reportRepository.save(report);
     return AdverseEffectReportResponse.fromEntity(savedReport);

@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,70 +22,49 @@ public class BillingController {
   private final BillingService billingService;
 
   @GetMapping("/invoices/patient/{patientId}")
-  @ResponseStatus(HttpStatus.OK)
-  public List<Invoice> getPatientInvoices(@PathVariable String patientId) {
-    return billingService.getInvoicesByPatient(patientId);
+  public ResponseEntity<List<Invoice>> getPatientInvoices(@PathVariable String patientId, Authentication authentication) {
+    // validar se quem pede é o dono ou admin
+    return ResponseEntity.ok(billingService.getInvoicesByPatient(patientId));
   }
 
   @GetMapping("/invoices/doctor/{doctorId}")
-  @ResponseStatus(HttpStatus.OK)
-  public List<Invoice> getDoctorInvoices(@PathVariable String doctorId) {
-    return billingService.getInvoicesByDoctor(doctorId);
+  public ResponseEntity<List<Invoice>> getDoctorInvoices(@PathVariable String doctorId) {
+    return ResponseEntity.ok(billingService.getInvoicesByDoctor(doctorId));
   }
 
   @PostMapping("/insurance")
-  @ResponseStatus(HttpStatus.CREATED)
-  public PatientInsurance addInsurance(@RequestBody InsuranceRequest request) {
-    return billingService.registerPatientInsurance(
-      request.patientId(),
-      request.providerId(),
-      request.policyNumber()
-    );
+  public ResponseEntity<PatientInsurance> addInsurance(@RequestBody InsuranceRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(billingService.registerPatientInsurance(request.patientId(), request.providerId(), request.policyNumber()));
   }
 
   @PostMapping("/invoices/{invoiceId}/pay")
-  @ResponseStatus(HttpStatus.OK)
-  public Invoice payInvoice(@PathVariable String invoiceId) {
-    return billingService.payInvoice(invoiceId);
+  public ResponseEntity<Invoice> payInvoice(@PathVariable String invoiceId) {
+    return ResponseEntity.ok(billingService.payInvoice(invoiceId));
   }
 
   @PostMapping("/invoices/{invoiceId}/process-insurance")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void processInsurancePayment(@PathVariable String invoiceId) {
+  public ResponseEntity<Void> processInsurancePayment(@PathVariable String invoiceId) {
     billingService.processInsurancePayment(invoiceId);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/invoices/pending-insurance")
-  @ResponseStatus(HttpStatus.OK)
-  public List<Invoice> getPendingInsuranceInvoices() {
-    return billingService.getPendingInsuranceInvoices();
+  public ResponseEntity<List<Invoice>> getPendingInsuranceInvoices() {
+    return ResponseEntity.ok(billingService.getPendingInsuranceInvoices());
   }
 
   @GetMapping("/invoices/{id}/pdf")
-  @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN', 'DOCTOR')")
   public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable String id) {
     byte[] pdfBytes = billingService.generateInvoicePdf(id);
 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_PDF);
-    headers.setContentDisposition(
-      org.springframework.http.ContentDisposition
-        .attachment()
-        .filename("fatura_" + id + ".pdf")
-        .build()
-    );
-
     return ResponseEntity.ok()
-      .headers(headers)
+      .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE)
+      .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"fatura_" + id + ".pdf\"")
       .body(pdfBytes);
   }
 
-  // DTO Interno simples para o Request
-  public record InsuranceRequest(
-    String patientId,
-    Long providerId,
-    String policyNumber
-  ) {
+  public record InsuranceRequest(String patientId, Long providerId, String policyNumber) {
   }
 }

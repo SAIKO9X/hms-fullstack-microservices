@@ -1,19 +1,17 @@
 package com.hms.appointment.controllers;
 
-
-import com.hms.appointment.dto.request.AppointmentUpdateRequest;
+import com.hms.appointment.dto.request.AppointmentCompleteRequest;
 import com.hms.appointment.dto.response.*;
-import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentService;
-import com.hms.appointment.services.JwtService;
+import com.hms.common.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,69 +23,56 @@ import java.util.List;
 public class DoctorAppointmentController {
 
   private final AppointmentService appointmentService;
-  private final AppointmentRepository appointmentRepository;
-  private final JwtService jwtService;
 
   @GetMapping
-  @ResponseStatus(HttpStatus.OK)
-  public Page<AppointmentResponse> getMyAppointments(
-    @RequestHeader("Authorization") String token,
+  public ResponseEntity<Page<AppointmentResponse>> getMyAppointments(
+    Authentication authentication,
     @PageableDefault(size = 10, sort = "appointmentDateTime", direction = Sort.Direction.DESC) Pageable pageable
   ) {
-    Long doctorId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentsForDoctor(doctorId, pageable);
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.getAppointmentsForDoctor(doctorId, pageable));
   }
 
   @GetMapping("/details")
-  @ResponseStatus(HttpStatus.OK)
-  public List<AppointmentDetailResponse> getAppointmentDetails(
-    @RequestHeader("Authorization") String token,
+  public ResponseEntity<List<AppointmentDetailResponse>> getAppointmentDetails(
+    Authentication authentication,
     @RequestParam(required = false, defaultValue = "all") String filter
   ) {
-    Long doctorId = getUserIdFromToken(token);
-    return appointmentService.getAppointmentDetailsForDoctor(doctorId, filter);
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.getAppointmentDetailsForDoctor(doctorId, filter));
   }
 
   @PatchMapping("/{id}/complete")
-  @ResponseStatus(HttpStatus.OK)
-  public AppointmentResponse completeAppointment(
+  public ResponseEntity<AppointmentResponse> completeAppointment(
+    Authentication authentication,
     @PathVariable Long id,
-    @RequestBody AppointmentUpdateRequest request,
-    @RequestHeader("Authorization") String token) {
-    Long doctorId = getUserIdFromToken(token);
-    return appointmentService.completeAppointment(id, request.notes(), doctorId);
+    @RequestBody AppointmentCompleteRequest request
+  ) {
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.completeAppointment(id, request.notes(), doctorId));
   }
 
   @GetMapping("/dashboard-stats")
-  public ResponseEntity<DoctorDashboardStatsResponse> getDoctorDashboardStats(@RequestHeader("Authorization") String token) {
-    Long doctorId = getUserIdFromToken(token);
-    DoctorDashboardStatsResponse stats = appointmentService.getDoctorDashboardStats(doctorId);
-    return ResponseEntity.ok(stats);
+  public ResponseEntity<DoctorDashboardStatsResponse> getDoctorDashboardStats(Authentication authentication) {
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.getDoctorDashboardStats(doctorId));
   }
 
   @GetMapping("/patients-count")
-  public ResponseEntity<Long> getUniquePatientsCount(@RequestHeader("Authorization") String token) {
-    Long doctorId = getUserIdFromToken(token);
-    long count = appointmentService.countUniquePatientsForDoctor(doctorId);
-    return ResponseEntity.ok(count);
+  public ResponseEntity<Long> getUniquePatientsCount(Authentication authentication) {
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.countUniquePatientsForDoctor(doctorId));
   }
 
   @GetMapping("/patient-groups")
-  public ResponseEntity<List<PatientGroupResponse>> getPatientGroups(@RequestHeader("Authorization") String token) {
-    Long doctorId = getUserIdFromToken(token);
-    List<PatientGroupResponse> groups = appointmentService.getPatientGroupsForDoctor(doctorId);
-    return ResponseEntity.ok(groups);
+  public ResponseEntity<List<PatientGroupResponse>> getPatientGroups(Authentication authentication) {
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.getPatientGroupsForDoctor(doctorId));
   }
 
   @GetMapping("/my-patients")
-  public ResponseEntity<List<DoctorPatientSummaryDto>> getMyPatients(@RequestHeader("Authorization") String token) {
-    Long doctorId = getUserIdFromToken(token);
-    List<DoctorPatientSummaryDto> patients = appointmentService.getPatientsForDoctor(doctorId);
-    return ResponseEntity.ok(patients);
-  }
-
-  private Long getUserIdFromToken(String token) {
-    String jwt = token.substring(7);
-    return jwtService.extractClaim(jwt, claims -> claims.get("userId", Long.class));
+  public ResponseEntity<List<DoctorPatientSummaryDto>> getMyPatients(Authentication authentication) {
+    Long doctorId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(appointmentService.getPatientsForDoctor(doctorId));
   }
 }

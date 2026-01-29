@@ -1,4 +1,4 @@
-package com.hms.common.dto;
+package com.hms.common.dto.event;
 
 import java.time.LocalDateTime;
 

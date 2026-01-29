@@ -37,7 +37,6 @@ public class LabOrderController {
     @PathVariable Long itemId,
     @RequestBody AddLabResultRequest request
   ) {
-    LabOrderDTO updatedOrder = labOrderService.addResultToItem(orderId, itemId, request);
-    return ResponseEntity.ok(updatedOrder);
+    return ResponseEntity.ok(labOrderService.addResultToItem(orderId, itemId, request));
   }
 }

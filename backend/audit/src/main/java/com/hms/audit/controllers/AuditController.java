@@ -20,13 +20,9 @@ public class AuditController {
   private final AuditLogRepository repository;
 
   @GetMapping
-  public ResponseEntity<Page<AuditLog>> getAllLogs(
-    @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "20") int size
-  ) {
-    PageRequest pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
-    return ResponseEntity.ok(repository.findAll(pageable));
+  public ResponseEntity<Page<AuditLog>> getAllLogs(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+    return ResponseEntity.ok(repository.findAll(
+      PageRequest.of(page, size, Sort.by("timestamp").descending())
+    ));
   }
-
-  // futuramente adicionar filtros por data/usuário
 }

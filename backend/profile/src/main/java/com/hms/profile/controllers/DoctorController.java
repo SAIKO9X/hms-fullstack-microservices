@@ -1,6 +1,6 @@
 package com.hms.profile.controllers;
 
-import com.hms.common.security.HmsUserPrincipal;
+import com.hms.common.security.SecurityUtils;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
@@ -16,7 +16,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,63 +29,58 @@ public class DoctorController {
   private final DoctorService doctorService;
 
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public DoctorResponse createDoctorProfile(@Valid @RequestBody DoctorCreateRequest request) {
-    return doctorService.createDoctorProfile(request);
+  public ResponseEntity<DoctorResponse> createDoctorProfile(@Valid @RequestBody DoctorCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(doctorService.createDoctorProfile(request));
   }
 
   @GetMapping
-  @ResponseStatus(HttpStatus.OK)
-  public DoctorResponse getMyProfile(@AuthenticationPrincipal HmsUserPrincipal user) {
-    return doctorService.getDoctorProfileByUserId(user.getId());
+  public ResponseEntity<DoctorResponse> getMyProfile(Authentication authentication) {
+    Long userId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(doctorService.getDoctorProfileByUserId(userId));
   }
 
   @PatchMapping
-  @ResponseStatus(HttpStatus.OK)
-  public DoctorResponse updateMyProfile(
-    @AuthenticationPrincipal HmsUserPrincipal user,
+  public ResponseEntity<DoctorResponse> updateMyProfile(
+    Authentication authentication,
     @Valid @RequestBody DoctorUpdateRequest request
   ) {
-    return doctorService.updateDoctorProfile(user.getId(), request);
+    Long userId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(doctorService.updateDoctorProfile(userId, request));
   }
 
   @GetMapping("/exists/{userId}")
-  @ResponseStatus(HttpStatus.OK)
-  public Boolean doctorProfileExists(@PathVariable Long userId) {
-    return doctorService.doctorProfileExists(userId);
+  public ResponseEntity<Boolean> doctorProfileExists(@PathVariable Long userId) {
+    return ResponseEntity.ok(doctorService.doctorProfileExists(userId));
   }
 
   @GetMapping("/by-user/{userId}")
-  @ResponseStatus(HttpStatus.OK)
-  public DoctorResponse getProfileByUserId(@PathVariable Long userId) {
-    return doctorService.getDoctorProfileByUserId(userId);
+  public ResponseEntity<DoctorResponse> getProfileByUserId(@PathVariable Long userId) {
+    return ResponseEntity.ok(doctorService.getDoctorProfileByUserId(userId));
   }
 
   @GetMapping("/dropdown")
-  @ResponseStatus(HttpStatus.OK)
-  public List<DoctorDropdownResponse> getDoctorsForDropdown() {
-    return doctorService.getDoctorsForDropdown();
+  public ResponseEntity<List<DoctorDropdownResponse>> getDoctorsForDropdown() {
+    return ResponseEntity.ok(doctorService.getDoctorsForDropdown());
   }
 
   @GetMapping("/all")
-  @ResponseStatus(HttpStatus.OK)
-  public Page<DoctorResponse> getAllDoctorProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
-    return doctorService.findAllDoctors(pageable);
+  public ResponseEntity<Page<DoctorResponse>> getAllDoctorProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
+    return ResponseEntity.ok(doctorService.findAllDoctors(pageable));
   }
 
   @GetMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
-  public DoctorResponse getDoctorProfileById(@PathVariable Long id) {
-    return doctorService.getDoctorProfileById(id);
+  public ResponseEntity<DoctorResponse> getDoctorProfileById(@PathVariable Long id) {
+    return ResponseEntity.ok(doctorService.getDoctorProfileById(id));
   }
 
   @PutMapping("/picture")
-  @ResponseStatus(HttpStatus.OK)
-  public void updateDoctorProfilePicture(
-    @AuthenticationPrincipal HmsUserPrincipal user,
+  public ResponseEntity<Void> updateDoctorProfilePicture(
+    Authentication authentication,
     @Valid @RequestBody ProfilePictureUpdateRequest request
   ) {
-    doctorService.updateProfilePicture(user.getId(), request.pictureUrl());
+    Long userId = SecurityUtils.getUserId(authentication);
+    doctorService.updateProfilePicture(userId, request.pictureUrl());
+    return ResponseEntity.ok().build();
   }
 
   @PutMapping("/admin/update/{userId}")

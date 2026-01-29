@@ -1,7 +1,7 @@
 package com.hms.profile.controllers;
 
 import com.hms.common.security.Auditable;
-import com.hms.common.security.HmsUserPrincipal;
+import com.hms.common.security.SecurityUtils;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
@@ -17,7 +17,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,64 +30,61 @@ public class PatientController {
   private final PatientService patientService;
 
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public PatientResponse createPatientProfile(@Valid @RequestBody PatientCreateRequest request) {
-    return patientService.createPatientProfile(request);
+  public ResponseEntity<PatientResponse> createPatientProfile(@Valid @RequestBody PatientCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(patientService.createPatientProfile(request));
   }
 
   @GetMapping
-  @ResponseStatus(HttpStatus.OK)
-  public PatientResponse getMyProfile(@AuthenticationPrincipal HmsUserPrincipal user) {
-    return patientService.getPatientProfileByUserId(user.getId());
+  public ResponseEntity<PatientResponse> getMyProfile(Authentication authentication) {
+    Long userId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(patientService.getPatientProfileByUserId(userId));
   }
 
   @PatchMapping
-  @ResponseStatus(HttpStatus.OK)
-  public PatientResponse updateMyProfile(
-    @AuthenticationPrincipal HmsUserPrincipal user,
-    @Valid @RequestBody PatientUpdateRequest request) {
-    return patientService.updatePatientProfile(user.getId(), request);
+  public ResponseEntity<PatientResponse> updateMyProfile(
+    Authentication authentication,
+    @Valid @RequestBody PatientUpdateRequest request
+  ) {
+    Long userId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(patientService.updatePatientProfile(userId, request));
   }
 
   @GetMapping("/exists/{userId}")
-  @ResponseStatus(HttpStatus.OK)
-  public Boolean patientProfileExists(@PathVariable Long userId) {
-    return patientService.patientProfileExists(userId);
+  public ResponseEntity<Boolean> patientProfileExists(@PathVariable Long userId) {
+    return ResponseEntity.ok(patientService.patientProfileExists(userId));
   }
 
   @GetMapping("/by-user/{userId}")
-  @ResponseStatus(HttpStatus.OK)
-  public PatientResponse getProfileByUserId(@PathVariable Long userId) {
-    return patientService.getPatientProfileByUserId(userId);
+  public ResponseEntity<PatientResponse> getProfileByUserId(@PathVariable Long userId) {
+    return ResponseEntity.ok(patientService.getPatientProfileByUserId(userId));
   }
 
   @GetMapping("/dropdown")
-  @ResponseStatus(HttpStatus.OK)
-  public List<PatientDropdownResponse> getPatientsForDropdown() {
-    return patientService.getPatientsForDropdown();
+  public ResponseEntity<List<PatientDropdownResponse>> getPatientsForDropdown() {
+    return ResponseEntity.ok(patientService.getPatientsForDropdown());
   }
 
   @GetMapping("/all")
-  @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasRole('ADMIN')")
-  public Page<PatientResponse> getAllPatientProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
-    return patientService.findAllPatients(pageable);
+  public ResponseEntity<Page<PatientResponse>> getAllPatientProfiles(@PageableDefault(size = 10, sort = "name") Pageable pageable) {
+    return ResponseEntity.ok(patientService.findAllPatients(pageable));
   }
 
   @GetMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
   @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
   @Auditable(action = "VIEW_PATIENT_PROFILE", resourceName = "PatientProfile")
-  public PatientResponse getPatientProfileById(@PathVariable Long id) {
-    return patientService.getPatientProfileById(id);
+  public ResponseEntity<PatientResponse> getPatientProfileById(@PathVariable Long id) {
+    return ResponseEntity.ok(patientService.getPatientProfileById(id));
   }
 
   @PutMapping("/picture")
-  @ResponseStatus(HttpStatus.OK)
-  public void updatePatientProfilePicture(
-    @AuthenticationPrincipal HmsUserPrincipal user,
-    @Valid @RequestBody ProfilePictureUpdateRequest request) {
-    patientService.updateProfilePicture(user.getId(), request.pictureUrl());
+  public ResponseEntity<Void> updatePatientProfilePicture(
+    Authentication authentication,
+    @Valid @RequestBody ProfilePictureUpdateRequest request
+  ) {
+    Long userId = SecurityUtils.getUserId(authentication);
+    patientService.updateProfilePicture(userId, request.pictureUrl());
+    return ResponseEntity.ok().build();
   }
 
   @PutMapping("/admin/update/{userId}")

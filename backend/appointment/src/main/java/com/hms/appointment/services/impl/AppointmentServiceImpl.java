@@ -51,290 +51,194 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
-    if (!patientReadModelRepository.existsById(patientId)) {
-      throw new ProfileNotFoundException("Perfil do paciente com ID " + patientId + " não encontrado.");
-    }
-    if (!doctorReadModelRepository.existsById(request.doctorId())) {
-      throw new ProfileNotFoundException("Perfil do doutor com ID " + request.doctorId() + " não encontrado.");
-    }
+    if (!patientReadModelRepository.existsById(patientId))
+      throw new ProfileNotFoundException("Paciente não encontrado.");
+    if (!doctorReadModelRepository.existsById(request.doctorId()))
+      throw new ProfileNotFoundException("Médico não encontrado.");
 
     int duration = request.duration() != null ? request.duration() : 60;
-    LocalDateTime appointmentStart = request.appointmentDateTime();
-    LocalDateTime appointmentEnd = appointmentStart.plusMinutes(duration);
+    LocalDateTime start = request.appointmentDateTime();
+    LocalDateTime end = start.plusMinutes(duration);
 
-    validateBusinessHours(appointmentStart);
-    validateMinimumAdvanceBooking(appointmentStart);
-    validateMaximumAdvanceBooking(appointmentStart);
-    validatePatientDailyLimit(patientId, appointmentStart);
-    validateDoctorAvailability(request.doctorId(), appointmentStart, appointmentEnd);
-    validateDoctorUnavailability(request.doctorId(), appointmentStart, appointmentEnd);
-
-    if (appointmentRepository.hasDoctorConflict(request.doctorId(), appointmentStart, appointmentEnd)) {
-      throw new SchedulingConflictException("O médico já possui uma consulta agendada neste período.");
-    }
-
-    if (appointmentRepository.hasPatientConflict(patientId, appointmentStart, appointmentEnd)) {
-      throw new SchedulingConflictException("Você já possui outra consulta agendada neste mesmo horário (com este ou outro médico).");
-    }
+    validateNewAppointment(patientId, request.doctorId(), start, end);
 
     Appointment appointment = new Appointment();
     appointment.setPatientId(patientId);
     appointment.setDoctorId(request.doctorId());
-    appointment.setAppointmentDateTime(appointmentStart);
+    appointment.setAppointmentDateTime(start);
     appointment.setDuration(duration);
-    appointment.setAppointmentEndTime(appointmentEnd);
+    appointment.setAppointmentEndTime(end);
     appointment.setReason(request.reason());
     appointment.setStatus(AppointmentStatus.SCHEDULED);
 
     if (request.type() == AppointmentType.ONLINE) {
       appointment.setType(AppointmentType.ONLINE);
-      String meetingId = "hms-consult-" + System.currentTimeMillis() + "-" + patientId + "-" + request.doctorId();
-      appointment.setMeetingUrl("https://meet.jit.si/" + meetingId);
+      appointment.setMeetingUrl("https://meet.jit.si/hms-" + System.currentTimeMillis() + "-" + patientId);
     } else {
       appointment.setType(AppointmentType.IN_PERSON);
-      appointment.setMeetingUrl(null);
     }
 
-    Appointment savedAppointment = appointmentRepository.save(appointment);
+    Appointment saved = appointmentRepository.save(appointment);
+    publishStatusEvent(saved, "SCHEDULED", null);
+    scheduleReminder(saved);
 
-    publishStatusEvent(savedAppointment, "SCHEDULED", null);
-    scheduleReminder(savedAppointment);
-
-    return AppointmentResponse.fromEntity(savedAppointment);
+    return AppointmentResponse.fromEntity(saved);
   }
 
   @Override
   @Transactional(readOnly = true)
   public AppointmentResponse getAppointmentById(Long appointmentId, Long requesterId) {
-    Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
-
-    if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado. Você não faz parte desta consulta.");
-    }
-    return AppointmentResponse.fromEntity(appointment);
+    Appointment app = findAppointmentByIdOrThrow(appointmentId);
+    validateAccess(app, requesterId);
+    return AppointmentResponse.fromEntity(app);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Page<AppointmentResponse> getAppointmentsForPatient(Long patientId, Pageable pageable) {
-    return appointmentRepository.findByPatientId(patientId, pageable)
-      .map(AppointmentResponse::fromEntity);
+    return appointmentRepository.findByPatientId(patientId, pageable).map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Page<AppointmentResponse> getAppointmentsForDoctor(Long doctorId, Pageable pageable) {
-    return appointmentRepository.findByDoctorId(doctorId, pageable)
-      .map(AppointmentResponse::fromEntity);
+    return appointmentRepository.findByDoctorId(doctorId, pageable).map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
   public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId, String dateFilter) {
     List<Appointment> appointments;
-    LocalDateTime start;
-    LocalDateTime end;
 
-    if ("today".equalsIgnoreCase(dateFilter)) {
-      start = LocalDate.now().atStartOfDay();
-      end = LocalDate.now().atTime(23, 59, 59);
-      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
-    } else if ("week".equalsIgnoreCase(dateFilter)) {
-      start = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
-      end = LocalDate.now().with(DayOfWeek.SUNDAY).atTime(23, 59, 59);
-      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
-    } else if ("month".equalsIgnoreCase(dateFilter)) {
-      start = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-      end = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth()).atTime(23, 59, 59);
-      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, start, end);
-    } else {
+    if (dateFilter == null || "all".equalsIgnoreCase(dateFilter)) {
       appointments = appointmentRepository.findByDoctorId(doctorId);
+    } else {
+      var range = calculateDateRange(dateFilter);
+      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, range.start(), range.end());
     }
 
-    if (appointments.isEmpty()) {
-      return new ArrayList<>();
-    }
+    if (appointments.isEmpty()) return List.of();
 
+    // cache local simples para evitar N+1 queries no DoctorReadModel
     DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
-      .orElse(new DoctorReadModel(doctorId, null, "Médico (Sincronizando)", "N/A", null));
+      .orElse(new DoctorReadModel(doctorId, null, "Médico", "N/A", null));
 
-    List<AppointmentDetailResponse> appointmentDetails = new ArrayList<>();
-
-    for (Appointment appointment : appointments) {
-      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null, null));
-
-      appointmentDetails.add(new AppointmentDetailResponse(
-        appointment.getId(),
-        appointment.getPatientId(),
-        patient.getFullName(),
-        patient.getPhoneNumber(),
-        appointment.getDoctorId(),
-        doctor.getFullName(),
-        appointment.getAppointmentDateTime(),
-        appointment.getReason(),
-        appointment.getStatus()
-      ));
-    }
-    return appointmentDetails;
+    return appointments.stream()
+      .map(app -> mapToDetailResponse(app, doctor))
+      .collect(Collectors.toList());
   }
 
   @Override
   @Transactional
   public AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterId) {
-    Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+    Appointment app = findAppointmentByIdOrThrow(appointmentId);
+    validateAccess(app, requesterId);
 
-    if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado.");
-    }
-    if (appointment.getStatus() != AppointmentStatus.SCHEDULED) {
+    if (app.getStatus() != AppointmentStatus.SCHEDULED)
       throw new InvalidUpdateException("Apenas consultas agendadas podem ser remarcadas.");
-    }
 
-    int duration = appointment.getDuration() != null ? appointment.getDuration() : 60;
+    int duration = app.getDuration() != null ? app.getDuration() : 60;
     LocalDateTime newEnd = newDateTime.plusMinutes(duration);
 
-    if (appointmentRepository.hasDoctorConflictExcludingId(appointment.getDoctorId(), newDateTime, newEnd, appointmentId)) {
-      throw new SchedulingConflictException("O doutor já possui uma consulta agendada para este novo horário.");
+    if (appointmentRepository.hasDoctorConflictExcludingId(app.getDoctorId(), newDateTime, newEnd, appointmentId)) {
+      throw new SchedulingConflictException("Conflito de horário com outra consulta.");
     }
+    validateAvailability(app.getDoctorId(), newDateTime, newEnd);
 
-    validateDoctorAvailability(appointment.getDoctorId(), newDateTime, newEnd);
-    validateDoctorUnavailability(appointment.getDoctorId(), newDateTime, newEnd);
-
-    LocalDateTime oldDate = appointment.getAppointmentDateTime();
+    LocalDateTime oldDate = app.getAppointmentDateTime();
     AuditChangeTracker.addChange("appointmentDateTime", oldDate, newDateTime);
 
-    appointment.setAppointmentDateTime(newDateTime);
-    appointment.setAppointmentEndTime(newEnd);
-    appointment.setReminder24hSent(false);
-    appointment.setReminder1hSent(false);
+    app.setAppointmentDateTime(newDateTime);
+    app.setAppointmentEndTime(newEnd);
+    app.setReminder24hSent(false);
+    app.setReminder1hSent(false);
 
-    Appointment savedAppointment = appointmentRepository.save(appointment);
+    Appointment saved = appointmentRepository.save(app);
+    publishStatusEvent(saved, "RESCHEDULED", "De: " + oldDate);
+    checkAndNotifyWaitlist(saved.getDoctorId(), oldDate);
+    scheduleReminder(saved);
 
-    publishStatusEvent(savedAppointment, "RESCHEDULED", "Nova data: " + newDateTime);
-    checkAndNotifyWaitlist(savedAppointment.getDoctorId(), oldDate);
-    scheduleReminder(savedAppointment);
-
-    return AppointmentResponse.fromEntity(savedAppointment);
+    return AppointmentResponse.fromEntity(saved);
   }
 
   @Override
   @Transactional
   public AppointmentResponse cancelAppointment(Long appointmentId, Long requesterId) {
-    Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+    Appointment app = findAppointmentByIdOrThrow(appointmentId);
+    validateAccess(app, requesterId);
 
-    if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado.");
-    }
-    if (appointment.getStatus() != AppointmentStatus.SCHEDULED) {
-      throw new InvalidUpdateException("Apenas consultas agendadas podem ser canceladas.");
-    }
+    if (app.getStatus() != AppointmentStatus.SCHEDULED)
+      throw new InvalidUpdateException("Status inválido para cancelamento.");
 
-    AuditChangeTracker.addChange("status", appointment.getStatus(), AppointmentStatus.CANCELED);
+    AuditChangeTracker.addChange("status", app.getStatus(), AppointmentStatus.CANCELED);
+    app.setStatus(AppointmentStatus.CANCELED);
 
-    appointment.setStatus(AppointmentStatus.CANCELED);
-    Appointment savedAppointment = appointmentRepository.save(appointment);
+    Appointment saved = appointmentRepository.save(app);
+    publishStatusEvent(saved, "CANCELED", "Solicitado pelo usuário");
+    checkAndNotifyWaitlist(app.getDoctorId(), app.getAppointmentDateTime());
 
-    publishStatusEvent(savedAppointment, "CANCELED", "Cancelado pelo usuário");
-
-    checkAndNotifyWaitlist(appointment.getDoctorId(), appointment.getAppointmentDateTime());
-
-    return AppointmentResponse.fromEntity(savedAppointment);
+    return AppointmentResponse.fromEntity(saved);
   }
 
   @Override
   @Transactional
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId) {
-    Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+    Appointment app = findAppointmentByIdOrThrow(appointmentId);
+    if (!app.getDoctorId().equals(doctorId)) throw new SecurityException("Apenas o médico responsável pode finalizar.");
 
-    if (!appointment.getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Apenas o doutor responsável pode completar a consulta.");
-    }
-    if (appointment.getStatus() != AppointmentStatus.SCHEDULED && appointment.getStatus() != AppointmentStatus.COMPLETED) {
-      throw new InvalidUpdateException("Status inválido para edição de prontuário.");
+    if (app.getStatus() != AppointmentStatus.SCHEDULED && app.getStatus() != AppointmentStatus.COMPLETED) {
+      throw new InvalidUpdateException("Status inválido.");
     }
 
-    String oldNotes = appointment.getNotes();
-    AppointmentStatus oldStatus = appointment.getStatus();
+    if (!Objects.equals(app.getNotes(), notes)) AuditChangeTracker.addChange("notes", app.getNotes(), notes);
+    if (app.getStatus() != AppointmentStatus.COMPLETED)
+      AuditChangeTracker.addChange("status", app.getStatus(), AppointmentStatus.COMPLETED);
 
-    if (!Objects.equals(oldNotes, notes)) {
-      AuditChangeTracker.addChange("notes", oldNotes, notes);
-    }
-    if (oldStatus != AppointmentStatus.COMPLETED) {
-      AuditChangeTracker.addChange("status", oldStatus, AppointmentStatus.COMPLETED);
-    }
-    appointment.setStatus(AppointmentStatus.COMPLETED);
-    appointment.setNotes(notes);
-
-    return AppointmentResponse.fromEntity(appointmentRepository.save(appointment));
+    app.setStatus(AppointmentStatus.COMPLETED);
+    app.setNotes(notes);
+    return AppointmentResponse.fromEntity(appointmentRepository.save(app));
   }
 
+  @Override
   @Transactional(readOnly = true)
   public AppointmentDetailResponse getAppointmentDetailsById(Long appointmentId, Long requesterId) {
-    Appointment appointment = findAppointmentByIdOrThrow(appointmentId);
+    Appointment app = findAppointmentByIdOrThrow(appointmentId);
+    validateAccess(app, requesterId);
 
-    if (!appointment.getPatientId().equals(requesterId) && !appointment.getDoctorId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado.");
-    }
-
-    PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-      .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente Desconhecido", "N/A", null, null));
-
-    DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
-      .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico Desconhecido", "N/A", null));
-
-    return new AppointmentDetailResponse(
-      appointment.getId(),
-      appointment.getPatientId(),
-      patient.getFullName(),
-      patient.getPhoneNumber(),
-      appointment.getDoctorId(),
-      doctor.getFullName(),
-      appointment.getAppointmentDateTime(),
-      appointment.getReason(),
-      appointment.getStatus()
-    );
+    DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
+    return mapToDetailResponse(app, doctor);
   }
 
   @Override
   @Transactional(readOnly = true)
   public AppointmentResponse getNextAppointmentForPatient(Long patientId) {
-    return appointmentRepository
-      .findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
-        patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now())
-      .map(AppointmentResponse::fromEntity)
-      .orElse(null);
+    return appointmentRepository.findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
+      patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now()).map(AppointmentResponse::fromEntity).orElse(null);
   }
 
   @Override
-  @Transactional(readOnly = true)
   public AppointmentStatsResponse getAppointmentStatsForPatient(Long patientId) {
-    List<Appointment> appointments = appointmentRepository.findByPatientId(patientId);
-    long total = appointments.size();
-    long scheduled = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED).count();
-    long completed = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
-    long canceled = appointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELED).count();
-    return new AppointmentStatsResponse(total, scheduled, completed, canceled);
+    List<Appointment> apps = appointmentRepository.findByPatientId(patientId);
+    return new AppointmentStatsResponse(
+      apps.size(),
+      apps.stream().filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED).count(),
+      apps.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count(),
+      apps.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELED).count()
+    );
   }
 
   @Override
   public DoctorDashboardStatsResponse getDoctorDashboardStats(Long doctorId) {
-    long appointmentsToday = appointmentRepository.countAppointmentsForToday(doctorId);
+    long today = appointmentRepository.countAppointmentsForToday(doctorId);
+    long weekCompleted = appointmentRepository.countCompletedAppointmentsSince(doctorId, LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay());
 
-    LocalDateTime startOfWeek = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
-    long completedThisWeek = appointmentRepository.countCompletedAppointmentsSince(doctorId, startOfWeek);
+    Map<AppointmentStatus, Long> distribution = new EnumMap<>(AppointmentStatus.class);
+    Arrays.stream(AppointmentStatus.values()).forEach(s -> distribution.put(s, 0L));
 
-    Map<AppointmentStatus, Long> statusDistribution = appointmentRepository.countAppointmentsByStatus(doctorId)
-      .stream()
-      .collect(Collectors.toMap(
-        row -> (AppointmentStatus) row[0],
-        row -> (Long) row[1]
-      ));
+    appointmentRepository.countAppointmentsByStatus(doctorId).forEach(row ->
+      distribution.put((AppointmentStatus) row[0], (Long) row[1]));
 
-    Arrays.stream(AppointmentStatus.values())
-      .forEach(status -> statusDistribution.putIfAbsent(status, 0L));
-
-    return new DoctorDashboardStatsResponse(appointmentsToday, completedThisWeek, statusDistribution);
+    return new DoctorDashboardStatsResponse(today, weekCompleted, distribution);
   }
 
   @Override
@@ -344,60 +248,34 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   public List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId) {
-    Map<String, List<String>> conditionVariations = Map.of(
+    var groups = Map.of(
       "Diabéticos", List.of("diabetes", "diabético", "glicemia"),
       "Hipertensos", List.of("hipertensão", "pressão alta", "has"),
-      "Asmáticos", List.of("asma", "bronquite"),
-      "Cardíacos", List.of("cardíaco", "cardiopatia", "infarto"),
-      "Colesterol", List.of("colesterol", "dislipidemia", "ldl")
+      "Cardíacos", List.of("cardíaco", "cardiopatia", "infarto")
     );
 
-    return conditionVariations.entrySet().stream()
+    return groups.entrySet().stream()
       .map(entry -> {
-        String groupName = entry.getKey();
-        List<String> keywords = entry.getValue();
-
-        Set<Long> uniquePatientIds = new HashSet<>();
-        for (String keyword : keywords) {
-          uniquePatientIds.addAll(
-            appointmentRepository.findDistinctPatientIdsByDoctorAndDiagnosisKeyword(doctorId, keyword)
-          );
-        }
-
-        return new PatientGroupResponse(groupName, uniquePatientIds.size());
+        Set<Long> ids = new HashSet<>();
+        entry.getValue().forEach(k -> ids.addAll(appointmentRepository.findDistinctPatientIdsByDoctorAndDiagnosisKeyword(doctorId, k)));
+        return new PatientGroupResponse(entry.getKey(), ids.size());
       })
-      .filter(group -> group.patientCount() > 0)
+      .filter(g -> g.patientCount() > 0)
       .sorted((a, b) -> Long.compare(b.patientCount(), a.patientCount()))
-      .collect(Collectors.toList());
+      .toList();
   }
 
   @Override
   public List<DailyActivityDto> getDailyActivityStats() {
-    LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
-
-    List<Object[]> appointmentCounts = appointmentRepository.countAppointmentsFromDateGroupedByDay(thirtyDaysAgo);
-    Map<LocalDate, Long> appointmentsByDay = appointmentCounts.stream()
-      .collect(Collectors.toMap(
-        row -> ((java.sql.Date) row[0]).toLocalDate(),
-        row -> (Long) row[1]
-      ));
-
-    List<Object[]> firstAppointments = appointmentRepository.findFirstAppointmentDateForPatients(thirtyDaysAgo);
-    Map<LocalDate, Long> newPatientsByDay = firstAppointments.stream()
-      .collect(Collectors.groupingBy(
-        row -> ((java.sql.Date) row[1]).toLocalDate(),
-        Collectors.counting()
-      ));
+    LocalDateTime start = LocalDateTime.now().minusDays(30);
+    Map<LocalDate, Long> appointments = mapQueryResults(appointmentRepository.countAppointmentsFromDateGroupedByDay(start));
+    Map<LocalDate, Long> newPatients = mapQueryResults(appointmentRepository.findFirstAppointmentDateForPatients(start));
 
     return IntStream.range(0, 30)
       .mapToObj(i -> LocalDate.now().minusDays(i))
-      .map(date -> new DailyActivityDto(
-        date,
-        newPatientsByDay.getOrDefault(date, 0L),
-        appointmentsByDay.getOrDefault(date, 0L)
-      ))
+      .map(d -> new DailyActivityDto(d, newPatients.getOrDefault(d, 0L), appointments.getOrDefault(d, 0L)))
       .sorted(Comparator.comparing(DailyActivityDto::date))
-      .collect(Collectors.toList());
+      .toList();
   }
 
   @Override
@@ -409,183 +287,33 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional(readOnly = true)
   public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
     return appointmentRepository.findByPatientIdAndAppointmentDateTimeBefore(patientId, LocalDateTime.now())
-      .stream()
-      .map(AppointmentResponse::fromEntity)
-      .collect(Collectors.toList());
+      .stream().map(AppointmentResponse::fromEntity).toList();
   }
 
   @Override
   @Transactional
   public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
     int duration = request.duration() != null ? request.duration() : 60;
-    LocalDateTime end = request.appointmentDateTime().plusMinutes(duration);
-
-    boolean hasConflict = appointmentRepository.hasDoctorConflict(
-      request.doctorId(),
-      request.appointmentDateTime(),
-      end
-    );
-
-    if (!hasConflict) {
-      throw new InvalidUpdateException("Este horário está disponível. Você pode agendá-lo diretamente.");
+    if (!appointmentRepository.hasDoctorConflict(request.doctorId(), request.appointmentDateTime(), request.appointmentDateTime().plusMinutes(duration))) {
+      throw new InvalidUpdateException("Horário disponível. Agende diretamente.");
+    }
+    if (waitlistRepository.existsByPatientIdAndDoctorIdAndDate(patientId, request.doctorId(), request.appointmentDateTime().toLocalDate())) {
+      throw new InvalidUpdateException("Você já está na fila para este dia.");
     }
 
-    boolean alreadyInQueue = waitlistRepository.existsByPatientIdAndDoctorIdAndDate(
-      patientId,
-      request.doctorId(),
-      request.appointmentDateTime().toLocalDate()
-    );
-
-    if (alreadyInQueue) {
-      throw new InvalidUpdateException("Você já está na fila de espera para este dia.");
-    }
-
-    PatientReadModel patient = patientReadModelRepository.findById(patientId)
-      .orElseThrow(() -> new ProfileNotFoundException("Paciente não encontrado."));
-
-    WaitlistEntry entry = new WaitlistEntry();
-    entry.setDoctorId(request.doctorId());
-    entry.setPatientId(patientId);
-    entry.setPatientName(patient.getFullName());
-    entry.setPatientEmail(patient.getEmail());
-    entry.setDate(request.appointmentDateTime().toLocalDate());
-
-    waitlistRepository.save(entry);
-    log.info("Paciente {} entrou na fila de espera para o médico ID {}", patientId, request.doctorId());
+    PatientReadModel p = patientReadModelRepository.findById(patientId).orElseThrow(() -> new ProfileNotFoundException("Paciente não encontrado."));
+    waitlistRepository.save(new WaitlistEntry(null, request.doctorId(), patientId, p.getFullName(), p.getEmail(), request.appointmentDateTime().toLocalDate(), LocalDateTime.now()));
   }
 
   @Override
   public List<DoctorPatientSummaryDto> getPatientsForDoctor(Long doctorId) {
-    List<DoctorPatientSummaryProjection> projections = appointmentRepository.findPatientsSummaryByDoctor(doctorId);
-    LocalDateTime limitDate = LocalDateTime.now().minusMonths(6);
-    return projections.stream()
+    return appointmentRepository.findPatientsSummaryByDoctor(doctorId).stream()
       .map(p -> new DoctorPatientSummaryDto(
-        p.getPatientId(),
-        p.getUserId(),
-        p.getPatientName(),
-        p.getPatientEmail(),
-        p.getTotalAppointments(),
-        p.getLastAppointmentDate(),
-        p.getLastAppointmentDate().isAfter(limitDate) ? "ACTIVE" : "INACTIVE",
+        p.getPatientId(), p.getUserId(), p.getPatientName(), p.getPatientEmail(),
+        p.getTotalAppointments(), p.getLastAppointmentDate(),
+        p.getLastAppointmentDate().isAfter(LocalDateTime.now().minusMonths(6)) ? "ACTIVE" : "INACTIVE",
         p.getProfilePicture()
-      ))
-      .toList();
-  }
-
-  @Override
-  @Transactional
-  public AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request) {
-    if (request.startTime().isAfter(request.endTime())) {
-      throw new InvalidUpdateException("O horário de início deve ser anterior ao horário de fim.");
-    }
-
-    List<DoctorAvailability> existingSlots = availabilityRepository.findByDoctorId(doctorId);
-
-    boolean hasConflict = existingSlots.stream()
-      .filter(slot -> slot.getDayOfWeek() == request.dayOfWeek())
-      .anyMatch(slot ->
-        (request.startTime().isBefore(slot.getEndTime()) && request.endTime().isAfter(slot.getStartTime()))
-      );
-
-    if (hasConflict) {
-      throw new InvalidUpdateException("Você já possui um horário configurado que conflita com este período.");
-    }
-
-    DoctorAvailability availability = DoctorAvailability.builder()
-      .doctorId(doctorId)
-      .dayOfWeek(request.dayOfWeek())
-      .startTime(request.startTime())
-      .endTime(request.endTime())
-      .build();
-
-    DoctorAvailability saved = availabilityRepository.save(availability);
-
-    return new AvailabilityResponse(
-      saved.getId(),
-      saved.getDayOfWeek(),
-      saved.getStartTime(),
-      saved.getEndTime()
-    );
-  }
-
-  @Override
-  @Transactional(readOnly = true)
-  public List<AvailabilityResponse> getDoctorAvailability(Long doctorId) {
-    return availabilityRepository.findByDoctorId(doctorId).stream()
-      .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime()))
-      .collect(Collectors.toList());
-  }
-
-  @Override
-  @Transactional
-  public void deleteAvailability(Long availabilityId) {
-    availabilityRepository.deleteById(availabilityId);
-  }
-
-  private void validateDoctorAvailability(Long doctorId, LocalDateTime start, LocalDateTime end) {
-    List<DoctorAvailability> settings = availabilityRepository.findByDoctorId(doctorId);
-    if (settings.isEmpty()) return;
-
-    DayOfWeek day = start.getDayOfWeek();
-    LocalTime startTime = start.toLocalTime();
-    LocalTime endTime = end.toLocalTime();
-
-    boolean isCovered = settings.stream()
-      .anyMatch(slot ->
-        slot.getDayOfWeek() == day &&
-          !startTime.isBefore(slot.getStartTime()) &&
-          !endTime.isAfter(slot.getEndTime())
-      );
-
-    if (!isCovered) {
-      throw new InvalidUpdateException("O médico não atende neste horário/dia ou a consulta não cabe no período disponível.");
-    }
-  }
-
-  private void validateDoctorUnavailability(Long doctorId, LocalDateTime start, LocalDateTime end) {
-    boolean isBlocked = unavailabilityRepository.hasUnavailability(
-      doctorId,
-      start,
-      end
-    );
-
-    if (isBlocked) {
-      throw new SchedulingConflictException("O médico não está disponível neste horário (Férias/Bloqueio administrativo).");
-    }
-  }
-
-  private void validateBusinessHours(LocalDateTime appointmentDateTime) {
-    LocalTime time = appointmentDateTime.toLocalTime();
-    if (time.isBefore(LocalTime.of(6, 0)) || time.isAfter(LocalTime.of(22, 0))) {
-      throw new InvalidUpdateException("Horário de agendamento deve estar entre 06:00 e 22:00.");
-    }
-  }
-
-  private void validateMinimumAdvanceBooking(LocalDateTime appointmentDateTime) {
-    LocalDateTime minimumTime = LocalDateTime.now().plusHours(2);
-    if (appointmentDateTime.isBefore(minimumTime)) {
-      throw new InvalidUpdateException("Agendamentos devem ser feitos com pelo menos 2 horas de antecedência.");
-    }
-  }
-
-  private void validateMaximumAdvanceBooking(LocalDateTime appointmentDateTime) {
-    LocalDateTime maxTime = LocalDateTime.now().plusMonths(3);
-    if (appointmentDateTime.isAfter(maxTime)) {
-      throw new InvalidUpdateException("Não é possível agendar consultas com mais de 3 meses de antecedência.");
-    }
-  }
-
-  private void validatePatientDailyLimit(Long patientId, LocalDateTime appointmentDateTime) {
-    LocalDate date = appointmentDateTime.toLocalDate();
-    long appointmentsOnDay = appointmentRepository.countByPatientIdAndDate(patientId, date);
-    if (appointmentsOnDay >= 2) {
-      throw new InvalidUpdateException("Você atingiu o limite de 2 agendamentos ativos para este dia.");
-    }
-  }
-
-  private Appointment findAppointmentByIdOrThrow(Long appointmentId) {
-    return appointmentRepository.findById(appointmentId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Agendamento com ID " + appointmentId + " não encontrado."));
+      )).toList();
   }
 
   @Override
@@ -594,104 +322,157 @@ public class AppointmentServiceImpl implements AppointmentService {
     return appointmentRepository.findDoctorsSummaryByPatient(patientId);
   }
 
-  private void publishStatusEvent(Appointment appointment, String statusOverride, String notes) {
-    try {
-      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId())
-        .orElse(new PatientReadModel(appointment.getPatientId(), null, "Paciente", null, "email@exemplo.com", null));
+  @Override
+  @Transactional
+  public AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request) {
+    if (request.startTime().isAfter(request.endTime()))
+      throw new InvalidUpdateException("Início deve ser antes do fim.");
 
-      DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId())
-        .orElse(new DoctorReadModel(appointment.getDoctorId(), null, "Médico", "Geral", null));
+    boolean conflict = availabilityRepository.findByDoctorId(doctorId).stream()
+      .filter(s -> s.getDayOfWeek() == request.dayOfWeek())
+      .anyMatch(s -> request.startTime().isBefore(s.getEndTime()) && request.endTime().isAfter(s.getStartTime()));
 
-      AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
-        appointment.getId(),
-        appointment.getPatientId(),
-        patient.getEmail(),
-        patient.getFullName(),
-        doctor.getFullName(),
-        appointment.getAppointmentDateTime(),
-        statusOverride != null ? statusOverride : appointment.getStatus().name(),
-        notes
-      );
+    if (conflict) throw new InvalidUpdateException("Conflito com horário existente.");
 
-      String statusRoutingKey = "appointment.status.changed";
-      rabbitTemplate.convertAndSend(exchange, statusRoutingKey, event);
-      log.info("Evento de status de agendamento publicado: {}", statusOverride);
+    DoctorAvailability saved = availabilityRepository.save(DoctorAvailability.builder()
+      .doctorId(doctorId).dayOfWeek(request.dayOfWeek()).startTime(request.startTime()).endTime(request.endTime()).build());
+    return new AvailabilityResponse(saved.getId(), saved.getDayOfWeek(), saved.getStartTime(), saved.getEndTime());
+  }
 
-    } catch (Exception e) {
-      log.error("Erro ao publicar evento de agendamento", e);
+  @Override
+  public List<AvailabilityResponse> getDoctorAvailability(Long doctorId) {
+    return availabilityRepository.findByDoctorId(doctorId).stream()
+      .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime())).toList();
+  }
+
+  @Override
+  public void deleteAvailability(Long id) {
+    availabilityRepository.deleteById(id);
+  }
+
+  @Override
+  public List<Long> getActiveDoctorIdsInLastHour() {
+    return appointmentRepository.findByAppointmentDateTimeBetween(LocalDateTime.now().minusHours(1), LocalDateTime.now())
+      .stream().map(Appointment::getDoctorId).distinct().toList();
+  }
+
+  // --- PRIVATE HELPERS ---
+
+  private void validateNewAppointment(Long patientId, Long doctorId, LocalDateTime start, LocalDateTime end) {
+    validateBusinessHours(start);
+    if (start.isBefore(LocalDateTime.now().plusHours(2)))
+      throw new InvalidUpdateException("Antecedência mínima de 2h.");
+    if (start.isAfter(LocalDateTime.now().plusMonths(3)))
+      throw new InvalidUpdateException("Antecedência máxima de 3 meses.");
+    if (appointmentRepository.countByPatientIdAndDate(patientId, start.toLocalDate()) >= 2)
+      throw new InvalidUpdateException("Limite diário atingido.");
+
+    validateAvailability(doctorId, start, end);
+
+    if (appointmentRepository.hasDoctorConflict(doctorId, start, end))
+      throw new SchedulingConflictException("Médico ocupado.");
+    if (appointmentRepository.hasPatientConflict(patientId, start, end))
+      throw new SchedulingConflictException("Você já tem consulta neste horário.");
+  }
+
+  private void validateAvailability(Long doctorId, LocalDateTime start, LocalDateTime end) {
+    boolean isBlocked = unavailabilityRepository.hasUnavailability(doctorId, start, end);
+    if (isBlocked) throw new SchedulingConflictException("Médico indisponível (Bloqueio).");
+
+    List<DoctorAvailability> slots = availabilityRepository.findByDoctorId(doctorId);
+    if (slots.isEmpty())
+      return; // Se não tem agenda definida, assume disponível (ou bloqueia tudo, dependendo da regra de negócio)
+
+    boolean isCovered = slots.stream().anyMatch(slot ->
+      slot.getDayOfWeek() == start.getDayOfWeek() &&
+        !start.toLocalTime().isBefore(slot.getStartTime()) &&
+        !end.toLocalTime().isAfter(slot.getEndTime()));
+
+    if (!isCovered) throw new InvalidUpdateException("Fora do horário de atendimento do médico.");
+  }
+
+  private void validateBusinessHours(LocalDateTime date) {
+    LocalTime t = date.toLocalTime();
+    if (t.isBefore(LocalTime.of(6, 0)) || t.isAfter(LocalTime.of(22, 0)))
+      throw new InvalidUpdateException("Horário inválido (06h-22h).");
+  }
+
+  private void validateAccess(Appointment app, Long requesterId) {
+    if (!app.getPatientId().equals(requesterId) && !app.getDoctorId().equals(requesterId)) {
+      throw new SecurityException("Acesso negado.");
     }
   }
 
-  private void scheduleReminder(Appointment appointment) {
+  private Appointment findAppointmentByIdOrThrow(Long id) {
+    return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
+  }
+
+  private DateRange calculateDateRange(String filter) {
+    LocalDateTime now = LocalDate.now().atStartOfDay();
+    if ("today".equalsIgnoreCase(filter)) return new DateRange(now, now.plusDays(1).minusNanos(1));
+    if ("week".equalsIgnoreCase(filter))
+      return new DateRange(now.with(DayOfWeek.MONDAY), now.with(DayOfWeek.SUNDAY).plusDays(1).minusNanos(1));
+    if ("month".equalsIgnoreCase(filter))
+      return new DateRange(now.withDayOfMonth(1), now.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1).minusNanos(1));
+    return new DateRange(now.minusYears(1), now.plusYears(1)); // Default fallback
+  }
+
+  private AppointmentDetailResponse mapToDetailResponse(Appointment app, DoctorReadModel doctor) {
+    PatientReadModel p = patientReadModelRepository.findById(app.getPatientId())
+      .orElse(new PatientReadModel(app.getPatientId(), null, "Paciente", "N/A", null, null));
+    String docName = (doctor != null) ? doctor.getFullName() : "Dr. Desconhecido";
+    return new AppointmentDetailResponse(app.getId(), app.getPatientId(), p.getFullName(), p.getPhoneNumber(),
+      app.getDoctorId(), docName, app.getAppointmentDateTime(), app.getReason(), app.getStatus());
+  }
+
+  private Map<LocalDate, Long> mapQueryResults(List<Object[]> results) {
+    return results.stream().collect(Collectors.toMap(
+      r -> ((java.sql.Date) r[0]).toLocalDate(), r -> (Long) r[1]
+    ));
+  }
+
+  private void publishStatusEvent(Appointment app, String status, String notes) {
     try {
-      PatientReadModel patient = patientReadModelRepository.findById(appointment.getPatientId()).orElse(null);
-      DoctorReadModel doctor = doctorReadModelRepository.findById(appointment.getDoctorId()).orElse(null);
+      var patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
+      var doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
+      if (patient != null && doctor != null) {
+        rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", new AppointmentStatusChangedEvent(
+          app.getId(), app.getPatientId(), patient.getEmail(), patient.getFullName(), doctor.getFullName(),
+          app.getAppointmentDateTime(), status, notes
+        ));
+      }
+    } catch (Exception e) {
+      log.error("Erro RabbitMQ Status: {}", e.getMessage());
+    }
+  }
 
-      if (patient == null || doctor == null) return;
-
-      long delay = calculateDelay(appointment.getAppointmentDateTime());
-
+  private void scheduleReminder(Appointment app) {
+    try {
+      long delay = Duration.between(LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
       if (delay > 0) {
-        AppointmentEvent event = new AppointmentEvent(
-          appointment.getId(),
-          appointment.getPatientId(),
-          patient.getEmail(),
-          doctor.getFullName(),
-          appointment.getAppointmentDateTime(),
-          appointment.getMeetingUrl()
-        );
-
-        rabbitTemplate.convertAndSend(
-          RabbitMQConfig.DELAYED_EXCHANGE,
-          RabbitMQConfig.REMINDER_ROUTING_KEY,
-          event,
-          message -> {
-            message.getMessageProperties().setHeader("x-delay", delay);
-            return message;
-          }
-        );
-        log.info("Lembrete agendado para consulta ID: {} com delay de {} ms", appointment.getId(), delay);
+        var event = new AppointmentEvent(app.getId(), app.getPatientId(), "email-placeholder", "dr-placeholder", app.getAppointmentDateTime(), app.getMeetingUrl());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.DELAYED_EXCHANGE, RabbitMQConfig.REMINDER_ROUTING_KEY, event, m -> {
+          m.getMessageProperties().setHeader("x-delay", delay);
+          return m;
+        });
       }
     } catch (Exception e) {
-      log.error("Falha ao agendar lembrete", e);
+      log.error("Erro RabbitMQ Lembrete: {}", e.getMessage());
     }
   }
 
-  private long calculateDelay(LocalDateTime appointmentTime) {
-    LocalDateTime reminderTime = appointmentTime.minusHours(24);
-    LocalDateTime now = LocalDateTime.now();
-    if (now.isAfter(reminderTime)) {
-      return -1;
-    }
-    return Duration.between(now, reminderTime).toMillis();
-  }
-
-  private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime slotDateTime) {
+  private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime date) {
     try {
-      Optional<WaitlistEntry> entryOpt = waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(
-        doctorId,
-        slotDateTime.toLocalDate()
-      );
-
-      if (entryOpt.isPresent()) {
-        WaitlistEntry entry = entryOpt.get();
-        DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
-          .orElse(new DoctorReadModel(doctorId, null, "Médico", "Geral", null));
-
-        WaitlistNotificationEvent event = new WaitlistNotificationEvent(
-          entry.getPatientEmail(),
-          entry.getPatientName(),
-          doctor.getFullName(),
-          slotDateTime
-        );
-
-        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, event);
-        log.info("Notificação de Waitlist enviada para paciente: {}", entry.getPatientEmail());
-
+      waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate()).ifPresent(entry -> {
+        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY,
+          new WaitlistNotificationEvent(entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date));
         waitlistRepository.delete(entry);
-      }
+      });
     } catch (Exception e) {
-      log.error("Erro ao processar fila de espera para médico ID: {}", doctorId, e);
+      log.error("Erro Waitlist: {}", e.getMessage());
     }
+  }
+
+  private record DateRange(LocalDateTime start, LocalDateTime end) {
   }
 }

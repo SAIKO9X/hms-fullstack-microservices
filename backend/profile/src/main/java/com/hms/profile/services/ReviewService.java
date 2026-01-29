@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface ReviewService {
 
-  ReviewResponse createReview(ReviewCreateRequest request);
+  ReviewResponse createReview(ReviewCreateRequest request, Long currentUserId);
 
   DoctorRatingDto getDoctorStats(Long doctorId);
 

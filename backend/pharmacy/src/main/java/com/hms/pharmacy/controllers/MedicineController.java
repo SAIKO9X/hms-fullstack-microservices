@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,28 +21,24 @@ public class MedicineController {
   private final MedicineService medicineService;
 
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
   @PreAuthorize("hasRole('ADMIN')")
-  public MedicineResponse addMedicine(@Valid @RequestBody MedicineRequest request) {
-    return medicineService.addMedicine(request);
+  public ResponseEntity<MedicineResponse> addMedicine(@Valid @RequestBody MedicineRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(medicineService.addMedicine(request));
   }
 
   @GetMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
-  public MedicineResponse getMedicineById(@PathVariable Long id) {
-    return medicineService.getMedicineById(id);
+  public ResponseEntity<MedicineResponse> getMedicineById(@PathVariable Long id) {
+    return ResponseEntity.ok(medicineService.getMedicineById(id));
   }
 
   @GetMapping
-  @ResponseStatus(HttpStatus.OK)
-  public Page<MedicineResponse> getAllMedicines(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
-    // O @PageableDefault define valores padrão
-    return medicineService.getAllMedicines(pageable);
+  public ResponseEntity<Page<MedicineResponse>> getAllMedicines(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
+    return ResponseEntity.ok(medicineService.getAllMedicines(pageable));
   }
 
   @PutMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
-  public MedicineResponse updateMedicine(@PathVariable Long id, @Valid @RequestBody MedicineRequest request) {
-    return medicineService.updateMedicine(id, request);
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<MedicineResponse> updateMedicine(@PathVariable Long id, @Valid @RequestBody MedicineRequest request) {
+    return ResponseEntity.ok(medicineService.updateMedicine(id, request));
   }
 }

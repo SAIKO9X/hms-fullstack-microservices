@@ -6,7 +6,6 @@ import com.hms.appointment.entities.MedicalDocument;
 import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
-import com.hms.appointment.services.JwtService;
 import com.hms.appointment.services.MedicalDocumentService;
 import com.hms.common.audit.AuditChangeTracker;
 import lombok.RequiredArgsConstructor;
@@ -23,13 +22,11 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
 
   private final MedicalDocumentRepository documentRepository;
   private final AppointmentRepository appointmentRepository;
-  private final JwtService jwtService;
 
   @Override
-  public MedicalDocumentResponse createDocument(Long uploaderId, String token, MedicalDocumentCreateRequest request) {
-    String role = jwtService.extractClaim(token.substring(7), claims -> claims.get("role", String.class));
-
-    if ("PATIENT".equals(role) && !uploaderId.equals(request.patientId())) {
+  @Transactional
+  public MedicalDocumentResponse createDocument(Long uploaderId, String uploaderRole, MedicalDocumentCreateRequest request) {
+    if ("PATIENT".equalsIgnoreCase(uploaderRole) && !uploaderId.equals(request.patientId())) {
       throw new SecurityException("Acesso negado. Pacientes só podem enviar documentos para si mesmos.");
     }
 

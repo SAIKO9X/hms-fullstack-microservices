@@ -21,31 +21,29 @@ public class MedicineInventoryController {
   private final MedicineInventoryService inventoryService;
 
   @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
   @PreAuthorize("hasRole('ADMIN')")
-  public MedicineInventoryResponse addInventoryItem(@Valid @RequestBody MedicineInventoryRequest request) {
-    return inventoryService.addInventory(request);
+  public ResponseEntity<MedicineInventoryResponse> addInventoryItem(@Valid @RequestBody MedicineInventoryRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.addInventory(request));
   }
 
   @GetMapping
-  @ResponseStatus(HttpStatus.OK)
-  public Page<MedicineInventoryResponse> getAllInventory(@PageableDefault(size = 10) Pageable pageable) {
-    return inventoryService.getAllInventory(pageable);
+  public ResponseEntity<Page<MedicineInventoryResponse>> getAllInventory(@PageableDefault(size = 10) Pageable pageable) {
+    return ResponseEntity.ok(inventoryService.getAllInventory(pageable));
   }
 
   @GetMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
-  public MedicineInventoryResponse getInventoryItemById(@PathVariable Long id) {
-    return inventoryService.getInventoryById(id);
+  public ResponseEntity<MedicineInventoryResponse> getInventoryItemById(@PathVariable Long id) {
+    return ResponseEntity.ok(inventoryService.getInventoryById(id));
   }
 
   @PutMapping("/{id}")
-  @ResponseStatus(HttpStatus.OK)
-  public MedicineInventoryResponse updateInventoryItem(@PathVariable Long id, @Valid @RequestBody MedicineInventoryRequest request) {
-    return inventoryService.updateInventory(id, request);
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<MedicineInventoryResponse> updateInventoryItem(@PathVariable Long id, @Valid @RequestBody MedicineInventoryRequest request) {
+    return ResponseEntity.ok(inventoryService.updateInventory(id, request));
   }
 
   @DeleteMapping("/{id}")
+  @PreAuthorize("hasRole('ADMIN')")
   public ResponseEntity<Void> deleteInventoryItem(@PathVariable Long id) {
     inventoryService.deleteInventory(id);
     return ResponseEntity.noContent().build();

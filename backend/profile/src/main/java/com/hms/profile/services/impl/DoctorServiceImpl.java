@@ -28,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,17 +47,19 @@ public class DoctorServiceImpl implements DoctorService {
   @Override
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
     if (doctorRepository.existsByUserIdOrCrmNumber(request.userId(), request.crmNumber())) {
-      throw new ProfileAlreadyExistsException("Um perfil para este doutor (userId ou CRM) já existe.");
+      throw new ProfileAlreadyExistsException("Já existe um perfil para este médico (userId ou CRM).");
     }
 
-    Doctor newDoctor = new Doctor();
-    newDoctor.setUserId(request.userId());
-    newDoctor.setCrmNumber(request.crmNumber());
-    newDoctor.setName(request.name());
+    Doctor newDoctor = Doctor.builder()
+      .userId(request.userId())
+      .crmNumber(request.crmNumber())
+      .name(request.name())
+      .build();
 
-    Doctor savedDoctor = doctorRepository.save(newDoctor);
-    publishDoctorEvent(savedDoctor, "CREATED");
-    return DoctorResponse.fromEntity(savedDoctor);
+    Doctor saved = doctorRepository.save(newDoctor);
+    publishDoctorEvent(saved, "CREATED");
+
+    return DoctorResponse.fromEntity(saved);
   }
 
   @Override
@@ -65,41 +68,29 @@ public class DoctorServiceImpl implements DoctorService {
   public DoctorResponse getDoctorProfileByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
       .map(DoctorResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil de doutor não encontrado para o usuário com ID: " + userId));
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para usuário: " + userId));
   }
 
   @Override
   @CachePut(value = "doctorsByUserId", key = "#userId")
   public DoctorResponse updateDoctorProfile(Long userId, DoctorUpdateRequest request) {
-    Doctor doctorToUpdate = doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil de doutor não encontrado para o usuário com ID: " + userId));
+    Doctor doctor = findDoctorByUserId(userId);
+    applyDoctorUpdates(doctor, request);
 
-    if (request.name() != null && !request.name().isBlank()) doctorToUpdate.setName(request.name());
-    if (request.dateOfBirth() != null) doctorToUpdate.setDateOfBirth(request.dateOfBirth());
-    if (request.specialization() != null && !request.specialization().isBlank())
-      doctorToUpdate.setSpecialization(request.specialization());
-    if (request.department() != null && !request.department().isBlank())
-      doctorToUpdate.setDepartment(request.department());
-    if (request.phoneNumber() != null && !request.phoneNumber().isBlank())
-      doctorToUpdate.setPhoneNumber(request.phoneNumber());
-    if (request.yearsOfExperience() > 0) doctorToUpdate.setYearsOfExperience(request.yearsOfExperience());
-    if (request.qualifications() != null) doctorToUpdate.setQualifications(request.qualifications());
-    if (request.biography() != null) doctorToUpdate.setBiography(request.biography());
-    if (request.consultationFee() != null) {
-      doctorToUpdate.setConsultationFee(request.consultationFee());
-    }
+    Doctor updated = doctorRepository.save(doctor);
+    publishDoctorEvent(updated, "UPDATED");
 
-    Doctor updatedDoctor = doctorRepository.save(doctorToUpdate);
-    publishDoctorEvent(updatedDoctor, "UPDATED");
-    return DoctorResponse.fromEntity(updatedDoctor);
+    return DoctorResponse.fromEntity(updated);
   }
 
   @Override
+  @Transactional(readOnly = true)
   public boolean doctorProfileExists(Long userId) {
     return doctorRepository.existsByUserId(userId);
   }
 
   @Override
+  @Transactional(readOnly = true)
   public List<DoctorDropdownResponse> getDoctorsForDropdown() {
     return doctorRepository.findAllForDropdown();
   }
@@ -117,18 +108,17 @@ public class DoctorServiceImpl implements DoctorService {
   public DoctorResponse getDoctorProfileById(Long id) {
     return doctorRepository.findById(id)
       .map(DoctorResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil de médico não encontrado para o ID: " + id));
+      .orElseThrow(() -> new ProfileNotFoundException("Médico não encontrado: " + id));
   }
 
   @Override
   @CacheEvict(value = "doctorsByUserId", key = "#userId")
   public void updateProfilePicture(Long userId, String pictureUrl) {
-    Doctor doctor = doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+    Doctor doctor = findDoctorByUserId(userId);
     doctor.setProfilePictureUrl(pictureUrl);
 
-    Doctor savedDoctor = doctorRepository.save(doctor);
-    publishDoctorEvent(savedDoctor, "UPDATED");
+    Doctor saved = doctorRepository.save(doctor);
+    publishDoctorEvent(saved, "UPDATED");
   }
 
   @Override
@@ -136,61 +126,87 @@ public class DoctorServiceImpl implements DoctorService {
   @CircuitBreaker(name = "appointmentService", fallbackMethod = "getDoctorsWithStatusFallback")
   public List<DoctorStatusResponse> getDoctorsWithStatus() {
     List<Doctor> doctors = doctorRepository.findAll();
-
-    // se falhar, vai para o fallback.
     List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
 
     return mapDoctorsToStatusResponse(doctors, activeDoctorIds);
-  }
-
-  // Método de fallback para Circuit Breaker
-  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
-    log.warn("Circuit Breaker aberto ou erro no Appointment Service: {}. Retornando status padrão.", e.getMessage());
-
-    List<Doctor> doctors = doctorRepository.findAll();
-    // No fallback, assumimos lista vazia de IDs ativos
-    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 
   @Override
   @Transactional
   @CacheEvict(value = "doctorsByUserId", key = "#userId")
   public void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest request) {
-    Doctor doctor = doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil do médico não encontrado para o ID de usuário: " + userId));
+    Doctor doctor = findDoctorByUserId(userId);
+    applyAdminUpdates(doctor, request);
 
-    if (request.name() != null && !request.name().isBlank()) doctor.setName(request.name());
-    if (request.crmNumber() != null) doctor.setCrmNumber(request.crmNumber());
-    if (request.specialization() != null) doctor.setSpecialization(request.specialization());
-    if (request.department() != null) doctor.setDepartment(request.department());
-    if (request.phoneNumber() != null) doctor.setPhoneNumber(request.phoneNumber());
-    if (request.biography() != null) doctor.setBiography(request.biography());
-    if (request.qualifications() != null) doctor.setQualifications(request.qualifications());
-    if (request.dateOfBirth() != null) doctor.setDateOfBirth(request.dateOfBirth());
-    if (request.yearsOfExperience() != null) doctor.setYearsOfExperience(request.yearsOfExperience());
-
-    Doctor savedDoctor = doctorRepository.save(doctor);
-
-    publishDoctorEvent(savedDoctor, "UPDATED");
+    Doctor saved = doctorRepository.save(doctor);
+    publishDoctorEvent(saved, "UPDATED");
   }
 
   @Override
+  @Transactional(readOnly = true)
   public long countAllDoctors() {
     return doctorRepository.count();
   }
 
-  // Método auxiliar para evitar duplicação de código no original e no fallback
-  private List<DoctorStatusResponse> mapDoctorsToStatusResponse(List<Doctor> doctors, List<Long> activeIds) {
-    return doctors.stream().map(doctor -> new DoctorStatusResponse(
-      doctor.getId(),
-      doctor.getName(),
-      doctor.getSpecialization(),
-      activeIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
-      doctor.getProfilePictureUrl()
-    )).collect(Collectors.toList());
+  private Doctor findDoctorByUserId(Long userId) {
+    return doctorRepository.findByUserId(userId)
+      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para usuário: " + userId));
   }
 
-  // Método Auxiliar para RabbitMQ
+  private void applyDoctorUpdates(Doctor doctor, DoctorUpdateRequest request) {
+    updateStringField(request.name(), doctor::setName);
+    updateField(request.dateOfBirth(), doctor::setDateOfBirth);
+    updateStringField(request.specialization(), doctor::setSpecialization);
+    updateStringField(request.department(), doctor::setDepartment);
+    updateStringField(request.phoneNumber(), doctor::setPhoneNumber);
+    updateIntegerField(request.yearsOfExperience(), doctor::setYearsOfExperience);
+    updateStringField(request.qualifications(), doctor::setQualifications);
+    updateStringField(request.biography(), doctor::setBiography);
+    updateField(request.consultationFee(), doctor::setConsultationFee);
+  }
+
+  private void applyAdminUpdates(Doctor doctor, AdminDoctorUpdateRequest request) {
+    updateStringField(request.name(), doctor::setName);
+    updateStringField(request.crmNumber(), doctor::setCrmNumber);
+    updateStringField(request.specialization(), doctor::setSpecialization);
+    updateStringField(request.department(), doctor::setDepartment);
+    updateStringField(request.phoneNumber(), doctor::setPhoneNumber);
+    updateStringField(request.biography(), doctor::setBiography);
+    updateStringField(request.qualifications(), doctor::setQualifications);
+    updateField(request.dateOfBirth(), doctor::setDateOfBirth);
+    updateField(request.yearsOfExperience(), doctor::setYearsOfExperience);
+  }
+
+  private void updateStringField(String value, Consumer<String> setter) {
+    if (value != null && !value.isBlank()) {
+      setter.accept(value);
+    }
+  }
+
+  private void updateIntegerField(Integer value, Consumer<Integer> setter) {
+    if (value != null && value > 0) {
+      setter.accept(value);
+    }
+  }
+
+  private <T> void updateField(T value, Consumer<T> setter) {
+    if (value != null) {
+      setter.accept(value);
+    }
+  }
+
+  private List<DoctorStatusResponse> mapDoctorsToStatusResponse(List<Doctor> doctors, List<Long> activeIds) {
+    return doctors.stream()
+      .map(doctor -> new DoctorStatusResponse(
+        doctor.getId(),
+        doctor.getName(),
+        doctor.getSpecialization(),
+        activeIds.contains(doctor.getUserId()) ? "Em Consulta" : "Disponível",
+        doctor.getProfilePictureUrl()
+      ))
+      .collect(Collectors.toList());
+  }
+
   private void publishDoctorEvent(Doctor doctor, String eventType) {
     try {
       DoctorEvent event = new DoctorEvent(
@@ -203,9 +219,19 @@ public class DoctorServiceImpl implements DoctorService {
 
       String routingKey = "doctor." + eventType.toLowerCase();
       rabbitTemplate.convertAndSend(exchange, routingKey, event);
-      log.info("Evento publicado no RabbitMQ: Exchange='{}', Key='{}', Médico='{}'", exchange, routingKey, doctor.getName());
+
+      log.info("Evento publicado: Exchange='{}', Key='{}', Médico='{}'",
+        exchange, routingKey, doctor.getName());
     } catch (Exception e) {
-      log.error("Falha ao publicar evento do médico no RabbitMQ", e);
+      log.error("Falha ao publicar evento do médico no RabbitMQ: {}", e.getMessage(), e);
     }
+  }
+
+  // Fallback do Circuit Breaker
+  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
+    log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
+    List<Doctor> doctors = doctorRepository.findAll();
+
+    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 }

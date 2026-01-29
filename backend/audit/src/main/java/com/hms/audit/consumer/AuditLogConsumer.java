@@ -2,7 +2,7 @@ package com.hms.audit.consumer;
 
 import com.hms.audit.entities.AuditLog;
 import com.hms.audit.repositories.AuditLogRepository;
-import com.hms.common.dto.AuditLogEvent;
+import com.hms.common.dto.event.AuditLogEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Binding;

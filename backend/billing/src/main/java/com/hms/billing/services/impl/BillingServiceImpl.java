@@ -35,230 +35,140 @@ public class BillingServiceImpl implements BillingService {
   private final InsuranceProviderRepository providerRepository;
   private final ProfileFeignClient profileClient;
 
-  private static final BigDecimal BASE_CONSULTATION_FEE = new BigDecimal("200.00");
+  private static final BigDecimal BASE_FEE = new BigDecimal("200.00");
 
   @Override
   @Transactional
   public void generateInvoiceForAppointment(Long appointmentId, String patientId, String doctorId) {
-    log.info("Gerando fatura para consulta: {} (Médico: {})", appointmentId, doctorId);
+    if (invoiceRepository.findByAppointmentId(appointmentId).isPresent()) return;
 
-    if (invoiceRepository.findByAppointmentId(appointmentId).isPresent()) {
-      log.warn("Fatura já existe para consulta {}", appointmentId);
-      return;
-    }
-
-    BigDecimal appointmentFee = BASE_CONSULTATION_FEE;
-
-    try {
-      if (doctorId != null) {
-        // O Feign Client espera String, o profile-service converte
-        DoctorDTO doctor = profileClient.getDoctor(doctorId);
-        if (doctor != null && doctor.consultationFee() != null) {
-          appointmentFee = doctor.consultationFee();
-          log.info("Valor da consulta atualizado conforme perfil do médico: {}", appointmentFee);
-        }
-      }
-    } catch (Exception e) {
-      log.error("Erro ao buscar dados do médico (ID: {}), usando valor padrão. Erro: {}", doctorId, e.getMessage());
-    }
-
-    final BigDecimal finalFee = appointmentFee;
+    BigDecimal fee = fetchConsultationFee(doctorId);
 
     Invoice invoice = Invoice.builder()
-      .appointmentId(appointmentId)
-      .patientId(patientId)
-      .doctorId(doctorId)
-      .totalAmount(finalFee)
-      .build();
+      .appointmentId(appointmentId).patientId(patientId).doctorId(doctorId).totalAmount(fee).build();
 
-    patientInsuranceRepository.findByPatientId(patientId)
-      .filter(ins -> ins.getProvider().isActive() &&
-        (ins.getValidUntil() == null || ins.getValidUntil().isAfter(LocalDate.now())))
-      .ifPresentOrElse(
-        insurance -> {
-          BigDecimal coveragePercent = insurance.getProvider().getCoveragePercentage();
-          BigDecimal coveredAmount = finalFee.multiply(coveragePercent);
-          BigDecimal patientAmount = finalFee.subtract(coveredAmount);
-
-          invoice.setInsuranceCovered(coveredAmount);
-          invoice.setPatientPayable(patientAmount);
-          invoice.setStatus(InvoiceStatus.INSURANCE_PENDING); // convênio paga depois
-          log.info("Convênio aplicado: {} cobrindo {}%", insurance.getProvider().getName(), coveragePercent.multiply(new BigDecimal(100)));
-        },
-        () -> {
-          // Particular
-          invoice.setInsuranceCovered(BigDecimal.ZERO);
-          invoice.setPatientPayable(finalFee);
-          invoice.setStatus(InvoiceStatus.PENDING);
-          log.info("Nenhum convênio encontrado. Cobrança particular.");
-        }
-      );
-
+    applyInsuranceIfAvailable(invoice, patientId, fee);
     invoiceRepository.save(invoice);
   }
 
   @Override
-  public List<Invoice> getInvoicesByPatient(String patientId) {
-    return invoiceRepository.findByPatientId(patientId);
+  public List<Invoice> getInvoicesByPatient(String id) {
+    return invoiceRepository.findByPatientId(id);
   }
 
   @Override
-  public List<Invoice> getInvoicesByDoctor(String doctorId) {
-    return invoiceRepository.findByDoctorId(doctorId);
+  public List<Invoice> getInvoicesByDoctor(String id) {
+    return invoiceRepository.findByDoctorId(id);
+  }
+
+  @Override
+  public List<Invoice> getPendingInsuranceInvoices() {
+    return invoiceRepository.findByStatus(InvoiceStatus.INSURANCE_PENDING);
   }
 
   @Override
   @Transactional
   public PatientInsurance registerPatientInsurance(String patientId, Long providerId, String policyNumber) {
-    InsuranceProvider provider = providerRepository.findById(providerId)
-      .orElseThrow(() -> new RuntimeException("Seguradora não encontrada"));
-
-    PatientInsurance insurance = PatientInsurance.builder()
-      .patientId(patientId)
-      .provider(provider)
-      .policyNumber(policyNumber)
-      .validUntil(LocalDate.now().plusYears(1))
-      .build();
-
-    return patientInsuranceRepository.save(insurance);
+    InsuranceProvider provider = providerRepository.findById(providerId).orElseThrow(() -> new RuntimeException("Seguradora não encontrada"));
+    return patientInsuranceRepository.save(PatientInsurance.builder()
+      .patientId(patientId).provider(provider).policyNumber(policyNumber).validUntil(LocalDate.now().plusYears(1)).build());
   }
 
   @Override
   @Transactional
   public Invoice payInvoice(String invoiceId) {
-    Invoice invoice = invoiceRepository.findById(invoiceId)
-      .orElseThrow(() -> new RuntimeException("Fatura não encontrada"));
-
-    if (invoice.getPatientPaidAt() != null) {
-      throw new RuntimeException("Parte do paciente já foi paga.");
-    }
+    Invoice invoice = findInvoice(invoiceId);
+    if (invoice.getPatientPaidAt() != null) throw new RuntimeException("Já pago pelo paciente.");
 
     invoice.setPatientPaidAt(LocalDateTime.now());
-    checkAndFinalizeInvoice(invoice);
+    checkFinalize(invoice);
     return invoiceRepository.save(invoice);
   }
 
   @Override
   @Transactional
   public void processInsurancePayment(String invoiceId) {
-    Invoice invoice = invoiceRepository.findById(invoiceId)
-      .orElseThrow(() -> new RuntimeException("Fatura não encontrada"));
-
-    if (invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0) {
-      log.warn("Tentativa de processar convênio para fatura particular: {}", invoiceId);
-      return;
-    }
+    Invoice invoice = findInvoice(invoiceId);
+    if (invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0) return;
 
     invoice.setInsurancePaidAt(LocalDateTime.now());
-    checkAndFinalizeInvoice(invoice);
+    checkFinalize(invoice);
     invoiceRepository.save(invoice);
   }
 
   @Override
   @Transactional(readOnly = true)
   public byte[] generateInvoicePdf(String invoiceId) {
-    Invoice invoice = invoiceRepository.findById(invoiceId)
-      .orElseThrow(() -> new RuntimeException("Fatura não encontrada"));
-
-    log.info("Iniciando geração de PDF para fatura: {}", invoiceId);
-
-    String insuranceName = null;
-    BigDecimal insuranceCovered = invoice.getInsuranceCovered() != null ?
-      invoice.getInsuranceCovered() : BigDecimal.ZERO;
-
-    if (insuranceCovered.compareTo(BigDecimal.ZERO) > 0) {
-      try {
-        PatientInsurance patientInsurance = patientInsuranceRepository
-          .findByPatientId(invoice.getPatientId())
-          .orElse(null);
-
-        if (patientInsurance != null && patientInsurance.getProvider() != null) {
-          insuranceName = patientInsurance.getProvider().getName();
-        }
-      } catch (Exception e) {
-        log.warn("Erro ao buscar convênio para fatura {}: {}", invoiceId, e.getMessage());
-      }
-    }
-
-    String patientName = "Paciente (ID: " + invoice.getPatientId() + ")";
-    String patientInfo = patientName;
-    String doctorName = "Médico (ID: " + invoice.getDoctorId() + ")";
-    String doctorInfo = doctorName;
-
-    try {
-      PatientDTO patient = profileClient.getPatient(invoice.getPatientId());
-      if (patient != null) {
-        patientName = patient.name();
-        patientInfo = patient.name();
-        if (patient.cpf() != null) {
-          patientInfo += " (CPF: " + patient.cpf() + ")";
-        }
-      }
-
-      // Buscar Médico
-      if (invoice.getDoctorId() != null) {
-        DoctorDTO doctor = profileClient.getDoctor(invoice.getDoctorId());
-        if (doctor != null) {
-          doctorName = "Dr(a). " + doctor.name();
-          doctorInfo = doctorName;
-          if (doctor.specialization() != null) {
-            doctorInfo += " - " + doctor.specialization();
-          }
-          if (doctor.crmNumber() != null) {
-            doctorInfo += " (CRM: " + doctor.crmNumber() + ")";
-          }
-        }
-      }
-    } catch (Exception e) {
-      log.error("Falha ao comunicar com Profile Service para enriquecer PDF: {}", e.getMessage());
-    }
-
-    // compilaa dados para o template e gerar PDF
-    Map<String, Object> data = new HashMap<>();
-
-    // Dados Básicos
-    data.put("invoiceId", invoice.getId());
-    data.put("issuedAt", invoice.getIssuedAt());
-    data.put("paidAt", invoice.getPaidAt());
-    data.put("status", invoice.getStatus().name());
-
-    // Flags de Status
-    data.put("isPaid", invoice.getStatus() == InvoiceStatus.PAID);
-    data.put("isPending", invoice.getStatus() == InvoiceStatus.PENDING || invoice.getStatus() == InvoiceStatus.INSURANCE_PENDING);
-
-    // Dados de Pessoas
-    data.put("patientName", patientName);
-    data.put("patientInfo", patientInfo);
-    data.put("doctorName", doctorName);
-    data.put("doctorInfo", doctorInfo);
-
-    // Dados Financeiros
-    data.put("hasInsurance", insuranceName != null);
-    data.put("insuranceName", insuranceName != null ? insuranceName : "Particular");
-    data.put("totalAmount", invoice.getTotalAmount());
-    data.put("insuranceCovered", insuranceCovered);
-    data.put("patientPayable", invoice.getPatientPayable());
-
-    log.debug("Dados compilados para o template 'invoice'. Gerando bytes...");
-
+    Invoice invoice = findInvoice(invoiceId);
+    Map<String, Object> data = buildPdfData(invoice);
     return pdfGeneratorService.generatePdfFromHtml("invoice", data);
   }
 
-  // Método auxiliar para decidir se muda o status geral para PAID
-  private void checkAndFinalizeInvoice(Invoice invoice) {
-    boolean patientPaid = invoice.getPatientPaidAt() != null || invoice.getPatientPayable().compareTo(BigDecimal.ZERO) == 0;
-    boolean insurancePaid = invoice.getInsurancePaidAt() != null || invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0;
-
-    if (patientPaid && insurancePaid) {
-      invoice.setStatus(InvoiceStatus.PAID);
-      invoice.setPaidAt(LocalDateTime.now());
-    }
-    // se o paciente pagou, mas o seguro não, o status continua PENDING
+  private Invoice findInvoice(String id) {
+    return invoiceRepository.findById(id).orElseThrow(() -> new RuntimeException("Fatura não encontrada: " + id));
   }
 
-  @Override
-  public List<Invoice> getPendingInsuranceInvoices() {
-    // casos que o convênio ainda não pagou a parte dele
-    return invoiceRepository.findByStatus(InvoiceStatus.INSURANCE_PENDING);
+  private BigDecimal fetchConsultationFee(String doctorId) {
+    try {
+      if (doctorId == null) return BASE_FEE;
+      DoctorDTO doc = profileClient.getDoctor(doctorId);
+      return (doc != null && doc.consultationFee() != null) ? doc.consultationFee() : BASE_FEE;
+    } catch (Exception e) {
+      log.warn("Erro ao buscar taxa do médico, usando base. {}", e.getMessage());
+      return BASE_FEE;
+    }
+  }
+
+  private void applyInsuranceIfAvailable(Invoice invoice, String patientId, BigDecimal fee) {
+    patientInsuranceRepository.findByPatientId(patientId)
+      .filter(i -> i.getProvider().isActive() && (i.getValidUntil() == null || i.getValidUntil().isAfter(LocalDate.now())))
+      .ifPresentOrElse(ins -> {
+        BigDecimal covered = fee.multiply(ins.getProvider().getCoveragePercentage());
+        invoice.setInsuranceCovered(covered);
+        invoice.setPatientPayable(fee.subtract(covered));
+        invoice.setStatus(InvoiceStatus.INSURANCE_PENDING);
+      }, () -> {
+        invoice.setInsuranceCovered(BigDecimal.ZERO);
+        invoice.setPatientPayable(fee);
+        invoice.setStatus(InvoiceStatus.PENDING);
+      });
+  }
+
+  private void checkFinalize(Invoice inv) {
+    boolean pPaid = inv.getPatientPaidAt() != null || inv.getPatientPayable().compareTo(BigDecimal.ZERO) == 0;
+    boolean iPaid = inv.getInsurancePaidAt() != null || inv.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0;
+    if (pPaid && iPaid) {
+      inv.setStatus(InvoiceStatus.PAID);
+      inv.setPaidAt(LocalDateTime.now());
+    }
+  }
+
+  private Map<String, Object> buildPdfData(Invoice invoice) {
+    Map<String, Object> data = new HashMap<>();
+    data.put("invoiceId", invoice.getId());
+    data.put("issuedAt", invoice.getIssuedAt());
+    data.put("totalAmount", invoice.getTotalAmount());
+    data.put("status", invoice.getStatus());
+
+    // dados padrão
+    String pName = "Paciente " + invoice.getPatientId();
+    String dName = "Médico " + invoice.getDoctorId();
+
+    // tentar buscar nomes reais via Profile Service
+    try {
+      PatientDTO p = profileClient.getPatient(invoice.getPatientId());
+      if (p != null) pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
+
+      if (invoice.getDoctorId() != null) {
+        DoctorDTO d = profileClient.getDoctor(invoice.getDoctorId());
+        if (d != null) dName = "Dr. " + d.name();
+      }
+    } catch (Exception e) {
+      log.warn("PDF parcial: {}", e.getMessage());
+    }
+
+    data.put("patientName", pName);
+    data.put("doctorName", dName);
+    return data;
   }
 }
