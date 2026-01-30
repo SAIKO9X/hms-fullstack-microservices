@@ -2,6 +2,7 @@ package com.hms.billing.clients;
 
 import com.hms.billing.dto.external.DoctorDTO;
 import com.hms.billing.dto.external.PatientDTO;
+import com.hms.common.config.FeignClientInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

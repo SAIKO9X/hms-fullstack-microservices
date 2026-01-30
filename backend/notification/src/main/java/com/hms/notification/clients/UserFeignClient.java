@@ -1,5 +1,6 @@
 package com.hms.notification.clients;
 
+import com.hms.common.config.FeignClientInterceptor;
 import com.hms.notification.dto.external.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

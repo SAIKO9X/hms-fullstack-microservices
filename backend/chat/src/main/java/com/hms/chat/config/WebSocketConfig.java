@@ -1,7 +1,7 @@
 package com.hms.chat.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hms.chat.services.JwtService;
+import com.hms.common.security.BaseJwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -36,7 +36,7 @@ import java.util.List;
 @Slf4j
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-  private final JwtService jwtService;
+  private final BaseJwtService baseJwtService;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -77,11 +77,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             String token = authHeader.substring(7);
 
             try {
-              if (jwtService.isTokenValid(token)) {
-                String username = jwtService.extractUsername(token);
-                Long userId = jwtService.extractClaim(token, claims -> claims.get("userId", Long.class));
+              if (baseJwtService.isTokenValid(token)) {
+
+                String username = baseJwtService.extractUsername(token);
+
+                Long userId = baseJwtService.extractClaim(token, claims -> claims.get("userId", Long.class));
+                String role = baseJwtService.extractClaim(token, claims -> claims.get("role", String.class));
+
                 String principalName = (userId != null) ? String.valueOf(userId) : username;
-                String role = jwtService.extractClaim(token, claims -> claims.get("role", String.class));
+
                 var authorities = Collections.singletonList(
                   new SimpleGrantedAuthority("ROLE_" + role)
                 );

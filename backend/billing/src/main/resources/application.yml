@@ -2,25 +2,24 @@ server:
   port: 8088
 
 spring:
+  config:
+    import: "optional:classpath:common-application.yml"
   application:
     name: billing-service
-
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_billing_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:root}
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ms_billing_db}?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:mysql_billing_user}
+    password: ${DB_PASSWORD:mysql_billing_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect # Padronizado
         format_sql: true
-
-  rabbitmq:
+  rabbitmq: # Configurações de conexão Spring padrão
     host: ${SPRING_RABBITMQ_HOST:localhost}
     port: ${SPRING_RABBITMQ_PORT:5672}
     username: ${SPRING_RABBITMQ_USERNAME:guest}
@@ -30,22 +29,18 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
-    fetch-registry: true
-    register-with-eureka: true
   instance:
     prefer-ip-address: true
-
-# Configurações de Filas para Billing
-rabbitmq:
-  queues:
-    appointment-billing: q.appointment.billing
-  exchanges:
-    internal: e.internal
-  routing-keys:
-    appointment-completed: rk.appointment.completed
 
 application:
   security:
     jwt:
       secret-key: ${JWT_SECRET}
       expiration: ${JWT_EXPIRATION:86400000}
+  rabbitmq:
+    queues:
+      appointment-billing: q.appointment.billing
+    exchanges:
+      internal: e.internal
+    routing-keys:
+      appointment-completed: rk.appointment.completed

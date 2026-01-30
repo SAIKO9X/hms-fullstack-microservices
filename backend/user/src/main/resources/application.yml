@@ -6,6 +6,8 @@ services:
     base-url: "${PROFILE_URI:http://localhost:8082}"
 
 spring:
+  config:
+    import: "optional:classpath:common-application.yml"
   application:
     name: user-service
   datasource:

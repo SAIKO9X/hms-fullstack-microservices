@@ -1,8 +1,8 @@
 package com.hms.appointment.clients;
 
-import com.hms.appointment.config.FeignClientInterceptor;
 import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
+import com.hms.common.config.FeignClientInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

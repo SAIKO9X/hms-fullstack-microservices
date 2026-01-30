@@ -504,7 +504,9 @@ services:
       start_period: 120s
 
   notification-service:
-    build: ./notification
+    build:
+      context: .
+      dockerfile: notification/Dockerfile
     container_name: notification-service
     environment:
       - SERVER_PORT=8087
