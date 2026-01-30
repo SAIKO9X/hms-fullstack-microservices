@@ -2,8 +2,6 @@ server:
   port: ${SERVER_PORT:8761}
 
 spring:
-  config:
-    import: "optional:classpath:common-application.yml"
   application:
     name: eureka-server
 
