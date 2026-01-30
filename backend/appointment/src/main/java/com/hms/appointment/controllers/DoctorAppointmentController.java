@@ -3,6 +3,8 @@ package com.hms.appointment.controllers;
 import com.hms.appointment.dto.request.AppointmentCompleteRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.services.AppointmentService;
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
 import com.hms.common.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,54 +27,55 @@ public class DoctorAppointmentController {
   private final AppointmentService appointmentService;
 
   @GetMapping
-  public ResponseEntity<Page<AppointmentResponse>> getMyAppointments(
+  public ResponseEntity<ApiResponse<PagedResponse<AppointmentResponse>>> getMyAppointments(
     Authentication authentication,
     @PageableDefault(size = 10, sort = "appointmentDateTime", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getAppointmentsForDoctor(doctorId, pageable));
+    Page<AppointmentResponse> page = appointmentService.getAppointmentsForDoctor(doctorId, pageable);
+    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
   }
 
   @GetMapping("/details")
-  public ResponseEntity<List<AppointmentDetailResponse>> getAppointmentDetails(
+  public ResponseEntity<ApiResponse<List<AppointmentDetailResponse>>> getAppointmentDetails(
     Authentication authentication,
     @RequestParam(required = false, defaultValue = "all") String filter
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getAppointmentDetailsForDoctor(doctorId, filter));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getAppointmentDetailsForDoctor(doctorId, filter)));
   }
 
   @PatchMapping("/{id}/complete")
-  public ResponseEntity<AppointmentResponse> completeAppointment(
+  public ResponseEntity<ApiResponse<AppointmentResponse>> completeAppointment(
     Authentication authentication,
     @PathVariable Long id,
     @RequestBody AppointmentCompleteRequest request
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.completeAppointment(id, request.notes(), doctorId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.completeAppointment(id, request.notes(), doctorId)));
   }
 
   @GetMapping("/dashboard-stats")
-  public ResponseEntity<DoctorDashboardStatsResponse> getDoctorDashboardStats(Authentication authentication) {
+  public ResponseEntity<ApiResponse<DoctorDashboardStatsResponse>> getDoctorDashboardStats(Authentication authentication) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getDoctorDashboardStats(doctorId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getDoctorDashboardStats(doctorId)));
   }
 
   @GetMapping("/patients-count")
-  public ResponseEntity<Long> getUniquePatientsCount(Authentication authentication) {
+  public ResponseEntity<ApiResponse<Long>> getUniquePatientsCount(Authentication authentication) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.countUniquePatientsForDoctor(doctorId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.countUniquePatientsForDoctor(doctorId)));
   }
 
   @GetMapping("/patient-groups")
-  public ResponseEntity<List<PatientGroupResponse>> getPatientGroups(Authentication authentication) {
+  public ResponseEntity<ApiResponse<List<PatientGroupResponse>>> getPatientGroups(Authentication authentication) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getPatientGroupsForDoctor(doctorId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getPatientGroupsForDoctor(doctorId)));
   }
 
   @GetMapping("/my-patients")
-  public ResponseEntity<List<DoctorPatientSummaryDto>> getMyPatients(Authentication authentication) {
+  public ResponseEntity<ApiResponse<List<DoctorPatientSummaryDto>>> getMyPatients(Authentication authentication) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getPatientsForDoctor(doctorId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getPatientsForDoctor(doctorId)));
   }
 }

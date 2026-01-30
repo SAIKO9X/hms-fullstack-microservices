@@ -18,7 +18,6 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 import java.util.HashMap;
 import java.util.Map;
 
-// Manipulador global de exceções para todos os microsserviços HMS
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

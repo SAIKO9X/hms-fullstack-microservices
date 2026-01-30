@@ -5,6 +5,7 @@ import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AppointmentUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.services.AppointmentService;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -25,45 +26,49 @@ public class AppointmentController {
 
   @GetMapping("/{id}")
   @Auditable(action = "VIEW", resourceName = "APPOINTMENT")
-  public ResponseEntity<AppointmentResponse> getAppointmentById(@PathVariable Long id, Authentication authentication) {
+  public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(@PathVariable Long id, Authentication authentication) {
     Long requesterId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getAppointmentById(id, requesterId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getAppointmentById(id, requesterId)));
   }
 
   @PatchMapping("/{id}/cancel")
   @Auditable(action = "CANCEL", resourceName = "APPOINTMENT")
-  public ResponseEntity<AppointmentResponse> cancelAppointment(@PathVariable Long id, Authentication authentication) {
+  public ResponseEntity<ApiResponse<AppointmentResponse>> cancelAppointment(@PathVariable Long id, Authentication authentication) {
     Long requesterId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.cancelAppointment(id, requesterId));
+    AppointmentResponse response = appointmentService.cancelAppointment(id, requesterId);
+    return ResponseEntity.ok(ApiResponse.success(response, "Consulta cancelada com sucesso."));
   }
 
   @PatchMapping("/{id}/reschedule")
   @Auditable(action = "RESCHEDULE", resourceName = "APPOINTMENT")
-  public ResponseEntity<AppointmentResponse> rescheduleAppointment(
+  public ResponseEntity<ApiResponse<AppointmentResponse>> rescheduleAppointment(
     @PathVariable Long id,
     @RequestBody @Valid AppointmentUpdateRequest request,
     Authentication authentication
   ) {
     Long requesterId = SecurityUtils.getUserId(authentication);
     LocalDateTime newDateTime = request.appointmentDateTime();
-    return ResponseEntity.ok(appointmentService.rescheduleAppointment(id, newDateTime, requesterId));
+    AppointmentResponse response = appointmentService.rescheduleAppointment(id, newDateTime, requesterId);
+    return ResponseEntity.ok(ApiResponse.success(response, "Consulta reagendada com sucesso."));
   }
 
   @PatchMapping("/{id}/complete")
   @Auditable(action = "COMPLETE", resourceName = "APPOINTMENT")
-  public ResponseEntity<AppointmentResponse> completeAppointment(
+  public ResponseEntity<ApiResponse<AppointmentResponse>> completeAppointment(
     @PathVariable Long id,
     @RequestBody @Valid AppointmentCompleteRequest request,
     Authentication authentication
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.completeAppointment(id, request.notes(), doctorId));
+    AppointmentResponse response = appointmentService.completeAppointment(id, request.notes(), doctorId);
+    return ResponseEntity.ok(ApiResponse.success(response, "Consulta finalizada com sucesso."));
   }
 
   @PostMapping("/waitlist")
-  public ResponseEntity<Void> joinWaitlist(Authentication authentication, @RequestBody @Valid AppointmentCreateRequest request) {
+  public ResponseEntity<ApiResponse<Void>> joinWaitlist(Authentication authentication, @RequestBody @Valid AppointmentCreateRequest request) {
     Long patientId = SecurityUtils.getUserId(authentication);
     appointmentService.joinWaitlist(patientId, request);
-    return ResponseEntity.status(HttpStatus.CREATED).build();
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(null, "Adicionado à lista de espera."));
   }
 }

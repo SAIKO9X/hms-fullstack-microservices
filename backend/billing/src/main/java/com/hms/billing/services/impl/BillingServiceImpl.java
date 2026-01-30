@@ -11,6 +11,8 @@ import com.hms.billing.repositories.InsuranceProviderRepository;
 import com.hms.billing.repositories.InvoiceRepository;
 import com.hms.billing.repositories.PatientInsuranceRepository;
 import com.hms.billing.services.BillingService;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.common.services.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +71,9 @@ public class BillingServiceImpl implements BillingService {
   @Override
   @Transactional
   public PatientInsurance registerPatientInsurance(String patientId, Long providerId, String policyNumber) {
-    InsuranceProvider provider = providerRepository.findById(providerId).orElseThrow(() -> new RuntimeException("Seguradora não encontrada"));
+    InsuranceProvider provider = providerRepository.findById(providerId)
+      .orElseThrow(() -> new ResourceNotFoundException("Insurance Provider", providerId));
+
     return patientInsuranceRepository.save(PatientInsurance.builder()
       .patientId(patientId).provider(provider).policyNumber(policyNumber).validUntil(LocalDate.now().plusYears(1)).build());
   }
@@ -78,7 +82,9 @@ public class BillingServiceImpl implements BillingService {
   @Transactional
   public Invoice payInvoice(String invoiceId) {
     Invoice invoice = findInvoice(invoiceId);
-    if (invoice.getPatientPaidAt() != null) throw new RuntimeException("Já pago pelo paciente.");
+    if (invoice.getPatientPaidAt() != null) {
+      throw new InvalidOperationException("Esta fatura já foi paga pelo paciente.");
+    }
 
     invoice.setPatientPaidAt(LocalDateTime.now());
     checkFinalize(invoice);
@@ -105,7 +111,8 @@ public class BillingServiceImpl implements BillingService {
   }
 
   private Invoice findInvoice(String id) {
-    return invoiceRepository.findById(id).orElseThrow(() -> new RuntimeException("Fatura não encontrada: " + id));
+    return invoiceRepository.findById(id)
+      .orElseThrow(() -> new ResourceNotFoundException("Invoice", id));
   }
 
   private BigDecimal fetchConsultationFee(String doctorId) {
@@ -150,11 +157,9 @@ public class BillingServiceImpl implements BillingService {
     data.put("totalAmount", invoice.getTotalAmount());
     data.put("status", invoice.getStatus());
 
-    // dados padrão
     String pName = "Paciente " + invoice.getPatientId();
     String dName = "Médico " + invoice.getDoctorId();
 
-    // tentar buscar nomes reais via Profile Service
     try {
       PatientDTO p = profileClient.getPatient(invoice.getPatientId());
       if (p != null) pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");

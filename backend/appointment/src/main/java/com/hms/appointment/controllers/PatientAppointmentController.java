@@ -5,6 +5,8 @@ import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.dto.response.AppointmentStatsResponse;
 import com.hms.appointment.repositories.DoctorSummaryProjection;
 import com.hms.appointment.services.AppointmentService;
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,35 +29,40 @@ public class PatientAppointmentController {
   private final AppointmentService appointmentService;
 
   @PostMapping
-  public ResponseEntity<AppointmentResponse> createAppointment(Authentication authentication, @Valid @RequestBody AppointmentCreateRequest request) {
+  public ResponseEntity<ApiResponse<AppointmentResponse>> createAppointment(
+    Authentication authentication,
+    @Valid @RequestBody AppointmentCreateRequest request
+  ) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.status(HttpStatus.CREATED).body(appointmentService.createAppointment(patientId, request));
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(appointmentService.createAppointment(patientId, request), "Consulta agendada."));
   }
 
   @GetMapping("/my-doctors")
-  public ResponseEntity<List<DoctorSummaryProjection>> getMyDoctors(Authentication authentication) {
+  public ResponseEntity<ApiResponse<List<DoctorSummaryProjection>>> getMyDoctors(Authentication authentication) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getMyDoctors(patientId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getMyDoctors(patientId)));
   }
 
   @GetMapping
-  public ResponseEntity<Page<AppointmentResponse>> getMyAppointments(
+  public ResponseEntity<ApiResponse<PagedResponse<AppointmentResponse>>> getMyAppointments(
     Authentication authentication,
     @PageableDefault(size = 10, sort = "appointmentDateTime", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getAppointmentsForPatient(patientId, pageable));
+    Page<AppointmentResponse> page = appointmentService.getAppointmentsForPatient(patientId, pageable);
+    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
   }
 
   @GetMapping("/next")
-  public ResponseEntity<AppointmentResponse> getNextAppointment(Authentication authentication) {
+  public ResponseEntity<ApiResponse<AppointmentResponse>> getNextAppointment(Authentication authentication) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getNextAppointmentForPatient(patientId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getNextAppointmentForPatient(patientId)));
   }
 
   @GetMapping("/stats")
-  public ResponseEntity<AppointmentStatsResponse> getAppointmentStats(Authentication authentication) {
+  public ResponseEntity<ApiResponse<AppointmentStatsResponse>> getAppointmentStats(Authentication authentication) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(appointmentService.getAppointmentStatsForPatient(patientId));
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getAppointmentStatsForPatient(patientId)));
   }
 }

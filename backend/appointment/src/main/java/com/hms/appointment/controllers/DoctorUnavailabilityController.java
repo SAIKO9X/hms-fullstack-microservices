@@ -3,6 +3,7 @@ package com.hms.appointment.controllers;
 import com.hms.appointment.dto.request.DoctorUnavailabilityRequest;
 import com.hms.appointment.dto.response.DoctorUnavailabilityResponse;
 import com.hms.appointment.services.DoctorUnavailabilityService;
+import com.hms.common.dto.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,19 +22,20 @@ public class DoctorUnavailabilityController {
 
   @PostMapping
   @PreAuthorize("hasRole('DOCTOR')")
-  public ResponseEntity<DoctorUnavailabilityResponse> create(@Valid @RequestBody DoctorUnavailabilityRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(service.createUnavailability(request));
+  public ResponseEntity<ApiResponse<DoctorUnavailabilityResponse>> create(@Valid @RequestBody DoctorUnavailabilityRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(service.createUnavailability(request)));
   }
 
   @GetMapping("/doctor/{doctorId}")
-  public ResponseEntity<List<DoctorUnavailabilityResponse>> listByDoctor(@PathVariable Long doctorId) {
-    return ResponseEntity.ok(service.getUnavailabilityByDoctor(doctorId));
+  public ResponseEntity<ApiResponse<List<DoctorUnavailabilityResponse>>> listByDoctor(@PathVariable Long doctorId) {
+    return ResponseEntity.ok(ApiResponse.success(service.getUnavailabilityByDoctor(doctorId)));
   }
 
   @DeleteMapping("/{id}")
   @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
-  public ResponseEntity<Void> delete(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
     service.deleteUnavailability(id);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok(ApiResponse.success(null, "Indisponibilidade removida com sucesso."));
   }
 }

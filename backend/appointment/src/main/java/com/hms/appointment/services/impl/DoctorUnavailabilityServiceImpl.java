@@ -3,11 +3,11 @@ package com.hms.appointment.services.impl;
 import com.hms.appointment.dto.request.DoctorUnavailabilityRequest;
 import com.hms.appointment.dto.response.DoctorUnavailabilityResponse;
 import com.hms.appointment.entities.DoctorUnavailability;
-import com.hms.appointment.exceptions.InvalidUpdateException;
-import com.hms.appointment.exceptions.ResourceNotFoundException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorUnavailabilityRepository;
 import com.hms.appointment.services.DoctorUnavailabilityService;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
   @Transactional
   public DoctorUnavailabilityResponse createUnavailability(DoctorUnavailabilityRequest request) {
     if (request.startDateTime().isAfter(request.endDateTime())) {
-      throw new InvalidUpdateException("A data de início deve ser anterior à data de fim.");
+      throw new InvalidOperationException("A data de início deve ser anterior à data de fim.");
     }
 
     boolean hasOverlap = repository.hasUnavailability(
@@ -36,7 +36,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
     );
 
     if (hasOverlap) {
-      throw new InvalidUpdateException("Já existe um período de indisponibilidade registrado neste intervalo.");
+      throw new InvalidOperationException("Já existe um período de indisponibilidade registrado neste intervalo.");
     }
 
     boolean hasAppointments = appointmentRepository.hasDoctorConflict(
@@ -46,7 +46,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
     );
 
     if (hasAppointments) {
-      throw new InvalidUpdateException("Não é possível bloquear a agenda: Existem consultas agendadas neste período. Cancele ou remarque as consultas existentes primeiro.");
+      throw new InvalidOperationException("Não é possível bloquear a agenda: Existem consultas agendadas neste período. Cancele ou remarque as consultas existentes primeiro.");
     }
 
     DoctorUnavailability entity = DoctorUnavailability.builder()
@@ -72,7 +72,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
   @Transactional
   public void deleteUnavailability(Long id) {
     if (!repository.existsById(id)) {
-      throw new ResourceNotFoundException("Registro de indisponibilidade não encontrado.");
+      throw new ResourceNotFoundException("Doctor Unavailability", id);
     }
     repository.deleteById(id);
   }

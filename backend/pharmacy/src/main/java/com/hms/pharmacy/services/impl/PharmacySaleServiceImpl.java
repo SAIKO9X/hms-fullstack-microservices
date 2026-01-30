@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.pharmacy.dto.event.PharmacySaleCreatedEvent;
 import com.hms.pharmacy.dto.event.PrescriptionDispensedEvent;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
@@ -14,7 +16,6 @@ import com.hms.pharmacy.dto.response.DailyRevenueDto;
 import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
 import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.entities.*;
-import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.repositories.PatientReadModelRepository;
 import com.hms.pharmacy.repositories.PharmacySaleRepository;
@@ -33,7 +34,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -97,7 +101,9 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   @Override
   public PharmacySaleResponse getSaleById(Long id) {
-    return saleRepository.findById(id).map(PharmacySaleResponse::fromEntity).orElseThrow(() -> new NoSuchElementException("Venda não encontrada: " + id));
+    return saleRepository.findById(id)
+      .map(PharmacySaleResponse::fromEntity)
+      .orElseThrow(() -> new ResourceNotFoundException("Pharmacy Sale", id));
   }
 
   @Override
@@ -133,7 +139,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   private void validateDuplicateSale(Long prescriptionId) {
     if (prescriptionId != null && saleRepository.existsByOriginalPrescriptionId(prescriptionId)) {
-      throw new IllegalStateException("Venda já registrada para esta prescrição.");
+      throw new InvalidOperationException("Venda já registrada para esta prescrição.");
     }
   }
 
@@ -164,7 +170,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
     for (SaleItemRequest item : items) {
       Medicine med = medicineRepository.findById(item.medicineId())
-        .orElseThrow(() -> new MedicineNotFoundException("Medicamento não encontrado: " + item.medicineId()));
+        .orElseThrow(() -> new ResourceNotFoundException("Medicine", item.medicineId()));
 
       String batchInfo = inventoryService.sellStock(item.medicineId(), item.quantity());
 
@@ -186,9 +192,11 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   private PrescriptionCopy validatePrescription(Long id) {
     PrescriptionCopy p = prescriptionCopyRepository.findById(id)
-      .orElseThrow(() -> new IllegalArgumentException("Receita não encontrada: " + id));
-    if (p.getValidUntil().isBefore(LocalDate.now())) throw new IllegalArgumentException("Receita expirada.");
-    if (p.isProcessed()) throw new IllegalArgumentException("Receita já processada.");
+      .orElseThrow(() -> new ResourceNotFoundException("Prescription", id));
+
+    if (p.getValidUntil().isBefore(LocalDate.now())) throw new InvalidOperationException("Esta receita está expirada.");
+    if (p.isProcessed()) throw new InvalidOperationException("Esta receita já foi processada.");
+
     return p;
   }
 
@@ -198,7 +206,7 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
       });
       return items.stream().map(i -> {
         Medicine m = medicineRepository.findByNameIgnoreCaseAndDosageIgnoreCase(i.medicineName(), i.dosage())
-          .orElseThrow(() -> new MedicineNotFoundException("Item não encontrado no estoque: " + i.medicineName()));
+          .orElseThrow(() -> new ResourceNotFoundException("Medicine from prescription", i.medicineName()));
         return new SaleItemRequest(m.getId(), (i.durationDays() != null && i.durationDays() > 0) ? i.durationDays() : 1);
       }).toList();
     } catch (JsonProcessingException e) {
@@ -238,6 +246,5 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record PrescriptionItemDto(String medicineName, String dosage, Integer durationDays) {
-    // durationDays é opcional e pode ser nulo
   }
 }

@@ -1,5 +1,7 @@
 package com.hms.pharmacy.controllers;
 
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
 import com.hms.pharmacy.dto.request.MedicineRequest;
 import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.services.MedicineService;
@@ -22,23 +24,25 @@ public class MedicineController {
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<MedicineResponse> addMedicine(@Valid @RequestBody MedicineRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(medicineService.addMedicine(request));
+  public ResponseEntity<ApiResponse<MedicineResponse>> addMedicine(@Valid @RequestBody MedicineRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(medicineService.addMedicine(request), "Medicamento adicionado com sucesso."));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<MedicineResponse> getMedicineById(@PathVariable Long id) {
-    return ResponseEntity.ok(medicineService.getMedicineById(id));
+  public ResponseEntity<ApiResponse<MedicineResponse>> getMedicineById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.success(medicineService.getMedicineById(id)));
   }
 
   @GetMapping
-  public ResponseEntity<Page<MedicineResponse>> getAllMedicines(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
-    return ResponseEntity.ok(medicineService.getAllMedicines(pageable));
+  public ResponseEntity<ApiResponse<PagedResponse<MedicineResponse>>> getAllMedicines(@PageableDefault(page = 0, size = 10, sort = "name") Pageable pageable) {
+    Page<MedicineResponse> page = medicineService.getAllMedicines(pageable);
+    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
   }
 
   @PutMapping("/{id}")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<MedicineResponse> updateMedicine(@PathVariable Long id, @Valid @RequestBody MedicineRequest request) {
-    return ResponseEntity.ok(medicineService.updateMedicine(id, request));
+  public ResponseEntity<ApiResponse<MedicineResponse>> updateMedicine(@PathVariable Long id, @Valid @RequestBody MedicineRequest request) {
+    return ResponseEntity.ok(ApiResponse.success(medicineService.updateMedicine(id, request), "Medicamento atualizado."));
   }
 }

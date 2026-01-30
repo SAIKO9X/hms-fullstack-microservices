@@ -1,13 +1,13 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.pharmacy.dto.event.StockLowEvent;
 import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
 import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.entities.Medicine;
 import com.hms.pharmacy.entities.MedicineInventory;
 import com.hms.pharmacy.enums.StockStatus;
-import com.hms.pharmacy.exceptions.InsufficientStockException;
-import com.hms.pharmacy.exceptions.MedicineNotFoundException;
 import com.hms.pharmacy.repositories.MedicineInventoryRepository;
 import com.hms.pharmacy.repositories.MedicineRepository;
 import com.hms.pharmacy.services.MedicineInventoryService;
@@ -43,7 +43,7 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
   @Override
   public MedicineInventoryResponse addInventory(MedicineInventoryRequest request) {
     Medicine medicine = medicineRepository.findById(request.medicineId())
-      .orElseThrow(() -> new MedicineNotFoundException("Medicamento não encontrado: " + request.medicineId()));
+      .orElseThrow(() -> new ResourceNotFoundException("Medicine", request.medicineId()));
 
     MedicineInventory newInventory = new MedicineInventory();
     newInventory.setMedicine(medicine);
@@ -68,13 +68,15 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
   @Override
   @Transactional(readOnly = true)
   public MedicineInventoryResponse getInventoryById(Long id) {
-    return inventoryRepository.findById(id).map(MedicineInventoryResponse::fromEntity).orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + id));
+    return inventoryRepository.findById(id)
+      .map(MedicineInventoryResponse::fromEntity)
+      .orElseThrow(() -> new ResourceNotFoundException("Inventory Item", id));
   }
 
   @Override
   public MedicineInventoryResponse updateInventory(Long inventoryId, MedicineInventoryRequest request) {
     MedicineInventory inventory = inventoryRepository.findById(inventoryId)
-      .orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + inventoryId));
+      .orElseThrow(() -> new ResourceNotFoundException("Inventory Item", inventoryId));
 
     updateStockDifference(inventory, request.quantity());
 
@@ -89,7 +91,7 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
   @Override
   public void deleteInventory(Long inventoryId) {
     MedicineInventory inventory = inventoryRepository.findById(inventoryId)
-      .orElseThrow(() -> new MedicineNotFoundException("Inventário não encontrado: " + inventoryId));
+      .orElseThrow(() -> new ResourceNotFoundException("Inventory Item", inventoryId));
 
     medicineService.removeStock(inventory.getMedicine().getId(), inventory.getQuantity());
     inventoryRepository.delete(inventory);
@@ -102,7 +104,7 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
 
     int totalAvailable = batches.stream().mapToInt(MedicineInventory::getQuantity).sum();
     if (totalAvailable < quantityToSell) {
-      throw new InsufficientStockException("Estoque insuficiente. Disponível: " + totalAvailable);
+      throw new InvalidOperationException("Estoque insuficiente. Solicitado: " + quantityToSell + ", Disponível: " + totalAvailable);
     }
 
     StringBuilder batchDetails = new StringBuilder();

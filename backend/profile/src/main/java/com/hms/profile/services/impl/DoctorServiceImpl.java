@@ -1,5 +1,7 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.exceptions.ResourceAlreadyExistsException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.event.DoctorEvent;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
@@ -9,8 +11,6 @@ import com.hms.profile.dto.response.DoctorDropdownResponse;
 import com.hms.profile.dto.response.DoctorResponse;
 import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.entities.Doctor;
-import com.hms.profile.exceptions.ProfileAlreadyExistsException;
-import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.services.DoctorService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -47,7 +47,7 @@ public class DoctorServiceImpl implements DoctorService {
   @Override
   public DoctorResponse createDoctorProfile(DoctorCreateRequest request) {
     if (doctorRepository.existsByUserIdOrCrmNumber(request.userId(), request.crmNumber())) {
-      throw new ProfileAlreadyExistsException("Já existe um perfil para este médico (userId ou CRM).");
+      throw new ResourceAlreadyExistsException("Doctor Profile", "userId/CRM");
     }
 
     Doctor newDoctor = Doctor.builder()
@@ -68,7 +68,7 @@ public class DoctorServiceImpl implements DoctorService {
   public DoctorResponse getDoctorProfileByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
       .map(DoctorResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para usuário: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Doctor Profile", userId));
   }
 
   @Override
@@ -108,7 +108,7 @@ public class DoctorServiceImpl implements DoctorService {
   public DoctorResponse getDoctorProfileById(Long id) {
     return doctorRepository.findById(id)
       .map(DoctorResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Médico não encontrado: " + id));
+      .orElseThrow(() -> new ResourceNotFoundException("Doctor Profile", id));
   }
 
   @Override
@@ -150,7 +150,7 @@ public class DoctorServiceImpl implements DoctorService {
 
   private Doctor findDoctorByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para usuário: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Doctor Profile", userId));
   }
 
   private void applyDoctorUpdates(Doctor doctor, DoctorUpdateRequest request) {
@@ -227,11 +227,9 @@ public class DoctorServiceImpl implements DoctorService {
     }
   }
 
-  // Fallback do Circuit Breaker
   public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
     log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
     List<Doctor> doctors = doctorRepository.findAll();
-
     return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 }

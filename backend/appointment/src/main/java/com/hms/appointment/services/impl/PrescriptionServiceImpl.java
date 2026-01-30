@@ -13,11 +13,12 @@ import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.Medicine;
 import com.hms.appointment.entities.Prescription;
 import com.hms.appointment.enums.PrescriptionStatus;
-import com.hms.appointment.exceptions.AppointmentNotFoundException;
-import com.hms.appointment.exceptions.InvalidUpdateException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.common.services.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,12 +56,12 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public PrescriptionResponse createPrescription(PrescriptionCreateRequest request, Long doctorId) {
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
-      .orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
     validateDoctorAuthority(appointment, doctorId);
 
     if (prescriptionRepository.findByAppointmentId(request.appointmentId()).isPresent()) {
-      throw new InvalidUpdateException("Já existe uma prescrição para esta consulta.");
+      throw new InvalidOperationException("Já existe uma prescrição para esta consulta.");
     }
 
     Prescription newPrescription = new Prescription();
@@ -89,7 +90,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public PrescriptionResponse updatePrescription(Long prescriptionId, PrescriptionUpdateRequest request, Long doctorId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
     validateDoctorAuthority(prescription.getAppointment(), doctorId);
 
@@ -109,7 +110,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     boolean hasRelationship = appointmentRepository.existsByDoctorIdAndPatientId(requesterId, patientId);
     if (!hasRelationship) {
-      throw new SecurityException("Acesso negado. Você não possui histórico de consultas com este paciente.");
+      throw new AccessDeniedException("Acesso negado. Você não possui histórico de consultas com este paciente.");
     }
 
     return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
@@ -120,10 +121,10 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional(readOnly = true)
   public PrescriptionForPharmacyResponse getPrescriptionForPharmacy(Long prescriptionId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
     if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
-      throw new IllegalStateException("Esta prescrição já foi utilizada.");
+      throw new InvalidOperationException("Esta prescrição já foi utilizada.");
     }
 
     return PrescriptionForPharmacyResponse.fromEntity(prescription);
@@ -133,7 +134,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Transactional
   public void markAsDispensed(Long prescriptionId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
     if (prescription.getStatus() == PrescriptionStatus.DISPENSED) {
       return;
@@ -155,7 +156,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Override
   public byte[] generatePrescriptionPdf(Long prescriptionId, Long requesterId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Prescrição não encontrada"));
+      .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
     validateViewerAuthority(prescription.getAppointment(), requesterId);
 
@@ -166,13 +167,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   private void validateDoctorAuthority(Appointment appointment, Long doctorId) {
     if (!appointment.getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado. Apenas o médico responsável pode realizar esta ação.");
+      throw new AccessDeniedException("Acesso negado. Apenas o médico responsável pode realizar esta ação.");
     }
   }
 
   private void validateViewerAuthority(Appointment appointment, Long requesterId) {
     if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado. Você não tem permissão para visualizar este registro.");
+      throw new AccessDeniedException("Acesso negado. Você não tem permissão para visualizar este registro.");
     }
   }
 
@@ -187,14 +188,12 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     }).collect(Collectors.toList());
   }
 
-  // Constrói o contexto de dados para o PDF da prescrição
   private Map<String, Object> buildPdfContext(Prescription prescription) {
     String doctorName = "Dr. Desconhecido";
     String doctorCrm = "N/A";
     String patientName = "Paciente";
 
     try {
-      // tenta buscar dados enriquecidos (se falhar, gera o PDF com dados padrão)
       DoctorProfile doctor = profileClient.getDoctor(prescription.getAppointment().getDoctorId());
       if (doctor != null) {
         doctorName = doctor.name();

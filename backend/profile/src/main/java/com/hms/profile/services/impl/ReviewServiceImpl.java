@@ -1,5 +1,8 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.request.ReviewCreateRequest;
 import com.hms.profile.dto.response.AppointmentResponse;
@@ -9,7 +12,6 @@ import com.hms.profile.entities.Doctor;
 import com.hms.profile.entities.Patient;
 import com.hms.profile.entities.Review;
 import com.hms.profile.enums.AppointmentStatus;
-import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.DoctorRepository;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.repositories.ReviewRepository;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 @Slf4j
@@ -78,7 +79,7 @@ public class ReviewServiceImpl implements ReviewService {
 
   private void validateReviewNotExists(Long appointmentId) {
     if (reviewRepository.existsByAppointmentId(appointmentId)) {
-      throw new IllegalStateException("Esta consulta já foi avaliada anteriormente.");
+      throw new InvalidOperationException("Esta consulta já foi avaliada anteriormente.");
     }
   }
 
@@ -87,36 +88,36 @@ public class ReviewServiceImpl implements ReviewService {
       return appointmentClient.getAppointmentById(appointmentId);
     } catch (Exception e) {
       log.error("Falha ao buscar consulta ID {} no microsserviço de Appointment: {}", appointmentId, e.getMessage());
-      throw new NoSuchElementException("Consulta não encontrada ou serviço indisponível.");
+      throw new ResourceNotFoundException("Appointment", appointmentId);
     }
   }
 
   private void validateAppointmentStatus(AppointmentResponse appointment) {
     if (appointment.status() != AppointmentStatus.COMPLETED) {
-      throw new IllegalStateException("Apenas consultas concluídas podem ser avaliadas.");
+      throw new InvalidOperationException("Apenas consultas concluídas podem ser avaliadas.");
     }
   }
 
   private void validateDoctorMatch(AppointmentResponse appointment, Long requestedDoctorId) {
     if (!appointment.doctorId().equals(requestedDoctorId)) {
-      throw new IllegalArgumentException("O médico informado não corresponde ao médico responsável pela consulta.");
+      throw new InvalidOperationException("O médico informado não corresponde ao médico responsável pela consulta.");
     }
   }
 
   private Patient findPatientByUserId(Long userId) {
     return patientRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil de paciente não encontrado para o usuário atual."));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
   }
 
   private void validatePatientOwnership(AppointmentResponse appointment, Patient patient) {
     if (!appointment.patientId().equals(patient.getId())) {
-      throw new SecurityException("Acesso negado: Esta consulta não pertence ao seu perfil de paciente.");
+      throw new AccessDeniedException("Esta consulta não pertence ao seu perfil de paciente.");
     }
   }
 
   private Doctor findDoctorByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil de médico não encontrado."));
+      .orElseThrow(() -> new ResourceNotFoundException("Doctor Profile", userId));
   }
 
   private Review buildReview(ReviewCreateRequest request, Doctor doctor, Patient patient) {

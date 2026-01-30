@@ -1,5 +1,7 @@
 package com.hms.pharmacy.controllers;
 
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
 import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
 import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.services.MedicineInventoryService;
@@ -22,30 +24,32 @@ public class MedicineInventoryController {
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<MedicineInventoryResponse> addInventoryItem(@Valid @RequestBody MedicineInventoryRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(inventoryService.addInventory(request));
+  public ResponseEntity<ApiResponse<MedicineInventoryResponse>> addInventoryItem(@Valid @RequestBody MedicineInventoryRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(inventoryService.addInventory(request), "Estoque adicionado."));
   }
 
   @GetMapping
-  public ResponseEntity<Page<MedicineInventoryResponse>> getAllInventory(@PageableDefault(size = 10) Pageable pageable) {
-    return ResponseEntity.ok(inventoryService.getAllInventory(pageable));
+  public ResponseEntity<ApiResponse<PagedResponse<MedicineInventoryResponse>>> getAllInventory(@PageableDefault(size = 10) Pageable pageable) {
+    Page<MedicineInventoryResponse> page = inventoryService.getAllInventory(pageable);
+    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<MedicineInventoryResponse> getInventoryItemById(@PathVariable Long id) {
-    return ResponseEntity.ok(inventoryService.getInventoryById(id));
+  public ResponseEntity<ApiResponse<MedicineInventoryResponse>> getInventoryItemById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.success(inventoryService.getInventoryById(id)));
   }
 
   @PutMapping("/{id}")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<MedicineInventoryResponse> updateInventoryItem(@PathVariable Long id, @Valid @RequestBody MedicineInventoryRequest request) {
-    return ResponseEntity.ok(inventoryService.updateInventory(id, request));
+  public ResponseEntity<ApiResponse<MedicineInventoryResponse>> updateInventoryItem(@PathVariable Long id, @Valid @RequestBody MedicineInventoryRequest request) {
+    return ResponseEntity.ok(ApiResponse.success(inventoryService.updateInventory(id, request), "Item de estoque atualizado."));
   }
 
   @DeleteMapping("/{id}")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<Void> deleteInventoryItem(@PathVariable Long id) {
+  public ResponseEntity<ApiResponse<Void>> deleteInventoryItem(@PathVariable Long id) {
     inventoryService.deleteInventory(id);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok(ApiResponse.success(null, "Item de estoque removido."));
   }
 }

@@ -1,5 +1,8 @@
 package com.hms.pharmacy.controllers;
 
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
@@ -30,60 +33,62 @@ public class PharmacySaleController {
 
   @PostMapping
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<PharmacySaleResponse> createSale(@Valid @RequestBody PharmacySaleRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(saleService.createSale(request));
+  public ResponseEntity<ApiResponse<PharmacySaleResponse>> createSale(@Valid @RequestBody PharmacySaleRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(saleService.createSale(request), "Venda registrada com sucesso."));
   }
 
   @PostMapping("/direct")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<PharmacySaleResponse> createDirectSale(@Valid @RequestBody DirectSaleRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(saleService.createDirectSale(request));
+  public ResponseEntity<ApiResponse<PharmacySaleResponse>> createDirectSale(@Valid @RequestBody DirectSaleRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(saleService.createDirectSale(request), "Venda direta registrada."));
   }
 
   @PostMapping("/from-prescription")
   @PreAuthorize("hasRole('ADMIN')")
   @Auditable(action = "SALE_FROM_PRESCRIPTION", resourceName = "PharmacySale")
-  public ResponseEntity<PharmacySaleResponse> createSaleFromPrescription(@RequestBody ProcessPrescriptionRequest request) {
+  public ResponseEntity<ApiResponse<PharmacySaleResponse>> createSaleFromPrescription(@RequestBody ProcessPrescriptionRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(saleService.processPrescriptionAndCreateSale(request.prescriptionId()));
+      .body(ApiResponse.success(saleService.processPrescriptionAndCreateSale(request.prescriptionId()), "Venda criada a partir da receita."));
   }
 
   @GetMapping("/{id}")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<PharmacySaleResponse> getSaleById(@PathVariable Long id) {
-    return ResponseEntity.ok(saleService.getSaleById(id));
+  public ResponseEntity<ApiResponse<PharmacySaleResponse>> getSaleById(@PathVariable Long id) {
+    return ResponseEntity.ok(ApiResponse.success(saleService.getSaleById(id)));
   }
 
   @GetMapping("/patient/{patientId}")
   @Auditable(action = "VIEW_PATIENT_SALES", resourceName = "PharmacySale")
-  public ResponseEntity<List<PharmacySaleResponse>> getSalesByPatient(
+  public ResponseEntity<ApiResponse<List<PharmacySaleResponse>>> getSalesByPatient(
     @PathVariable Long patientId,
     Authentication authentication
   ) {
-    // verifica se o usuário é admin ou o próprio paciente
     Long requesterId = SecurityUtils.getUserId(authentication);
     boolean isAdmin = authentication.getAuthorities().stream()
       .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
     if (!isAdmin && !requesterId.equals(patientId)) {
-      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      throw new AccessDeniedException("Você não tem permissão para ver as compras deste paciente.");
     }
 
-    return ResponseEntity.ok(saleService.getSalesByPatientId(patientId));
+    return ResponseEntity.ok(ApiResponse.success(saleService.getSalesByPatientId(patientId)));
   }
 
   @GetMapping
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<Page<PharmacySaleResponse>> getAllSales(
+  public ResponseEntity<ApiResponse<PagedResponse<PharmacySaleResponse>>> getAllSales(
     @PageableDefault(size = 10, sort = "saleDate", direction = Sort.Direction.DESC) Pageable pageable
   ) {
-    return ResponseEntity.ok(saleService.getAllSales(pageable));
+    Page<PharmacySaleResponse> page = saleService.getAllSales(pageable);
+    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
   }
 
   @GetMapping("/stats/financial")
   @PreAuthorize("hasRole('ADMIN')")
-  public ResponseEntity<PharmacyFinancialStatsResponse> getFinancialStats() {
-    return ResponseEntity.ok(saleService.getFinancialStatsLast30Days());
+  public ResponseEntity<ApiResponse<PharmacyFinancialStatsResponse>> getFinancialStats() {
+    return ResponseEntity.ok(ApiResponse.success(saleService.getFinancialStatsLast30Days()));
   }
 
   public record ProcessPrescriptionRequest(Long prescriptionId) {

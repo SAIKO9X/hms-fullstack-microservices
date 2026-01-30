@@ -10,13 +10,12 @@ import com.hms.appointment.dto.response.*;
 import com.hms.appointment.entities.*;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.enums.AppointmentType;
-import com.hms.appointment.exceptions.AppointmentNotFoundException;
-import com.hms.appointment.exceptions.InvalidUpdateException;
-import com.hms.appointment.exceptions.ProfileNotFoundException;
-import com.hms.appointment.exceptions.SchedulingConflictException;
 import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.common.audit.AuditChangeTracker;
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.exceptions.InvalidOperationException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -52,9 +51,10 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
     if (!patientReadModelRepository.existsById(patientId))
-      throw new ProfileNotFoundException("Paciente não encontrado.");
+      throw new ResourceNotFoundException("Patient Profile", patientId);
+
     if (!doctorReadModelRepository.existsById(request.doctorId()))
-      throw new ProfileNotFoundException("Médico não encontrado.");
+      throw new ResourceNotFoundException("Doctor Profile", request.doctorId());
 
     int duration = request.duration() != null ? request.duration() : 60;
     LocalDateTime start = request.appointmentDateTime();
@@ -119,7 +119,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     if (appointments.isEmpty()) return List.of();
 
-    // cache local simples para evitar N+1 queries no DoctorReadModel
     DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
       .orElse(new DoctorReadModel(doctorId, null, "Médico", "N/A", null));
 
@@ -135,13 +134,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     validateAccess(app, requesterId);
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED)
-      throw new InvalidUpdateException("Apenas consultas agendadas podem ser remarcadas.");
+      throw new InvalidOperationException("Apenas consultas agendadas podem ser remarcadas.");
 
     int duration = app.getDuration() != null ? app.getDuration() : 60;
     LocalDateTime newEnd = newDateTime.plusMinutes(duration);
 
     if (appointmentRepository.hasDoctorConflictExcludingId(app.getDoctorId(), newDateTime, newEnd, appointmentId)) {
-      throw new SchedulingConflictException("Conflito de horário com outra consulta.");
+      throw new InvalidOperationException("Conflito de horário com outra consulta existente.");
     }
     validateAvailability(app.getDoctorId(), newDateTime, newEnd);
 
@@ -168,7 +167,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     validateAccess(app, requesterId);
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED)
-      throw new InvalidUpdateException("Status inválido para cancelamento.");
+      throw new InvalidOperationException("Status inválido para cancelamento. A consulta deve estar AGENDADA.");
 
     AuditChangeTracker.addChange("status", app.getStatus(), AppointmentStatus.CANCELED);
     app.setStatus(AppointmentStatus.CANCELED);
@@ -184,10 +183,12 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    if (!app.getDoctorId().equals(doctorId)) throw new SecurityException("Apenas o médico responsável pode finalizar.");
+    if (!app.getDoctorId().equals(doctorId)) {
+      throw new AccessDeniedException("Apenas o médico responsável pode finalizar a consulta.");
+    }
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED && app.getStatus() != AppointmentStatus.COMPLETED) {
-      throw new InvalidUpdateException("Status inválido.");
+      throw new InvalidOperationException("Não é possível completar uma consulta que está " + app.getStatus());
     }
 
     if (!Objects.equals(app.getNotes(), notes)) AuditChangeTracker.addChange("notes", app.getNotes(), notes);
@@ -295,13 +296,15 @@ public class AppointmentServiceImpl implements AppointmentService {
   public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
     int duration = request.duration() != null ? request.duration() : 60;
     if (!appointmentRepository.hasDoctorConflict(request.doctorId(), request.appointmentDateTime(), request.appointmentDateTime().plusMinutes(duration))) {
-      throw new InvalidUpdateException("Horário disponível. Agende diretamente.");
+      throw new InvalidOperationException("O horário selecionado está disponível. Agende diretamente em vez de entrar na lista de espera.");
     }
     if (waitlistRepository.existsByPatientIdAndDoctorIdAndDate(patientId, request.doctorId(), request.appointmentDateTime().toLocalDate())) {
-      throw new InvalidUpdateException("Você já está na fila para este dia.");
+      throw new InvalidOperationException("Você já está na lista de espera para este dia.");
     }
 
-    PatientReadModel p = patientReadModelRepository.findById(patientId).orElseThrow(() -> new ProfileNotFoundException("Paciente não encontrado."));
+    PatientReadModel p = patientReadModelRepository.findById(patientId)
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", patientId));
+
     waitlistRepository.save(new WaitlistEntry(null, request.doctorId(), patientId, p.getFullName(), p.getEmail(), request.appointmentDateTime().toLocalDate(), LocalDateTime.now()));
   }
 
@@ -326,13 +329,13 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional
   public AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request) {
     if (request.startTime().isAfter(request.endTime()))
-      throw new InvalidUpdateException("Início deve ser antes do fim.");
+      throw new InvalidOperationException("A data de início deve ser anterior à data de fim.");
 
     boolean conflict = availabilityRepository.findByDoctorId(doctorId).stream()
       .filter(s -> s.getDayOfWeek() == request.dayOfWeek())
       .anyMatch(s -> request.startTime().isBefore(s.getEndTime()) && request.endTime().isAfter(s.getStartTime()));
 
-    if (conflict) throw new InvalidUpdateException("Conflito com horário existente.");
+    if (conflict) throw new InvalidOperationException("Conflito com horário existente na grade.");
 
     DoctorAvailability saved = availabilityRepository.save(DoctorAvailability.builder()
       .doctorId(doctorId).dayOfWeek(request.dayOfWeek()).startTime(request.startTime()).endTime(request.endTime()).build());
@@ -347,6 +350,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   public void deleteAvailability(Long id) {
+    if (!availabilityRepository.existsById(id)) {
+      throw new ResourceNotFoundException("Doctor Availability", id);
+    }
     availabilityRepository.deleteById(id);
   }
 
@@ -356,55 +362,57 @@ public class AppointmentServiceImpl implements AppointmentService {
       .stream().map(Appointment::getDoctorId).distinct().toList();
   }
 
-  // --- PRIVATE HELPERS ---
-
   private void validateNewAppointment(Long patientId, Long doctorId, LocalDateTime start, LocalDateTime end) {
     validateBusinessHours(start);
     if (start.isBefore(LocalDateTime.now().plusHours(2)))
-      throw new InvalidUpdateException("Antecedência mínima de 2h.");
+      throw new InvalidOperationException("Agendamentos devem ser feitos com antecedência mínima de 2 horas.");
+
     if (start.isAfter(LocalDateTime.now().plusMonths(3)))
-      throw new InvalidUpdateException("Antecedência máxima de 3 meses.");
+      throw new InvalidOperationException("Agendamentos permitidos apenas para os próximos 3 meses.");
+
     if (appointmentRepository.countByPatientIdAndDate(patientId, start.toLocalDate()) >= 2)
-      throw new InvalidUpdateException("Limite diário atingido.");
+      throw new InvalidOperationException("Limite diário de agendamentos atingido para o paciente.");
 
     validateAvailability(doctorId, start, end);
 
     if (appointmentRepository.hasDoctorConflict(doctorId, start, end))
-      throw new SchedulingConflictException("Médico ocupado.");
+      throw new InvalidOperationException("O médico já possui um agendamento neste horário.");
+
     if (appointmentRepository.hasPatientConflict(patientId, start, end))
-      throw new SchedulingConflictException("Você já tem consulta neste horário.");
+      throw new InvalidOperationException("Você já possui um agendamento neste horário.");
   }
 
   private void validateAvailability(Long doctorId, LocalDateTime start, LocalDateTime end) {
     boolean isBlocked = unavailabilityRepository.hasUnavailability(doctorId, start, end);
-    if (isBlocked) throw new SchedulingConflictException("Médico indisponível (Bloqueio).");
+    if (isBlocked) throw new InvalidOperationException("Médico indisponível (Bloqueio de agenda).");
 
     List<DoctorAvailability> slots = availabilityRepository.findByDoctorId(doctorId);
     if (slots.isEmpty())
-      return; // Se não tem agenda definida, assume disponível (ou bloqueia tudo, dependendo da regra de negócio)
+      return;
 
     boolean isCovered = slots.stream().anyMatch(slot ->
       slot.getDayOfWeek() == start.getDayOfWeek() &&
         !start.toLocalTime().isBefore(slot.getStartTime()) &&
         !end.toLocalTime().isAfter(slot.getEndTime()));
 
-    if (!isCovered) throw new InvalidUpdateException("Fora do horário de atendimento do médico.");
+    if (!isCovered) throw new InvalidOperationException("O horário selecionado está fora do expediente do médico.");
   }
 
   private void validateBusinessHours(LocalDateTime date) {
     LocalTime t = date.toLocalTime();
     if (t.isBefore(LocalTime.of(6, 0)) || t.isAfter(LocalTime.of(22, 0)))
-      throw new InvalidUpdateException("Horário inválido (06h-22h).");
+      throw new InvalidOperationException("Horário inválido. O sistema opera entre 06:00 e 22:00.");
   }
 
   private void validateAccess(Appointment app, Long requesterId) {
     if (!app.getPatientId().equals(requesterId) && !app.getDoctorId().equals(requesterId)) {
-      throw new SecurityException("Acesso negado.");
+      throw new AccessDeniedException("Você não tem permissão para acessar este agendamento.");
     }
   }
 
   private Appointment findAppointmentByIdOrThrow(Long id) {
-    return appointmentRepository.findById(id).orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
+    return appointmentRepository.findById(id)
+      .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
   }
 
   private DateRange calculateDateRange(String filter) {
@@ -414,7 +422,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       return new DateRange(now.with(DayOfWeek.MONDAY), now.with(DayOfWeek.SUNDAY).plusDays(1).minusNanos(1));
     if ("month".equalsIgnoreCase(filter))
       return new DateRange(now.withDayOfMonth(1), now.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1).minusNanos(1));
-    return new DateRange(now.minusYears(1), now.plusYears(1)); // Default fallback
+    return new DateRange(now.minusYears(1), now.plusYears(1));
   }
 
   private AppointmentDetailResponse mapToDetailResponse(Appointment app, DoctorReadModel doctor) {

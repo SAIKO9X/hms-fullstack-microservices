@@ -1,5 +1,6 @@
 package com.hms.notification.services;
 
+import com.hms.common.exceptions.ServiceUnavailableException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,7 @@ import java.nio.charset.StandardCharsets;
 public class EmailService {
 
   private final JavaMailSender javaMailSender;
-  private final SpringTemplateEngine templateEngine; // thymeleaf
+  private final SpringTemplateEngine templateEngine;
 
   public void sendEmail(String to, String subject, String body) {
     try {
@@ -35,20 +36,19 @@ public class EmailService {
       context.setVariable("messageBody", body);
       context.setVariable("subject", subject);
 
-      // processa o template "email-template.html"
       String htmlContent = templateEngine.process("email-template", context);
 
       helper.setTo(to);
       helper.setSubject(subject);
       helper.setFrom("sistema@hms.com");
-      helper.setText(htmlContent, true); // true indica que é HTML
+      helper.setText(htmlContent, true);
 
       javaMailSender.send(mimeMessage);
       log.info("E-mail com template enviado com sucesso!");
 
     } catch (MessagingException e) {
       log.error("Falha ao enviar e-mail", e);
-      throw new RuntimeException("Erro ao enviar e-mail: " + e.getMessage());
+      throw new ServiceUnavailableException("Serviço de e-mail temporariamente indisponível: " + e.getMessage());
     }
   }
 }

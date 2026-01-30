@@ -1,5 +1,6 @@
 package com.hms.notification.services;
 
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.notification.dto.response.NotificationResponse;
 import com.hms.notification.entities.Notification;
 import com.hms.notification.repositories.NotificationRepository;
@@ -29,10 +30,11 @@ public class NotificationService {
 
   @Transactional
   public void markAsRead(Long notificationId) {
-    notificationRepository.findById(notificationId).ifPresent(notification -> {
-      notification.setRead(true);
-      notificationRepository.save(notification);
-    });
+    Notification notification = notificationRepository.findById(notificationId)
+      .orElseThrow(() -> new ResourceNotFoundException("Notification", notificationId));
+
+    notification.setRead(true);
+    notificationRepository.save(notification);
   }
 
   @Transactional
@@ -42,7 +44,6 @@ public class NotificationService {
     notificationRepository.saveAll(list);
   }
 
-  // Método auxiliar privado para mapeamento
   private NotificationResponse mapToResponse(Notification notification) {
     return new NotificationResponse(
       notification.getId(),

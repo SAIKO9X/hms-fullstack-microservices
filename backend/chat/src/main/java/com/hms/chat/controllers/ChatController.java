@@ -3,6 +3,7 @@ package com.hms.chat.controllers;
 import com.hms.chat.dto.request.ChatMessageRequest;
 import com.hms.chat.dto.response.ChatMessageResponse;
 import com.hms.chat.services.ChatService;
+import com.hms.common.dto.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -22,18 +23,18 @@ public class ChatController {
   private final SimpMessagingTemplate messagingTemplate;
   private final ChatService chatService;
 
-  // websocket endpoint
   @MessageMapping("/chat.sendMessage")
   public void processMessage(@Payload ChatMessageRequest request) {
     ChatMessageResponse savedMsg = chatService.saveMessage(request);
 
-    // envia para o destinatário específico
+    // envia para o destinatário
     messagingTemplate.convertAndSendToUser(
       String.valueOf(request.recipientId()),
       "/queue/messages",
       savedMsg
     );
 
+    // envia cópia para o remetente (para atualizar UI se necessário)
     messagingTemplate.convertAndSendToUser(
       String.valueOf(request.senderId()),
       "/queue/messages",
@@ -41,10 +42,9 @@ public class ChatController {
     );
   }
 
-  // rest endpoint para buscar mensagens entre dois usuários
   @ResponseBody
   @GetMapping("/chat/messages/{senderId}/{recipientId}")
-  public ResponseEntity<List<ChatMessageResponse>> findChatMessages(@PathVariable Long senderId, @PathVariable Long recipientId) {
-    return ResponseEntity.ok(chatService.findChatMessages(senderId, recipientId));
+  public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> findChatMessages(@PathVariable Long senderId, @PathVariable Long recipientId) {
+    return ResponseEntity.ok(ApiResponse.success(chatService.findChatMessages(senderId, recipientId)));
   }
 }

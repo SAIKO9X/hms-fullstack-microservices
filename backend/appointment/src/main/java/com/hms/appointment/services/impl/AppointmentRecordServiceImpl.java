@@ -6,11 +6,12 @@ import com.hms.appointment.dto.response.AppointmentRecordResponse;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.AppointmentRecord;
 import com.hms.appointment.enums.AppointmentStatus;
-import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.AppointmentRecordRepository;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentRecordService;
 import com.hms.common.audit.AuditChangeTracker;
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,10 +29,10 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
   @Transactional
   public AppointmentRecordResponse createAppointmentRecord(AppointmentRecordCreateRequest request, Long doctorId) {
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
-      .orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
     if (!appointment.getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado.");
+      throw new AccessDeniedException("Você não tem permissão para criar registro para esta consulta.");
     }
 
     AppointmentRecord newRecord = AppointmentRecord.builder()
@@ -62,7 +63,7 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
       .map(record -> {
         Appointment appointment = record.getAppointment();
         if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
-          throw new SecurityException("Acesso negado. Você não tem permissão para ver este registo.");
+          throw new AccessDeniedException("Acesso negado. Você não tem permissão para ver este registo.");
         }
         return AppointmentRecordResponse.fromEntity(record);
       })
@@ -73,10 +74,10 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
   @Transactional
   public AppointmentRecordResponse updateAppointmentRecord(Long recordId, AppointmentRecordUpdateRequest request, Long doctorId) {
     AppointmentRecord record = recordRepository.findById(recordId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Registro com ID " + recordId + " não encontrado."));
+      .orElseThrow(() -> new ResourceNotFoundException("Appointment Record", recordId));
 
     if (!record.getAppointment().getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado.");
+      throw new AccessDeniedException("Apenas o médico responsável pode atualizar este registro.");
     }
 
     applyChanges(record, request);

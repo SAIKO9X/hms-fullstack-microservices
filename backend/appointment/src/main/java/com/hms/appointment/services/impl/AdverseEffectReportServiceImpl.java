@@ -4,9 +4,10 @@ import com.hms.appointment.dto.request.AdverseEffectReportCreateRequest;
 import com.hms.appointment.dto.response.AdverseEffectReportResponse;
 import com.hms.appointment.entities.AdverseEffectReport;
 import com.hms.appointment.enums.ReportStatus;
-import com.hms.appointment.exceptions.AppointmentNotFoundException;
 import com.hms.appointment.repositories.AdverseEffectReportRepository;
 import com.hms.appointment.services.AdverseEffectReportService;
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +28,7 @@ public class AdverseEffectReportServiceImpl implements AdverseEffectReportServic
     report.setDoctorId(request.doctorId());
     report.setPrescriptionId(request.prescriptionId());
     report.setDescription(request.description());
-    report.setStatus(ReportStatus.REPORTED); // status inicial
+    report.setStatus(ReportStatus.REPORTED);
 
     AdverseEffectReport savedReport = reportRepository.save(report);
     return AdverseEffectReportResponse.fromEntity(savedReport);
@@ -44,11 +45,11 @@ public class AdverseEffectReportServiceImpl implements AdverseEffectReportServic
   @Transactional
   public AdverseEffectReportResponse markAsReviewed(Long reportId, Long doctorId) {
     AdverseEffectReport report = reportRepository.findById(reportId)
-      .orElseThrow(() -> new AppointmentNotFoundException("Relatório com ID " + reportId + " não encontrado."));
+      .orElseThrow(() -> new ResourceNotFoundException("Adverse Effect Report", reportId));
 
-    // Apenas o médico associado pode marcar como lido
+    // apenas o médico associado pode marcar como lido
     if (!report.getDoctorId().equals(doctorId)) {
-      throw new SecurityException("Acesso negado. Apenas o médico responsável pode modificar este relatório.");
+      throw new AccessDeniedException("Apenas o médico responsável pode modificar este relatório.");
     }
 
     report.setStatus(ReportStatus.REVIEWED);

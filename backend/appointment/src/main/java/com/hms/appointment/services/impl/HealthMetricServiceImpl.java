@@ -28,10 +28,10 @@ public class HealthMetricServiceImpl implements HealthMetricService {
     metric.setHeight(request.height());
     metric.setHeartRate(request.heartRate());
 
-    // Calcula o IMC (BMI)
+    // cálculo do IMC (Índice de Massa Corporal)
     if (request.height() != null && request.weight() != null && request.height() > 0) {
       double bmi = request.weight() / (request.height() * request.height());
-      metric.setBmi(Math.round(bmi * 10.0) / 10.0); // Arredonda para 1 casa decimal
+      metric.setBmi(Math.round(bmi * 10.0) / 10.0); // arredonda para 1 casa decimal
     }
 
     HealthMetric savedMetric = healthMetricRepository.save(metric);
@@ -43,7 +43,7 @@ public class HealthMetricServiceImpl implements HealthMetricService {
   public HealthMetricResponse getLatestHealthMetric(Long patientId) {
     return healthMetricRepository.findFirstByPatientIdOrderByRecordedAtDesc(patientId)
       .map(HealthMetricResponse::fromEntity)
-      .orElse(null); // Retorna nulo se não houver registos
+      .orElse(null);
   }
 
   @Override

@@ -15,11 +15,10 @@ import com.hms.appointment.entities.LabOrder;
 import com.hms.appointment.entities.LabTestItem;
 import com.hms.appointment.enums.LabItemStatus;
 import com.hms.appointment.enums.LabOrderStatus;
-import com.hms.appointment.exceptions.AppointmentNotFoundException;
-import com.hms.appointment.exceptions.ResourceNotFoundException;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.LabOrderRepository;
 import com.hms.appointment.services.LabOrderService;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -54,7 +53,7 @@ public class LabOrderServiceImpl implements LabOrderService {
   @Transactional
   public LabOrder createLabOrder(LabOrderCreateRequest request) {
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
-      .orElseThrow(() -> new AppointmentNotFoundException("Consulta não encontrada."));
+      .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
     List<LabTestItem> testItems = request.tests().stream()
       .map(t -> new LabTestItem(
@@ -82,12 +81,12 @@ public class LabOrderServiceImpl implements LabOrderService {
   @Transactional
   public LabOrderDTO addResultToItem(Long orderId, Long itemId, AddLabResultRequest request) {
     LabOrder order = labOrderRepository.findById(orderId)
-      .orElseThrow(() -> new ResourceNotFoundException("Lab Order not found"));
+      .orElseThrow(() -> new ResourceNotFoundException("Lab Order", orderId));
 
     LabTestItem item = order.getLabTestItems().stream()
       .filter(i -> i.getId().equals(itemId))
       .findFirst()
-      .orElseThrow(() -> new ResourceNotFoundException("Item not found"));
+      .orElseThrow(() -> new ResourceNotFoundException("Lab Test Item", itemId));
 
     item.setResultNotes(request.resultNotes());
     item.setAttachmentId(request.attachmentId());
@@ -103,55 +102,59 @@ public class LabOrderServiceImpl implements LabOrderService {
     labOrderRepository.save(order);
 
     if (allCompleted) {
-      String doctorEmail = "no-reply@hms.com";
-      String doctorName = "Doutor(a)";
-      String patientName = "Paciente";
-      Long doctorUserId = null;
-
-      try {
-        DoctorProfile doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
-
-        if (doctorProfile != null) {
-          doctorName = doctorProfile.name();
-          doctorUserId = doctorProfile.userId();
-
-          if (doctorUserId != null) {
-            UserResponse userResponse = userClient.getUserById(doctorUserId);
-            if (userResponse != null) {
-              doctorEmail = userResponse.email();
-            }
-          }
-        }
-
-        PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
-        if (patientProfile != null) {
-          patientName = patientProfile.name();
-        }
-
-      } catch (Exception e) {
-        log.error("Erro ao enriquecer evento de exame (continuando fluxo): {}", e.getMessage());
-      }
-
-      String notificationLink = frontendUrl + "/doctor/appointments/" + order.getAppointment().getId();
-
-      LabOrderCompletedEvent event = new LabOrderCompletedEvent(
-        order.getId(),
-        order.getOrderNumber(),
-        order.getAppointment().getId(),
-        order.getPatientId(),
-        patientName,
-        order.getAppointment().getDoctorId(),
-        doctorUserId,
-        doctorName,
-        doctorEmail,
-        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-        notificationLink
-      );
-
-      rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
+      sendLabOrderCompletedEvent(order);
     }
 
     return mapToDTO(order);
+  }
+
+  private void sendLabOrderCompletedEvent(LabOrder order) {
+    String doctorEmail = "no-reply@hms.com";
+    String doctorName = "Doutor(a)";
+    String patientName = "Paciente";
+    Long doctorUserId = null;
+
+    try {
+      DoctorProfile doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
+
+      if (doctorProfile != null) {
+        doctorName = doctorProfile.name();
+        doctorUserId = doctorProfile.userId();
+
+        if (doctorUserId != null) {
+          UserResponse userResponse = userClient.getUserById(doctorUserId);
+          if (userResponse != null) {
+            doctorEmail = userResponse.email();
+          }
+        }
+      }
+
+      PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
+      if (patientProfile != null) {
+        patientName = patientProfile.name();
+      }
+
+    } catch (Exception e) {
+      log.error("Erro ao enriquecer evento de exame (continuando fluxo): {}", e.getMessage());
+    }
+
+    String notificationLink = frontendUrl + "/doctor/appointments/" + order.getAppointment().getId();
+
+    LabOrderCompletedEvent event = new LabOrderCompletedEvent(
+      order.getId(),
+      order.getOrderNumber(),
+      order.getAppointment().getId(),
+      order.getPatientId(),
+      patientName,
+      order.getAppointment().getDoctorId(),
+      doctorUserId,
+      doctorName,
+      doctorEmail,
+      LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+      notificationLink
+    );
+
+    rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
   }
 
   @Override
@@ -160,7 +163,6 @@ public class LabOrderServiceImpl implements LabOrderService {
     return labOrderRepository.findByAppointmentId(appointmentId);
   }
 
-  // Método auxiliar Mapper
   private LabOrderDTO mapToDTO(LabOrder order) {
     return new LabOrderDTO(
       order.getId(),

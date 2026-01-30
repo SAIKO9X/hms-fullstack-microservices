@@ -4,6 +4,7 @@ import com.hms.appointment.dto.request.AppointmentRecordCreateRequest;
 import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentRecordResponse;
 import com.hms.appointment.services.AppointmentRecordService;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -22,32 +23,30 @@ public class AppointmentRecordController {
 
   @PostMapping
   @Auditable(action = "CREATE", resourceName = "APPOINTMENT_RECORD")
-  public ResponseEntity<AppointmentRecordResponse> createRecord(
+  public ResponseEntity<ApiResponse<AppointmentRecordResponse>> createRecord(
     Authentication authentication,
     @Valid @RequestBody AppointmentRecordCreateRequest request
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
+    AppointmentRecordResponse response = recordService.createAppointmentRecord(request, doctorId);
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(recordService.createAppointmentRecord(request, doctorId));
+      .body(ApiResponse.success(response, "Prontuário criado com sucesso."));
   }
 
   @GetMapping("/appointment/{appointmentId}")
-  public ResponseEntity<AppointmentRecordResponse> getRecordByAppointmentId(
-    Authentication authentication,
-    @PathVariable Long appointmentId
-  ) {
+  public ResponseEntity<ApiResponse<AppointmentRecordResponse>> getRecordByAppointmentId(Authentication authentication, @PathVariable Long appointmentId) {
     Long requesterId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(recordService.getAppointmentRecordByAppointmentId(appointmentId, requesterId));
+    return ResponseEntity.ok(ApiResponse.success(recordService.getAppointmentRecordByAppointmentId(appointmentId, requesterId)));
   }
 
   @PutMapping("/{recordId}")
   @Auditable(action = "UPDATE", resourceName = "APPOINTMENT_RECORD")
-  public ResponseEntity<AppointmentRecordResponse> updateRecord(
+  public ResponseEntity<ApiResponse<AppointmentRecordResponse>> updateRecord(
     Authentication authentication,
     @PathVariable Long recordId,
     @Valid @RequestBody AppointmentRecordUpdateRequest request
   ) {
     Long doctorId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(recordService.updateAppointmentRecord(recordId, request, doctorId));
+    return ResponseEntity.ok(ApiResponse.success(recordService.updateAppointmentRecord(recordId, request, doctorId)));
   }
 }

@@ -1,5 +1,7 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.exceptions.ResourceAlreadyExistsException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.dto.event.PatientEvent;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
@@ -9,8 +11,6 @@ import com.hms.profile.dto.response.PatientResponse;
 import com.hms.profile.entities.Patient;
 import com.hms.profile.enums.BloodGroup;
 import com.hms.profile.enums.Gender;
-import com.hms.profile.exceptions.ProfileAlreadyExistsException;
-import com.hms.profile.exceptions.ProfileNotFoundException;
 import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,7 @@ public class PatientServiceImpl implements PatientService {
   @Override
   public PatientResponse createPatientProfile(PatientCreateRequest request) {
     if (patientRepository.existsByUserIdOrCpf(request.userId(), request.cpf())) {
-      throw new ProfileAlreadyExistsException("Um perfil para este usuário ou CPF já existe.");
+      throw new ResourceAlreadyExistsException("Patient Profile", "userId/CPF");
     }
 
     Patient newPatient = new Patient();
@@ -58,7 +58,7 @@ public class PatientServiceImpl implements PatientService {
   public PatientResponse getPatientProfileById(Long profileId) {
     return patientRepository.findById(profileId)
       .map(PatientResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado com o ID: " + profileId));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", profileId));
   }
 
   @Override
@@ -67,14 +67,14 @@ public class PatientServiceImpl implements PatientService {
   public PatientResponse getPatientProfileByUserId(Long userId) {
     return patientRepository.findByUserId(userId)
       .map(PatientResponse::fromEntity)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
   }
 
   @Override
   @CachePut(value = "patientsByUserId", key = "#userId")
   public PatientResponse updatePatientProfile(Long userId, PatientUpdateRequest request) {
     Patient patientToUpdate = patientRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
 
     if (request.name() != null && !request.name().isBlank()) patientToUpdate.setName(request.name());
     if (request.gender() != null) patientToUpdate.setGender(request.gender());
@@ -125,7 +125,7 @@ public class PatientServiceImpl implements PatientService {
   @CacheEvict(value = "patientsByUserId", key = "#userId")
   public void updateProfilePicture(Long userId, String pictureUrl) {
     Patient patient = patientRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil não encontrado para o usuário com ID: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
     patient.setProfilePictureUrl(pictureUrl);
 
     Patient savedPatient = patientRepository.save(patient);
@@ -137,7 +137,7 @@ public class PatientServiceImpl implements PatientService {
   @CacheEvict(value = "patientsByUserId", key = "#userId")
   public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest request) {
     Patient patient = patientRepository.findByUserId(userId)
-      .orElseThrow(() -> new ProfileNotFoundException("Perfil do paciente não encontrado para o ID de usuário: " + userId));
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
 
     if (request.name() != null && !request.name().isBlank()) patient.setName(request.name());
     if (request.cpf() != null) patient.setCpf(request.cpf());
@@ -180,7 +180,6 @@ public class PatientServiceImpl implements PatientService {
     return patientRepository.count();
   }
 
-  // Método Auxiliar para RabbitMQ
   private void publishPatientEvent(Patient patient, String eventType) {
     try {
       PatientEvent event = new PatientEvent(
@@ -191,7 +190,6 @@ public class PatientServiceImpl implements PatientService {
         eventType
       );
 
-      // Routing key: patient.created ou patient.updated
       String routingKey = "patient." + eventType.toLowerCase();
       String exchangeName = "hms.exchange";
       rabbitTemplate.convertAndSend(exchangeName, routingKey, event);

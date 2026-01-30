@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.security.SecurityUtils;
 import com.hms.profile.dto.request.ReviewCreateRequest;
 import com.hms.profile.dto.response.DoctorRatingDto;
@@ -22,21 +23,19 @@ public class ReviewController {
   private final ReviewService reviewService;
 
   @PostMapping
-  public ResponseEntity<ReviewResponse> createReview(
-    @RequestBody @Valid ReviewCreateRequest request,
-    Authentication authentication
-  ) {
+  public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@RequestBody @Valid ReviewCreateRequest request, Authentication authentication) {
     Long userId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.createReview(request, userId));
+    return ResponseEntity.status(HttpStatus.CREATED)
+      .body(ApiResponse.success(reviewService.createReview(request, userId), "Avaliação enviada com sucesso."));
   }
 
   @GetMapping("/doctor/{doctorId}/stats")
-  public ResponseEntity<DoctorRatingDto> getDoctorStats(@PathVariable Long doctorId) {
-    return ResponseEntity.ok(reviewService.getDoctorStats(doctorId));
+  public ResponseEntity<ApiResponse<DoctorRatingDto>> getDoctorStats(@PathVariable Long doctorId) {
+    return ResponseEntity.ok(ApiResponse.success(reviewService.getDoctorStats(doctorId)));
   }
 
   @GetMapping("/doctor/{doctorId}")
-  public ResponseEntity<List<ReviewResponse>> getDoctorReviews(@PathVariable Long doctorId) {
-    return ResponseEntity.ok(reviewService.getDoctorReviews(doctorId));
+  public ResponseEntity<ApiResponse<List<ReviewResponse>>> getDoctorReviews(@PathVariable Long doctorId) {
+    return ResponseEntity.ok(ApiResponse.success(reviewService.getDoctorReviews(doctorId)));
   }
 }

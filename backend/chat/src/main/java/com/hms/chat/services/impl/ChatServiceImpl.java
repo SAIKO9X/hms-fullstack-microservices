@@ -51,7 +51,6 @@ public class ChatServiceImpl implements ChatService {
       .toList();
   }
 
-  // Lógica para criar um ID único de conversa entre dois usuários.
   private String generateChatId(Long senderId, Long recipientId) {
     var minId = Math.min(senderId, recipientId);
     var maxId = Math.max(senderId, recipientId);

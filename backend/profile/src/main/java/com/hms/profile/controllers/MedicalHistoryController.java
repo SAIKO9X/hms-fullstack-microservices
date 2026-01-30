@@ -1,5 +1,6 @@
 package com.hms.profile.controllers;
 
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.security.Auditable;
 import com.hms.profile.dto.response.MedicalHistoryResponse;
 import com.hms.profile.services.MedicalHistoryService;
@@ -20,14 +21,14 @@ public class MedicalHistoryController {
 
   @PreAuthorize("hasRole('PATIENT')")
   @GetMapping("/patient/medical-history/{patientProfileId}")
-  public ResponseEntity<MedicalHistoryResponse> getMedicalHistory(@PathVariable Long patientProfileId) {
-    return ResponseEntity.ok(medicalHistoryService.getPatientMedicalHistory(patientProfileId));
+  public ResponseEntity<ApiResponse<MedicalHistoryResponse>> getMedicalHistory(@PathVariable Long patientProfileId) {
+    return ResponseEntity.ok(ApiResponse.success(medicalHistoryService.getPatientMedicalHistory(patientProfileId)));
   }
 
   @PreAuthorize("hasRole('ADMIN')")
   @GetMapping("/admin/patient/{patientProfileId}/medical-history")
   @Auditable(action = "VIEW_MEDICAL_HISTORY_ADMIN", resourceName = "MedicalHistory")
-  public ResponseEntity<MedicalHistoryResponse> getPatientMedicalHistoryByIdForAdmin(@PathVariable Long patientProfileId) {
-    return ResponseEntity.ok(medicalHistoryService.getMedicalHistoryByPatientProfileId(patientProfileId));
+  public ResponseEntity<ApiResponse<MedicalHistoryResponse>> getPatientMedicalHistoryByIdForAdmin(@PathVariable Long patientProfileId) {
+    return ResponseEntity.ok(ApiResponse.success(medicalHistoryService.getMedicalHistoryByPatientProfileId(patientProfileId)));
   }
 }
