@@ -1,5 +1,7 @@
 package com.hms.user.services.impl;
 
+import com.hms.common.exceptions.ResourceAlreadyExistsException;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.user.dto.event.UserCreatedEvent;
 import com.hms.user.dto.event.UserUpdatedEvent;
 import com.hms.user.dto.request.AdminCreateUserRequest;
@@ -10,8 +12,6 @@ import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.dto.response.UserResponse;
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;
-import com.hms.user.exceptions.UserAlreadyExistsException;
-import com.hms.user.exceptions.UserNotFoundException;
 import com.hms.user.repositories.UserRepository;
 import com.hms.user.services.JwtService;
 import com.hms.user.services.UserService;
@@ -81,14 +81,14 @@ public class UserServiceImpl implements UserService {
   public UserResponse getUserById(Long id) {
     return userRepository.findById(id)
       .map(UserResponse::fromEntity)
-      .orElseThrow(() -> new UserNotFoundException("Usuário com ID " + id + " não encontrado."));
+      .orElseThrow(() -> new ResourceNotFoundException("User", id));
   }
 
   @Override
   public UserResponse getUserByEmail(String email) {
     return userRepository.findByEmail(email)
       .map(UserResponse::fromEntity)
-      .orElseThrow(() -> new UserNotFoundException("Usuário com e-mail " + email + " não encontrado."));
+      .orElseThrow(() -> new ResourceNotFoundException("User", email));
   }
 
   @Override
@@ -111,7 +111,7 @@ public class UserServiceImpl implements UserService {
     authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
     User user = userRepository.findByEmail(request.email())
-      .orElseThrow(() -> new IllegalStateException("Usuário não encontrado após autenticação."));
+      .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
 
     if (!user.isActive()) throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
 
@@ -175,7 +175,8 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void verifyAccount(String email, String code) {
-    User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Usuário não encontrado"));
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new ResourceNotFoundException("User", email));
 
     if (user.isActive()) throw new IllegalArgumentException("Conta já verificada.");
     if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
@@ -194,7 +195,8 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void resendVerificationCode(String email) {
-    User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Usuário não encontrado."));
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new ResourceNotFoundException("User", email));
     if (user.isActive()) throw new IllegalArgumentException("Conta já verificada.");
 
     String newCode = generateVerificationCode();
@@ -206,13 +208,14 @@ public class UserServiceImpl implements UserService {
   }
 
   private User findUserByIdOrThrow(Long id) {
-    return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Usuário ID " + id + " não encontrado."));
+    return userRepository.findById(id)
+      .orElseThrow(() -> new ResourceNotFoundException("User", id));
   }
 
   private void validateEmailUnique(String email, Long excludeId) {
     userRepository.findByEmail(email).ifPresent(u -> {
       if (!u.getId().equals(excludeId)) {
-        throw new UserAlreadyExistsException("O e-mail '" + email + "' já está em uso.");
+        throw new ResourceAlreadyExistsException("User", email);
       }
     });
   }

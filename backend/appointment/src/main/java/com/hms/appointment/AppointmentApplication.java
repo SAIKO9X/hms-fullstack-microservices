@@ -1,6 +1,7 @@
 package com.hms.appointment;
 
 import com.hms.common.config.AuditConfig;
+import com.hms.common.config.CommonLibAutoConfiguration;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -11,12 +12,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableFeignClients
 @EnableDiscoveryClient
-@Import(AuditConfig.class)
-@SpringBootApplication(scanBasePackages = {"com.hms.appointment", "com.hms.common"})
+@SpringBootApplication
+@Import({CommonLibAutoConfiguration.class, AuditConfig.class})
 public class AppointmentApplication {
 
   public static void main(String[] args) {
     SpringApplication.run(AppointmentApplication.class, args);
   }
-
 }

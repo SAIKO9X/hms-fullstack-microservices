@@ -1,6 +1,5 @@
 package com.hms.billing.clients;
 
-import com.hms.billing.config.FeignClientInterceptor;
 import com.hms.billing.dto.external.DoctorDTO;
 import com.hms.billing.dto.external.PatientDTO;
 import org.springframework.cloud.openfeign.FeignClient;
