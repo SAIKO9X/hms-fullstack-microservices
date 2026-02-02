@@ -13,6 +13,7 @@ import com.hms.appointment.enums.AppointmentType;
 import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.common.audit.AuditChangeTracker;
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
@@ -443,11 +444,20 @@ public class AppointmentServiceImpl implements AppointmentService {
     try {
       var patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
       var doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
+
       if (patient != null && doctor != null) {
-        rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", new AppointmentStatusChangedEvent(
+        AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
           app.getId(), app.getPatientId(), patient.getEmail(), patient.getFullName(), doctor.getFullName(),
           app.getAppointmentDateTime(), status, notes
-        ));
+        );
+
+        EventEnvelope<AppointmentStatusChangedEvent> envelope = EventEnvelope.create(
+          "APPOINTMENT_STATUS_CHANGED",
+          UUID.randomUUID().toString(), // traceid simples
+          event
+        );
+
+        rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", envelope);
       }
     } catch (Exception e) {
       log.error("Erro RabbitMQ Status: {}", e.getMessage());
@@ -459,7 +469,14 @@ public class AppointmentServiceImpl implements AppointmentService {
       long delay = Duration.between(LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
       if (delay > 0) {
         var event = new AppointmentEvent(app.getId(), app.getPatientId(), "email-placeholder", "dr-placeholder", app.getAppointmentDateTime(), app.getMeetingUrl());
-        rabbitTemplate.convertAndSend(RabbitMQConfig.DELAYED_EXCHANGE, RabbitMQConfig.REMINDER_ROUTING_KEY, event, m -> {
+
+        EventEnvelope<AppointmentEvent> envelope = EventEnvelope.create(
+          "APPOINTMENT_REMINDER",
+          String.valueOf(app.getId()),
+          event
+        );
+
+        rabbitTemplate.convertAndSend(RabbitMQConfig.DELAYED_EXCHANGE, RabbitMQConfig.REMINDER_ROUTING_KEY, envelope, m -> {
           m.getMessageProperties().setHeader("x-delay", delay);
           return m;
         });
@@ -472,8 +489,15 @@ public class AppointmentServiceImpl implements AppointmentService {
   private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime date) {
     try {
       waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate()).ifPresent(entry -> {
-        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY,
-          new WaitlistNotificationEvent(entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date));
+        WaitlistNotificationEvent event = new WaitlistNotificationEvent(entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date);
+
+        EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
+          "WAITLIST_NOTIFICATION",
+          String.valueOf(entry.getId()),
+          event
+        );
+
+        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, envelope);
         waitlistRepository.delete(entry);
       });
     } catch (Exception e) {

@@ -18,6 +18,7 @@ import com.hms.appointment.enums.LabOrderStatus;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.LabOrderRepository;
 import com.hms.appointment.services.LabOrderService;
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -154,7 +155,14 @@ public class LabOrderServiceImpl implements LabOrderService {
       notificationLink
     );
 
-    rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, event);
+    EventEnvelope<LabOrderCompletedEvent> envelope = EventEnvelope.create(
+      "LAB_ORDER_COMPLETED",
+      order.getOrderNumber(), // correlation ID
+      event
+    );
+
+    rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.LAB_RESULT_ROUTING_KEY, envelope);
+    log.info("Evento LAB_ORDER_COMPLETED enviado: {}", order.getOrderNumber());
   }
 
   @Override

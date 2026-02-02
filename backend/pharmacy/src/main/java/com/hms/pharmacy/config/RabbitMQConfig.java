@@ -22,13 +22,14 @@ public class RabbitMQConfig {
   public static final String PRESCRIPTION_ROUTING_KEY = "prescription.issued";
   public static final String PATIENT_SYNC_QUEUE = "pharmacy.patient.sync.queue";
   public static final String USER_SYNC_QUEUE = "pharmacy.user.sync.queue";
+  public static final String STOCK_LOW_QUEUE = "notification.stock.low.queue";
+  public static final String STOCK_LOW_ROUTING_KEY = "stock.low";
 
   @Bean
   public TopicExchange exchange() {
     return new TopicExchange(exchange);
   }
 
-  // Configuração Prescrição
   @Bean
   public Queue prescriptionQueue() {
     return new Queue(PRESCRIPTION_QUEUE, true);
@@ -39,7 +40,6 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(prescriptionQueue()).to(exchange()).with(PRESCRIPTION_ROUTING_KEY);
   }
 
-  // Configuração Sincronização Paciente
   @Bean
   public Queue patientSyncQueue() {
     return new Queue(PATIENT_SYNC_QUEUE, true);
@@ -47,11 +47,9 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding patientBinding() {
-    // Escuta qualquer evento de paciente (created ou updated)
     return BindingBuilder.bind(patientSyncQueue()).to(exchange()).with("patient.*");
   }
 
-  // Configuração Sincronização Usuário
   @Bean
   public Queue userSyncQueue() {
     return new Queue(USER_SYNC_QUEUE, true);
@@ -59,8 +57,17 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding userBinding() {
-    // Escuta criação de usuário para pegar o email inicial
     return BindingBuilder.bind(userSyncQueue()).to(exchange()).with("user.event.created");
+  }
+
+  @Bean
+  public Queue stockLowQueue() {
+    return new Queue(STOCK_LOW_QUEUE, true);
+  }
+
+  @Bean
+  public Binding stockLowBinding() {
+    return BindingBuilder.bind(stockLowQueue()).to(exchange()).with(STOCK_LOW_ROUTING_KEY);
   }
 
   @Bean

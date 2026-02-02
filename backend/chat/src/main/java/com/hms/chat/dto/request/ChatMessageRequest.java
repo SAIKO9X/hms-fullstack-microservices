@@ -7,6 +7,8 @@ public record ChatMessageRequest(
   @NotNull(message = "O ID do remetente é obrigatório.")
   Long senderId,
 
+  String senderName,
+
   @NotNull(message = "O ID do destinatário é obrigatório.")
   Long recipientId,
 
