@@ -58,6 +58,9 @@ eureka:
     prefer-ip-address: true
 
 application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET}
   rabbitmq:
     exchange: internal.exchange
     notification-queue: notification.queue

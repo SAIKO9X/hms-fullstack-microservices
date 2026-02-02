@@ -1,4 +1,4 @@
-package security;
+package com.hms.common.security;
 
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;

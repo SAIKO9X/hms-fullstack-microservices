@@ -1,4 +1,4 @@
-package security;
+package com.hms.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

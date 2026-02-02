@@ -14,3 +14,15 @@ export interface Page<T> {
   first: boolean;
   empty: boolean;
 }
+
+export interface PagedResponse<T> {
+  content: T[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+  };
+}

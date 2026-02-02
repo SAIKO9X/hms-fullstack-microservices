@@ -1,5 +1,6 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.common.audit.AuditChangeTracker;
 import com.hms.appointment.dto.request.AppointmentRecordCreateRequest;
 import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentRecordResponse;
@@ -9,7 +10,6 @@ import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.repositories.AppointmentRecordRepository;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.services.AppointmentRecordService;
-import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;

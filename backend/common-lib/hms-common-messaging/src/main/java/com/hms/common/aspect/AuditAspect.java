@@ -1,9 +1,7 @@
-package aspect;
+package com.hms.common.aspect;
 
 import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.dto.event.AuditLogEvent;
-import com.hms.common.security.Auditable;
-import com.hms.common.security.HmsUserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import com.hms.common.security.Auditable;
+import com.hms.common.security.HmsUserPrincipal;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;

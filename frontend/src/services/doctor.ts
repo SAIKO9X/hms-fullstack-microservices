@@ -1,4 +1,5 @@
 import api from "@/config/axios";
+import type { ApiResponse } from "@/types/api.types";
 import type {
   Appointment,
   AppointmentDetail,
@@ -13,10 +14,10 @@ export const getMyAppointmentsAsDoctor = async (
   page = 0,
   size = 10,
 ): Promise<Page<Appointment>> => {
-  const { data } = await api.get(
+  const { data } = await api.get<ApiResponse<Page<Appointment>>>(
     `/doctor/appointments?page=${page}&size=${size}`,
   );
-  return data;
+  return data.data;
 };
 
 export const getDoctorAppointmentDetails = async (
@@ -25,41 +26,50 @@ export const getDoctorAppointmentDetails = async (
   const endpoint = dateFilter
     ? `/doctor/appointments/details?date=${dateFilter}`
     : "/doctor/appointments/details";
-  const { data } = await api.get(endpoint);
-  return data;
+  const { data } = await api.get<ApiResponse<AppointmentDetail[]>>(endpoint);
+  return data.data;
 };
 
 export const completeAppointment = async (
   id: number,
   notes?: string,
 ): Promise<Appointment> => {
-  const { data } = await api.patch(`/doctor/appointments/${id}/complete`, {
-    notes: notes || "",
-  });
-  return data;
+  const { data } = await api.patch<ApiResponse<Appointment>>(
+    `/doctor/appointments/${id}/complete`,
+    {
+      notes: notes || "",
+    },
+  );
+  return data.data;
 };
 
 // DASHBOARD & STATISTICS
 export const getDoctorDashboardStats =
   async (): Promise<DoctorDashboardStats> => {
-    const { data } = await api.get("/doctor/appointments/dashboard-stats");
-    return data;
+    const { data } = await api.get<ApiResponse<DoctorDashboardStats>>(
+      "/doctor/appointments/dashboard-stats",
+    );
+    return data.data;
   };
 
 export const getUniquePatientsCount = async (): Promise<number> => {
-  const { data } = await api.get("/doctor/appointments/patients-count");
-  return data;
+  const { data } = await api.get<ApiResponse<number>>(
+    "/doctor/appointments/patients-count",
+  );
+  return data.data;
 };
 
 export const getDoctorPatientGroups = async (): Promise<PatientGroup[]> => {
-  const { data } = await api.get("/doctor/appointments/patient-groups");
-  return data;
+  const { data } = await api.get<ApiResponse<PatientGroup[]>>(
+    "/doctor/appointments/patient-groups",
+  );
+  return data.data;
 };
 
 // PATIENTS
 export const getMyPatients = async (): Promise<PatientSummary[]> => {
-  const { data } = await api.get<PatientSummary[]>(
+  const { data } = await api.get<ApiResponse<PatientSummary[]>>(
     "/doctor/appointments/my-patients",
   );
-  return data;
+  return data.data;
 };

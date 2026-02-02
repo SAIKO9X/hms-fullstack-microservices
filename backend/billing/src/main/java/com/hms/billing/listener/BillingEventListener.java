@@ -24,7 +24,7 @@ public class BillingEventListener {
   private final BillingService billingService;
   private final InvoiceRepository invoiceRepository;
 
-  @RabbitListener(queues = "${rabbitmq.queues.appointment-billing}")
+  @RabbitListener(queues = "${application.rabbitmq.queues.appointment-billing}")
   public void handleAppointmentStatusChange(AppointmentStatusChangedEvent event) {
     log.info("Evento recebido no Billing: Consulta {} está {}", event.appointmentId(), event.status());
 

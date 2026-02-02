@@ -1,14 +1,13 @@
 package com.hms.user.controllers;
 
-import com.hms.common.dto.response.ApiResponse;
-import com.hms.common.dto.response.PagedResponse;
-import com.hms.common.security.Auditable;
 import com.hms.user.dto.request.AdminCreateUserRequest;
 import com.hms.user.dto.request.AdminUpdateUserRequest;
 import com.hms.user.dto.request.UserRequest;
 import com.hms.user.dto.request.UserStatusUpdateRequest;
 import com.hms.user.dto.response.UserResponse;
 import com.hms.user.services.UserService;
+import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.PagedResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.hms.common.security.Auditable;
 
 @Validated
 @RestController
@@ -31,8 +31,7 @@ public class UserController {
   @PostMapping("/register")
   public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
     UserResponse createdUser = userService.createUser(request);
-    return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(createdUser));
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(createdUser));
   }
 
   @GetMapping("/{id}")

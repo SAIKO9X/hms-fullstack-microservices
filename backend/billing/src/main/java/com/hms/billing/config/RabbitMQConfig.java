@@ -15,13 +15,13 @@ public class RabbitMQConfig {
   public static final String BILLING_PHARMACY_QUEUE = "billing.pharmacy.sale.queue";
   public static final String PHARMACY_SALE_ROUTING_KEY = "pharmacy.sale.created";
 
-  @Value("${rabbitmq.queues.appointment-billing}")
+  @Value("${application.rabbitmq.queues.appointment-billing}")
   private String billingQueue;
 
-  @Value("${rabbitmq.exchanges.internal}")
+  @Value("${application.rabbitmq.exchanges.internal}")
   private String internalExchange;
 
-  @Value("${rabbitmq.routing-keys.appointment-completed}")
+  @Value("${application.rabbitmq.routing-keys.appointment-completed}")
   private String appointmentCompletedRoutingKey;
 
   @Bean
@@ -46,7 +46,6 @@ public class RabbitMQConfig {
   public MessageConverter converter() {
     return new Jackson2JsonMessageConverter();
   }
-
 
   @Bean
   public Queue billingPharmacyQueue() {

@@ -1,7 +1,8 @@
-package exceptions;
+package com.hms.common.exceptions;
 
 import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.dto.response.ErrorDetails;
+import com.hms.common.exceptions.HmsBaseException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

@@ -1,4 +1,4 @@
-package config;
+package com.hms.common.config;
 
 import com.hms.common.exceptions.GlobalExceptionHandler;
 import org.springframework.context.annotation.ComponentScan;

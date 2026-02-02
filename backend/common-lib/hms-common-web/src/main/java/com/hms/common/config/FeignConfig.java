@@ -1,4 +1,4 @@
-package config;
+package com.hms.common.config;
 
 import feign.Logger;
 import feign.RequestInterceptor;

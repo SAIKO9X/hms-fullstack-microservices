@@ -1,5 +1,5 @@
 import api from "@/config/axios";
-
+import type { ApiResponse } from "@/types/api.types";
 import type {
   InsuranceProvider,
   Invoice,
@@ -10,21 +10,22 @@ import type {
 export const getPatientInvoices = async (
   patientId: string,
 ): Promise<Invoice[]> => {
-  const { data } = await api.get<Invoice[]>(
+  const { data } = await api.get<ApiResponse<Invoice[]>>(
     `/billing/invoices/patient/${patientId}`,
   );
-  return data;
+  return data.data;
 };
 
 export const payInvoice = async (invoiceId: string): Promise<Invoice> => {
-  const { data } = await api.post<Invoice>(
+  const { data } = await api.post<ApiResponse<Invoice>>(
     `/billing/invoices/${invoiceId}/pay`,
   );
-  return data;
+  return data.data;
 };
 
 export const downloadInvoicePdf = async (invoiceId: string): Promise<void> => {
   try {
+    // Para PDF (Blob), a resposta geralmente é o binário direto, não encapsulado em JSON
     const response = await api.get(`/billing/invoices/${invoiceId}/pdf`, {
       responseType: "blob",
     });
@@ -49,10 +50,10 @@ export const downloadInvoicePdf = async (invoiceId: string): Promise<void> => {
 export const getDoctorInvoices = async (
   doctorId: string,
 ): Promise<Invoice[]> => {
-  const { data } = await api.get<Invoice[]>(
+  const { data } = await api.get<ApiResponse<Invoice[]>>(
     `/billing/invoices/doctor/${doctorId}`,
   );
-  return data;
+  return data.data;
 };
 
 // INSURANCE
@@ -61,16 +62,19 @@ export const registerInsurance = async (
   providerId: number,
   policyNumber: string,
 ): Promise<PatientInsurance> => {
-  const { data } = await api.post<PatientInsurance>("/billing/insurance", {
-    patientId,
-    providerId,
-    policyNumber,
-  });
-  return data;
+  const { data } = await api.post<ApiResponse<PatientInsurance>>(
+    "/billing/insurance",
+    {
+      patientId,
+      providerId,
+      policyNumber,
+    },
+  );
+  return data.data;
 };
 
 export const getProviders = async (): Promise<InsuranceProvider[]> => {
-  // TODO: Implementar chamada à API
+  // TODO: Quando o endpoint estiver pronto substituir a chamada
   return [
     { id: 1, name: "Unimed", coveragePercentage: 0.8, active: true },
     { id: 2, name: "Amil", coveragePercentage: 0.5, active: true },
@@ -79,14 +83,16 @@ export const getProviders = async (): Promise<InsuranceProvider[]> => {
 };
 
 export const getPendingInsuranceInvoices = async (): Promise<Invoice[]> => {
-  const { data } = await api.get<Invoice[]>(
+  const { data } = await api.get<ApiResponse<Invoice[]>>(
     "/billing/invoices/pending-insurance",
   );
-  return data;
+  return data.data;
 };
 
 export const processInsurancePayment = async (
   invoiceId: string,
 ): Promise<void> => {
-  await api.post(`/billing/invoices/${invoiceId}/process-insurance`);
+  await api.post<ApiResponse<void>>(
+    `/billing/invoices/${invoiceId}/process-insurance`,
+  );
 };

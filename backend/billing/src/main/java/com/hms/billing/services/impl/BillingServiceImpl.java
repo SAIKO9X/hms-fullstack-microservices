@@ -13,7 +13,6 @@ import com.hms.billing.repositories.PatientInsuranceRepository;
 import com.hms.billing.services.BillingService;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
-import com.hms.common.services.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

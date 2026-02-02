@@ -19,7 +19,6 @@ import com.hms.appointment.services.PrescriptionService;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
-import com.hms.common.services.PdfGeneratorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

@@ -1,15 +1,16 @@
 import api from "@/config/axios";
 import type { LoginData, RegisterData } from "@/lib/schemas/auth.schema";
 import type { AuthResponse } from "@/types/auth.types";
+import type { ApiResponse } from "@/types/api.types";
 
 // USER REGISTRATION
 export const registerUser = async (data: RegisterData) => {
   try {
-    const response = await api.post("/users/register", data);
-    return response.data;
+    const response = await api.post<ApiResponse<any>>("/users/register", data);
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.errorMessage || "Não foi possível criar a conta.",
+      error.response?.data?.message || "Não foi possível criar a conta.",
     );
   }
 };
@@ -18,37 +19,39 @@ export const registerUser = async (data: RegisterData) => {
 export const loginUser = async (data: LoginData): Promise<AuthResponse> => {
   try {
     localStorage.removeItem("authToken");
-    const response = await api.post<AuthResponse>("/auth/login", data);
-    return response.data;
-  } catch (error: any) {
-    throw new Error(
-      error.response?.data?.errorMessage || "Credenciais inválidas.",
+    const response = await api.post<ApiResponse<AuthResponse>>(
+      "/auth/login",
+      data,
     );
+
+    return response.data.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Credenciais inválidas.");
   }
 };
 
 // ACCOUNT VERIFICATION
 export const verifyAccount = async (email: string, code: string) => {
   try {
-    const response = await api.post("/auth/verify", null, {
+    const response = await api.post<ApiResponse<string>>("/auth/verify", null, {
       params: { email, code },
     });
-    return response.data;
+    return response.data.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.errorMessage || "Código inválido ou expirado.",
+      error.response?.data?.message || "Código inválido ou expirado.",
     );
   }
 };
 
 export const resendVerificationCode = async (email: string) => {
   try {
-    await api.post("/auth/resend-code", null, {
+    await api.post<ApiResponse<void>>("/auth/resend-code", null, {
       params: { email },
     });
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.errorMessage || "Erro ao reenviar código.",
+      error.response?.data?.message || "Erro ao reenviar código.",
     );
   }
 };

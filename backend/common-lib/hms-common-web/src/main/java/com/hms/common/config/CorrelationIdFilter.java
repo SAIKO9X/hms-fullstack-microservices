@@ -1,4 +1,4 @@
-package config;
+package com.hms.common.config;
 
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;

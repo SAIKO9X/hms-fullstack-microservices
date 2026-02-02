@@ -1,7 +1,6 @@
 package com.hms.chat.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hms.common.security.BaseJwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +24,7 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import com.hms.common.security.BaseJwtService;
 
 import java.util.Collections;
 import java.util.List;

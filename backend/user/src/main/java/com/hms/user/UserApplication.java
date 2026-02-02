@@ -1,9 +1,9 @@
 package com.hms.user;
 
-import com.hms.common.config.CommonLibAutoConfiguration;
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;
 import com.hms.user.repositories.UserRepository;
+import com.hms.common.config.CommonLibAutoConfiguration;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
