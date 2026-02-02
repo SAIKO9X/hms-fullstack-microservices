@@ -1,11 +1,14 @@
 server:
   port: ${SERVER_PORT:8081}
+  shutdown: graceful # aguarda requests terminarem antes de matar o processo
 
 services:
   profile:
     base-url: "${PROFILE_URI:http://localhost:8082}"
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s # tempo máximo de espera
   config:
     import: "optional:classpath:common-application.yml"
   application:

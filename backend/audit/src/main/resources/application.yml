@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:8089}
+  shutdown: graceful # aguarda requests terminarem antes de matar o processo
 
 application:
   security:
@@ -7,6 +8,8 @@ application:
       secret-key: ${JWT_SECRET}
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s # tempo máximo de espera
   config:
     import: "optional:classpath:common-application.yml"
   application:

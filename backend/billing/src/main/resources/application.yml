@@ -1,7 +1,10 @@
 server:
   port: 8088
+  shutdown: graceful # aguarda requests terminarem antes de matar o processo
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s # tempo máximo de espera
   config:
     import: "optional:classpath:common-application.yml"
   application:
