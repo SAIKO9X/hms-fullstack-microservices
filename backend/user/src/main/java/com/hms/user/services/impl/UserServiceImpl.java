@@ -1,5 +1,6 @@
 package com.hms.user.services.impl;
 
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.ResourceAlreadyExistsException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.user.dto.event.UserCreatedEvent;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Random;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -227,7 +229,15 @@ public class UserServiceImpl implements UserService {
   private void publishUserCreatedEvent(User user, String cpf, String crm, String code) {
     try {
       var event = new UserCreatedEvent(user.getId(), user.getName(), user.getEmail(), user.getRole(), cpf, crm, code);
-      rabbitTemplate.convertAndSend(exchange, userCreatedRoutingKey, event);
+
+      EventEnvelope<UserCreatedEvent> envelope = EventEnvelope.create(
+        "USER_CREATED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, userCreatedRoutingKey, envelope);
+      log.info("Evento USER_CREATED enviado para usuário ID: {}", user.getId());
     } catch (Exception e) {
       log.error("Erro RabbitMQ UserCreated: {}", e.getMessage());
     }
@@ -241,7 +251,15 @@ public class UserServiceImpl implements UserService {
         req.bloodGroup(), req.gender(), req.chronicDiseases(), req.allergies(), req.crmNumber(), req.specialization(),
         req.department(), req.biography(), req.qualifications(), req.yearsOfExperience()
       );
-      rabbitTemplate.convertAndSend(exchange, userUpdatedRoutingKey, event);
+
+      EventEnvelope<UserUpdatedEvent> envelope = EventEnvelope.create(
+        "USER_UPDATED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, userUpdatedRoutingKey, envelope);
+      log.info("Evento USER_UPDATED enviado para usuário ID: {}", user.getId());
     } catch (Exception e) {
       log.error("Erro RabbitMQ UserUpdated: {}", e.getMessage());
     }

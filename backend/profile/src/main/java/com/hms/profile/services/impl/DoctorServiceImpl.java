@@ -1,5 +1,6 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.ResourceAlreadyExistsException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.clients.AppointmentFeignClient;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -49,16 +51,13 @@ public class DoctorServiceImpl implements DoctorService {
     if (doctorRepository.existsByUserIdOrCrmNumber(request.userId(), request.crmNumber())) {
       throw new ResourceAlreadyExistsException("Doctor Profile", "userId/CRM");
     }
-
     Doctor newDoctor = Doctor.builder()
       .userId(request.userId())
       .crmNumber(request.crmNumber())
       .name(request.name())
       .build();
-
     Doctor saved = doctorRepository.save(newDoctor);
     publishDoctorEvent(saved, "CREATED");
-
     return DoctorResponse.fromEntity(saved);
   }
 
@@ -76,10 +75,8 @@ public class DoctorServiceImpl implements DoctorService {
   public DoctorResponse updateDoctorProfile(Long userId, DoctorUpdateRequest request) {
     Doctor doctor = findDoctorByUserId(userId);
     applyDoctorUpdates(doctor, request);
-
     Doctor updated = doctorRepository.save(doctor);
     publishDoctorEvent(updated, "UPDATED");
-
     return DoctorResponse.fromEntity(updated);
   }
 
@@ -98,8 +95,7 @@ public class DoctorServiceImpl implements DoctorService {
   @Override
   @Transactional(readOnly = true)
   public Page<DoctorResponse> findAllDoctors(Pageable pageable) {
-    return doctorRepository.findAll(pageable)
-      .map(DoctorResponse::fromEntity);
+    return doctorRepository.findAll(pageable).map(DoctorResponse::fromEntity);
   }
 
   @Override
@@ -116,7 +112,6 @@ public class DoctorServiceImpl implements DoctorService {
   public void updateProfilePicture(Long userId, String pictureUrl) {
     Doctor doctor = findDoctorByUserId(userId);
     doctor.setProfilePictureUrl(pictureUrl);
-
     Doctor saved = doctorRepository.save(doctor);
     publishDoctorEvent(saved, "UPDATED");
   }
@@ -127,7 +122,6 @@ public class DoctorServiceImpl implements DoctorService {
   public List<DoctorStatusResponse> getDoctorsWithStatus() {
     List<Doctor> doctors = doctorRepository.findAll();
     List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
-
     return mapDoctorsToStatusResponse(doctors, activeDoctorIds);
   }
 
@@ -137,7 +131,6 @@ public class DoctorServiceImpl implements DoctorService {
   public void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest request) {
     Doctor doctor = findDoctorByUserId(userId);
     applyAdminUpdates(doctor, request);
-
     Doctor saved = doctorRepository.save(doctor);
     publishDoctorEvent(saved, "UPDATED");
   }
@@ -178,21 +171,15 @@ public class DoctorServiceImpl implements DoctorService {
   }
 
   private void updateStringField(String value, Consumer<String> setter) {
-    if (value != null && !value.isBlank()) {
-      setter.accept(value);
-    }
+    if (value != null && !value.isBlank()) setter.accept(value);
   }
 
   private void updateIntegerField(Integer value, Consumer<Integer> setter) {
-    if (value != null && value > 0) {
-      setter.accept(value);
-    }
+    if (value != null && value > 0) setter.accept(value);
   }
 
   private <T> void updateField(T value, Consumer<T> setter) {
-    if (value != null) {
-      setter.accept(value);
-    }
+    if (value != null) setter.accept(value);
   }
 
   private List<DoctorStatusResponse> mapDoctorsToStatusResponse(List<Doctor> doctors, List<Long> activeIds) {
@@ -207,9 +194,15 @@ public class DoctorServiceImpl implements DoctorService {
       .collect(Collectors.toList());
   }
 
+  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
+    log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
+    List<Doctor> doctors = doctorRepository.findAll();
+    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
+  }
+
   private void publishDoctorEvent(Doctor doctor, String eventType) {
     try {
-      DoctorEvent event = new DoctorEvent(
+      DoctorEvent eventPayload = new DoctorEvent(
         doctor.getId(),
         doctor.getUserId(),
         doctor.getName(),
@@ -218,18 +211,23 @@ public class DoctorServiceImpl implements DoctorService {
       );
 
       String routingKey = "doctor." + eventType.toLowerCase();
-      rabbitTemplate.convertAndSend(exchange, routingKey, event);
 
-      log.info("Evento publicado: Exchange='{}', Key='{}', Médico='{}'",
-        exchange, routingKey, doctor.getName());
+      // Gera correlationId (em produção viria do MDC ou Contexto de Rastreamento)
+      String correlationId = UUID.randomUUID().toString();
+
+      // Cria o envelope
+      EventEnvelope<DoctorEvent> envelope = EventEnvelope.create(
+        "DOCTOR_" + eventType, // ex: DOCTOR_CREATED
+        correlationId,
+        eventPayload
+      );
+
+      rabbitTemplate.convertAndSend(exchange, routingKey, envelope);
+
+      log.info("Evento publicado: Exchange='{}', Key='{}', ID='{}', EnvelopeID='{}'",
+        exchange, routingKey, doctor.getName(), envelope.getEventId());
     } catch (Exception e) {
       log.error("Falha ao publicar evento do médico no RabbitMQ: {}", e.getMessage(), e);
     }
-  }
-
-  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
-    log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
-    List<Doctor> doctors = doctorRepository.findAll();
-    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 }

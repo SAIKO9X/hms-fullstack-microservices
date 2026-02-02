@@ -3,6 +3,7 @@ package com.hms.appointment.listener;
 import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.PrescriptionDispensedEvent;
 import com.hms.appointment.services.PrescriptionService;
+import com.hms.common.dto.event.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -16,12 +17,13 @@ public class PrescriptionEventListener {
   private final PrescriptionService prescriptionService;
 
   @RabbitListener(queues = RabbitMQConfig.PRESCRIPTION_DISPENSED_QUEUE)
-  public void handlePrescriptionDispensed(PrescriptionDispensedEvent event) {
-    log.info("Recebido evento de receita aviada: {}", event);
+  public void handlePrescriptionDispensed(EventEnvelope<PrescriptionDispensedEvent> envelope) {
+    PrescriptionDispensedEvent event = envelope.getPayload();
+    log.info("Recebido envelope de receita aviada [Correlation: {}]", envelope.getCorrelationId());
     try {
       prescriptionService.markAsDispensed(event.prescriptionId());
     } catch (Exception e) {
-      log.error("Erro ao processar evento de receita aviada", e);
+      log.error("Erro ao processar receita aviada", e);
     }
   }
 }

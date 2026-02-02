@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.pharmacy.dto.event.PharmacySaleCreatedEvent;
@@ -34,10 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -218,8 +216,16 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
     p.setProcessed(true);
     prescriptionCopyRepository.save(p);
     try {
-      rabbitTemplate.convertAndSend(exchange, prescriptionDispensedRoutingKey,
-        new PrescriptionDispensedEvent(p.getPrescriptionId(), saleId, LocalDateTime.now()));
+      PrescriptionDispensedEvent event = new PrescriptionDispensedEvent(p.getPrescriptionId(), saleId, LocalDateTime.now());
+
+      EventEnvelope<PrescriptionDispensedEvent> envelope = EventEnvelope.create(
+        "PRESCRIPTION_DISPENSED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, prescriptionDispensedRoutingKey, envelope);
+      log.info("Evento PRESCRIPTION_DISPENSED enviado. PrescriptionID: {}", p.getPrescriptionId());
     } catch (Exception e) {
       log.error("Erro ao notificar receita aviada", e);
     }
@@ -227,8 +233,15 @@ public class PharmacySaleServiceImpl implements PharmacySaleService {
 
   private void publishFinancialEvent(PharmacySale sale) {
     try {
-      rabbitTemplate.convertAndSend(exchange, PHARMACY_SALE_ROUTING_KEY,
-        new PharmacySaleCreatedEvent(sale.getId(), sale.getPatientId(), sale.getBuyerName(), sale.getTotalAmount(), sale.getSaleDate()));
+      PharmacySaleCreatedEvent event = new PharmacySaleCreatedEvent(sale.getId(), sale.getPatientId(), sale.getBuyerName(), sale.getTotalAmount(), sale.getSaleDate());
+
+      EventEnvelope<PharmacySaleCreatedEvent> envelope = EventEnvelope.create(
+        "PHARMACY_SALE_CREATED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, PHARMACY_SALE_ROUTING_KEY, envelope);
     } catch (Exception e) {
       log.error("Erro RabbitMQ Financeiro", e);
     }

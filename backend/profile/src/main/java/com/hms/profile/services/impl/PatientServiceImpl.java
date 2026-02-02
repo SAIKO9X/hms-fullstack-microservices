@@ -1,5 +1,6 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.ResourceAlreadyExistsException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.dto.event.PatientEvent;
@@ -16,6 +17,7 @@ import com.hms.profile.services.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -35,12 +38,14 @@ public class PatientServiceImpl implements PatientService {
   private final PatientRepository patientRepository;
   private final RabbitTemplate rabbitTemplate;
 
+  @Value("${application.rabbitmq.exchange:hms.exchange}")
+  private String exchangeName;
+
   @Override
   public PatientResponse createPatientProfile(PatientCreateRequest request) {
     if (patientRepository.existsByUserIdOrCpf(request.userId(), request.cpf())) {
       throw new ResourceAlreadyExistsException("Patient Profile", "userId/CPF");
     }
-
     Patient newPatient = new Patient();
     newPatient.setUserId(request.userId());
     newPatient.setCpf(request.cpf());
@@ -117,8 +122,7 @@ public class PatientServiceImpl implements PatientService {
   @Override
   @Transactional(readOnly = true)
   public Page<PatientResponse> findAllPatients(Pageable pageable) {
-    return patientRepository.findAll(pageable)
-      .map(PatientResponse::fromEntity);
+    return patientRepository.findAll(pageable).map(PatientResponse::fromEntity);
   }
 
   @Override
@@ -127,7 +131,6 @@ public class PatientServiceImpl implements PatientService {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
     patient.setProfilePictureUrl(pictureUrl);
-
     Patient savedPatient = patientRepository.save(patient);
     publishPatientEvent(savedPatient, "UPDATED");
   }
@@ -138,7 +141,6 @@ public class PatientServiceImpl implements PatientService {
   public void adminUpdatePatient(Long userId, AdminPatientUpdateRequest request) {
     Patient patient = patientRepository.findByUserId(userId)
       .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", userId));
-
     if (request.name() != null && !request.name().isBlank()) patient.setName(request.name());
     if (request.cpf() != null) patient.setCpf(request.cpf());
     if (request.phoneNumber() != null) patient.setPhoneNumber(request.phoneNumber());
@@ -150,22 +152,18 @@ public class PatientServiceImpl implements PatientService {
       try {
         patient.setBloodGroup(BloodGroup.valueOf(request.bloodGroup()));
       } catch (IllegalArgumentException e) {
-        log.error("Valor inválido para BloodGroup: {}", request.bloodGroup());
+        log.error("Valor inválido para BloodGroup", e);
       }
     }
     if (request.gender() != null) {
       try {
         patient.setGender(Gender.valueOf(request.gender()));
       } catch (IllegalArgumentException e) {
-        log.error("Valor inválido para Gender: {}", request.gender());
+        log.error("Valor inválido para Gender", e);
       }
     }
-    if (request.chronicConditions() != null) {
-      patient.setChronicConditions(request.chronicConditions());
-    }
-    if (request.familyHistory() != null) {
-      patient.setFamilyHistory(request.familyHistory());
-    }
+    if (request.chronicConditions() != null) patient.setChronicConditions(request.chronicConditions());
+    if (request.familyHistory() != null) patient.setFamilyHistory(request.familyHistory());
     if (request.allergies() != null) {
       patient.getAllergies().clear();
       patient.getAllergies().addAll(request.allergies());
@@ -182,7 +180,7 @@ public class PatientServiceImpl implements PatientService {
 
   private void publishPatientEvent(Patient patient, String eventType) {
     try {
-      PatientEvent event = new PatientEvent(
+      PatientEvent eventPayload = new PatientEvent(
         patient.getId(),
         patient.getUserId(),
         patient.getName(),
@@ -191,9 +189,17 @@ public class PatientServiceImpl implements PatientService {
       );
 
       String routingKey = "patient." + eventType.toLowerCase();
-      String exchangeName = "hms.exchange";
-      rabbitTemplate.convertAndSend(exchangeName, routingKey, event);
-      log.info("Evento publicado no RabbitMQ: {} para o paciente {}", routingKey, patient.getName());
+      String correlationId = UUID.randomUUID().toString();
+
+      EventEnvelope<PatientEvent> envelope = EventEnvelope.create(
+        "PATIENT_" + eventType,
+        correlationId,
+        eventPayload
+      );
+
+      rabbitTemplate.convertAndSend(exchangeName, routingKey, envelope);
+      log.info("Envelope publicado no RabbitMQ: {} para paciente {}, CorrelationId: {}",
+        routingKey, patient.getName(), correlationId);
     } catch (Exception e) {
       log.error("Falha ao publicar evento do paciente no RabbitMQ", e);
     }

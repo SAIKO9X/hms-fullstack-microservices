@@ -16,6 +16,7 @@ import com.hms.appointment.enums.PrescriptionStatus;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
@@ -32,6 +33,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -238,7 +240,14 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         itemEvents
       );
 
-      rabbitTemplate.convertAndSend(exchange, prescriptionIssuedRoutingKey, event);
+      EventEnvelope<PrescriptionIssuedEvent> envelope = EventEnvelope.create(
+        "PRESCRIPTION_ISSUED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, prescriptionIssuedRoutingKey, envelope);
+      log.info("Evento PRESCRIPTION_ISSUED enviado. ID: {}", prescription.getId());
     } catch (Exception e) {
       log.error("Erro ao publicar evento de prescrição: {}", e.getMessage());
     }

@@ -1,5 +1,6 @@
 package com.hms.notification.consumer;
 
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.notification.config.RabbitMQConfig;
 import com.hms.notification.dto.event.*;
 import com.hms.notification.dto.request.EmailRequest;
@@ -39,8 +40,9 @@ public class NotificationConsumer {
   }
 
   @RabbitListener(queues = "${application.rabbitmq.queues.notification-reminder:notification.reminder.queue}")
-  public void handleAppointmentReminder(AppointmentEvent event) {
-    log.info("Processando lembrete para consulta ID: {}", event.appointmentId());
+  public void handleAppointmentReminder(EventEnvelope<AppointmentEvent> envelope) {
+    AppointmentEvent event = envelope.getPayload();
+    log.info("Processando lembrete [Evento ID: {}] para consulta ID: {}", envelope.getEventId(), event.appointmentId());
 
     String formattedDate = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
     String shortTime = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("HH:mm"));
@@ -48,6 +50,7 @@ public class NotificationConsumer {
     String subject = "Lembrete de Consulta";
     String body = String.format("Olá %s, lembrete da consulta com Dr(a). %s em %s.",
       event.patientName(), event.doctorName(), formattedDate);
+
     emailService.sendEmail(event.patientEmail(), subject, body);
 
     saveInAppNotification(
@@ -59,7 +62,8 @@ public class NotificationConsumer {
   }
 
   @RabbitListener(queues = "${application.rabbitmq.queues.notification-status:notification.status.queue}")
-  public void handleStatusChange(AppointmentStatusChangedEvent event) {
+  public void handleStatusChange(EventEnvelope<AppointmentStatusChangedEvent> envelope) {
+    AppointmentStatusChangedEvent event = envelope.getPayload();
     String formattedDate = event.appointmentDateTime().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
 
     processPatientStatusNotification(event, formattedDate);
@@ -67,6 +71,102 @@ public class NotificationConsumer {
     if (event.triggeredByPatient() && event.doctorId() != null) {
       processDoctorStatusNotification(event, formattedDate);
     }
+  }
+
+  @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
+  public void handleWaitlistNotification(EventEnvelope<WaitlistNotificationEvent> envelope) {
+    WaitlistNotificationEvent event = envelope.getPayload();
+
+    // email
+    String content = "Surgiu uma vaga com Dr. " + event.doctorName() + " em " + event.availableDateTime();
+    emailService.sendEmail(event.email(), "Vaga Disponível!", content);
+
+    // in-App
+    saveInAppNotification(
+      event.userId(),
+      "Vaga na Lista de Espera!",
+      "Uma vaga surgiu para " + event.availableDateTime() + ". Acesse para agendar.",
+      NotificationType.WAITLIST_ALERT
+    );
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.queues.notification-prescription:notification.prescription.queue}")
+  public void handlePrescriptionIssued(EventEnvelope<PrescriptionIssuedEvent> envelope) {
+    PrescriptionIssuedEvent event = envelope.getPayload();
+    log.info("Nova receita [Correlation: {}] para paciente ID: {}", envelope.getCorrelationId(), event.patientId());
+
+    // email
+    String subject = "Nova Receita Médica";
+    String body = String.format("<p>Olá %s, o Dr(a). %s emitiu uma nova receita digital.</p>",
+      event.patientName(), event.doctorName());
+    emailService.sendEmail(event.patientEmail(), subject, body);
+
+    // in-App
+    saveInAppNotification(
+      event.patientId(),
+      "Nova Receita",
+      "Dr(a). " + event.doctorName() + " emitiu uma receita. Acesse 'Meus Medicamentos'.",
+      NotificationType.PRESCRIPTION
+    );
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.lab-queue-name:notification.lab.completed.queue}")
+  public void handleLabResult(EventEnvelope<LabOrderCompletedEvent> envelope) {
+    LabOrderCompletedEvent event = envelope.getPayload();
+    log.info("Resultado de exame pronto. Pedido: {}", event.labOrderNumber());
+
+    // notificar Médico
+    if (event.doctorEmail() != null) {
+      sendLabResultEmailToDoctor(event);
+      saveInAppNotification(event.doctorId(),
+        "Exame Pronto",
+        "Resultado disponível do paciente: " + event.patientName(),
+        NotificationType.LAB_RESULT);
+    }
+
+    // notificar Paciente
+    if (event.patientId() != null) {
+      saveInAppNotification(
+        event.patientId(),
+        "Exame Concluído",
+        "Os resultados do pedido " + event.labOrderNumber() + " estão disponíveis.",
+        NotificationType.LAB_RESULT
+      );
+    }
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.queues.chat-notification:notification.chat.queue}")
+  public void handleNewChatMessage(EventEnvelope<ChatMessageEvent> envelope) {
+    ChatMessageEvent event = envelope.getPayload();
+    saveInAppNotification(
+      event.recipientId(),
+      "Nova Mensagem de " + event.senderName(),
+      event.content(),
+      NotificationType.NEW_MESSAGE
+    );
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
+  public void consumeUserCreated(EventEnvelope<UserCreatedEvent> envelope) {
+    UserCreatedEvent event = envelope.getPayload();
+    String subject = "Bem-vindo ao HMS";
+    String content = String.format("<h1>Código: %s</h1><p>Use este código para ativar sua conta.</p>", event.verificationCode());
+    emailService.sendEmail(event.email(), subject, content);
+  }
+
+  @RabbitListener(queues = RabbitMQConfig.STOCK_LOW_QUEUE)
+  public void handleLowStockEvent(EventEnvelope<StockLowEvent> envelope) {
+    StockLowEvent event = envelope.getPayload();
+    log.info("Recebido alerta de stock baixo para o medicamento: {}", event.medicineName());
+
+    Notification notification = new Notification();
+    notification.setRecipientId("ADMIN");
+    notification.setTitle("Alerta de Stock Baixo");
+    notification.setMessage(String.format("O medicamento %s atingiu níveis críticos. Restam apenas %d unidades (Limite: %d).",
+      event.medicineName(), event.currentQuantity(), event.threshold()));
+    notification.setType(NotificationType.LOW_STOCK);
+
+    notificationService.sendNotification(notification);
   }
 
   private void processPatientStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
@@ -97,115 +197,6 @@ public class NotificationConsumer {
     }
   }
 
-  @RabbitListener(queues = RabbitMQConfig.WAITLIST_QUEUE)
-  public void handleWaitlistNotification(WaitlistNotificationEvent event) {
-    // email
-    String content = "Surgiu uma vaga com Dr. " + event.doctorName() + " em " + event.availableDateTime();
-    emailService.sendEmail(event.email(), "Vaga Disponível!", content);
-
-    // in-App
-    saveInAppNotification(
-      event.userId(),
-      "Vaga na Lista de Espera!",
-      "Uma vaga surgiu para " + event.availableDateTime() + ". Acesse para agendar.",
-      NotificationType.WAITLIST_ALERT
-    );
-  }
-
-  @RabbitListener(queues = "${application.rabbitmq.queues.notification-prescription:notification.prescription.queue}")
-  public void handlePrescriptionIssued(PrescriptionIssuedEvent event) {
-    log.info("Nova receita para paciente ID: {}", event.patientId());
-
-    // email
-    String subject = "Nova Receita Médica";
-    String body = String.format("<p>Olá %s, o Dr(a). %s emitiu uma nova receita digital.</p>",
-      event.patientName(), event.doctorName());
-    emailService.sendEmail(event.patientEmail(), subject, body);
-
-    // in-App
-    saveInAppNotification(
-      event.patientId(),
-      "Nova Receita",
-      "Dr(a). " + event.doctorName() + " emitiu uma receita. Acesse 'Meus Medicamentos'.",
-      NotificationType.PRESCRIPTION
-    );
-  }
-
-  @RabbitListener(queues = "${application.rabbitmq.lab-queue-name:notification.lab.completed.queue}")
-  public void handleLabResult(LabOrderCompletedEvent event) {
-    log.info("Resultado de exame pronto. Pedido: {}", event.labOrderNumber());
-
-    // notificar Médico
-    if (event.doctorEmail() != null) {
-      sendLabResultEmailToDoctor(event);
-      saveInAppNotification(event.doctorId(),
-        "Exame Pronto",
-        "Resultado disponível do paciente: " + event.patientName(),
-        NotificationType.LAB_RESULT);
-    }
-
-    // notificar Paciente
-    if (event.patientId() != null) {
-      saveInAppNotification(
-        event.patientId(),
-        "Exame Concluído",
-        "Os resultados do pedido " + event.labOrderNumber() + " estão disponíveis.",
-        NotificationType.LAB_RESULT
-      );
-    }
-  }
-
-  @RabbitListener(queues = "${application.rabbitmq.queues.chat-notification:notification.chat.queue}")
-  public void handleNewChatMessage(ChatMessageEvent event) {
-    saveInAppNotification(
-      event.recipientId(),
-      "Nova Mensagem de " + event.senderName(),
-      event.content(),
-      NotificationType.NEW_MESSAGE
-    );
-  }
-
-  @RabbitListener(queues = "${application.rabbitmq.user-created-queue}")
-  public void consumeUserCreated(UserCreatedEvent event) {
-    String subject = "Bem-vindo ao HMS";
-    String content = String.format("<h1>Código: %s</h1><p>Use este código para ativar sua conta.</p>", event.verificationCode());
-    emailService.sendEmail(event.email(), subject, content);
-  }
-
-  @RabbitListener(queues = RabbitMQConfig.STOCK_LOW_QUEUE)
-  public void handleLowStockEvent(StockLowEvent event) {
-    log.info("Recebido alerta de stock baixo para o medicamento: {}", event.medicineName());
-
-    Notification notification = new Notification();
-    notification.setRecipientId("ADMIN");
-    notification.setTitle("Alerta de Stock Baixo");
-    notification.setMessage(String.format("O medicamento %s atingiu níveis críticos. Restam apenas %d unidades (Limite: %d).",
-      event.medicineName(), event.currentQuantity(), event.threshold()));
-    notification.setType(NotificationType.LOW_STOCK);
-
-    notificationService.sendNotification(notification);
-  }
-
-  // método auxiliar atualizado para receber String ou Long convertido
-  private void saveInAppNotification(String recipientId, String title, String message, NotificationType type) {
-    if (recipientId == null) {
-      log.warn("Tentativa de salvar notificação sem recipientId. Title: {}", title);
-      return;
-    }
-    try {
-      Notification notification = Notification.builder()
-        .recipientId(recipientId)
-        .title(title)
-        .message(message)
-        .type(type)
-        .build();
-      notificationService.sendNotification(notification);
-    } catch (Exception e) {
-      log.error("Erro ao salvar notificação para {}: {}", recipientId, e.getMessage());
-    }
-  }
-
-  // método auxiliar para processar notificação ao médico
   private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
     String title = "";
     String message = "";
@@ -226,7 +217,24 @@ public class NotificationConsumer {
     }
   }
 
-  // método auxiliar para enviar email ao médico com resultado de exame
+  private void saveInAppNotification(String recipientId, String title, String message, NotificationType type) {
+    if (recipientId == null) {
+      log.warn("Tentativa de salvar notificação sem recipientId. Title: {}", title);
+      return;
+    }
+    try {
+      Notification notification = Notification.builder()
+        .recipientId(recipientId)
+        .title(title)
+        .message(message)
+        .type(type)
+        .build();
+      notificationService.sendNotification(notification);
+    } catch (Exception e) {
+      log.error("Erro ao salvar notificação para {}: {}", recipientId, e.getMessage());
+    }
+  }
+
   private void sendLabResultEmailToDoctor(LabOrderCompletedEvent event) {
     try {
       Context context = new Context();
@@ -249,7 +257,6 @@ public class NotificationConsumer {
     }
   }
 
-  // sobrecarga para Long userid
   private void saveInAppNotification(Long userId, String title, String message, NotificationType type) {
     saveInAppNotification(String.valueOf(userId), title, message, type);
   }
