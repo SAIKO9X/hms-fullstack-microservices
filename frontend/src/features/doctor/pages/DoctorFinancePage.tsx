@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { BillingService } from "@/services/billing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -14,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/utils";
 import { DollarSign, Clock, CheckCircle } from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
+import { BillingService } from "@/services";
 
 export default function DoctorFinancePage() {
   const { user } = useAuth();

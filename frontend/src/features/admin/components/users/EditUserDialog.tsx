@@ -21,7 +21,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { z } from "zod";
 import { SpecializationCombobox } from "@/components/ui/specialization-combobox";
-import { useAdminUpdateUserMutation } from "@/services/queries/admin-queries";
+import { useUpdateUser } from "@/services/queries/admin-queries";
 import { medicalDepartments } from "@/data/medicalDepartments";
 import { Combobox } from "@/components/ui/combobox";
 import type { PatientProfile } from "@/types/patient.types";
@@ -119,7 +119,7 @@ interface EditUserDialogProps {
 
 // Helper para converter string | string[] para string
 const formatStringOrArray = (
-  value: string | string[] | undefined | null
+  value: string | string[] | undefined | null,
 ): string => {
   if (Array.isArray(value)) {
     return value.join(", ");
@@ -142,7 +142,7 @@ export const EditUserDialog = ({
   const fromYear = currentYear - 100;
   const toYear = currentYear;
 
-  const { mutate: updateUser, isPending } = useAdminUpdateUserMutation();
+  const { mutate: updateUser, isPending } = useUpdateUser();
 
   useEffect(() => {
     if (user && isOpen) {
@@ -162,7 +162,7 @@ export const EditUserDialog = ({
         bloodGroup: (user as PatientProfile).bloodGroup || "",
         gender: (user as PatientProfile).gender || "",
         chronicDiseases: formatStringOrArray(
-          (user as PatientProfile).chronicDiseases
+          (user as PatientProfile).chronicDiseases,
         ),
         allergies: formatStringOrArray((user as PatientProfile).allergies),
 
@@ -195,7 +195,7 @@ export const EditUserDialog = ({
     updateUser(payload as any, {
       onSuccess: () => {
         setNotification(
-          createSuccessNotification("Utilizador atualizado com sucesso!")
+          createSuccessNotification("Utilizador atualizado com sucesso!"),
         );
         onOpenChange(false);
       },
@@ -203,7 +203,7 @@ export const EditUserDialog = ({
         const description =
           getErrorMessage(error) ?? "Ocorreu um erro inesperado.";
         setNotification(
-          createErrorNotification("Erro ao atualizar utilizador", description)
+          createErrorNotification("Erro ao atualizar utilizador", description),
         );
       },
     });
@@ -288,7 +288,7 @@ export const EditUserDialog = ({
                             variant={"outline"}
                             className={cn(
                               "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-muted-foreground",
                             )}
                           >
                             {field.value ? (

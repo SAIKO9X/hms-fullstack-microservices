@@ -21,7 +21,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { PatientProfile } from "@/types/patient.types";
 import type { DoctorProfile } from "@/types/doctor.types";
-import { useUpdateUserStatusMutation } from "@/services/queries/admin-queries";
+import { useUpdateUserStatus } from "@/services/queries/admin-queries";
 import {
   createErrorNotification,
   createSuccessNotification,
@@ -159,8 +159,7 @@ export const patientColumns = ({
     cell: ({ row }) => {
       const patient = row.original as PatientWithDetails;
       const navigate = useNavigate();
-      const { mutate: updateUserStatus, isPending } =
-        useUpdateUserStatusMutation();
+      const { mutate: updateUserStatus, isPending } = useUpdateUserStatus();
 
       const handleToggleStatus = () => {
         const newStatus = !patient.active;
@@ -353,8 +352,7 @@ export const doctorColumns = ({
     cell: ({ row }) => {
       const doctor = row.original as DoctorWithDetails;
       const navigate = useNavigate();
-      const { mutate: updateUserStatus, isPending } =
-        useUpdateUserStatusMutation();
+      const { mutate: updateUserStatus, isPending } = useUpdateUserStatus();
 
       const handleToggleStatus = () => {
         const newStatus = !doctor.active;

@@ -62,8 +62,11 @@ interface EditProfileDialogProps {
   onSave: (data: PatientProfileFormData) => void;
 }
 
-const stringToArray = (value: string | undefined | null): string[] => {
+const stringToArray = (value: any): string[] => {
   if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+
   return value
     .split(",")
     .map((s) => s.trim())
@@ -110,7 +113,13 @@ export const EditProfileDialog = ({
   }, [profile, open, form]);
 
   const onSubmit = (data: PatientProfileFormData) => {
-    onSave(data);
+    const payload = {
+      ...data,
+      allergies: stringToArray(data.allergies),
+      chronicDiseases: stringToArray(data.chronicDiseases),
+    };
+
+    onSave(payload as any);
     onOpenChange(false);
   };
 
@@ -176,7 +185,7 @@ export const EditProfileDialog = ({
                             variant="outline"
                             className={cn(
                               "font-normal w-full justify-start text-left",
-                              !field.value && "text-muted-foreground"
+                              !field.value && "text-muted-foreground",
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />

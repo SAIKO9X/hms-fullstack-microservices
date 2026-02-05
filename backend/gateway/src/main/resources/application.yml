@@ -99,6 +99,13 @@ spring:
           filters:
             - name: TokenFilter
 
+        - id: notification-service-route
+          uri: lb://notification-service
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - name: TokenFilter
+
 application:
   security:
     jwt:

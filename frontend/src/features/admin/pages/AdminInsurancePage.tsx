@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, RefreshCw } from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
-import { BillingService } from "@/services/billing";
+import { BillingService } from "@/services";
 
 export function AdminInsurancePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

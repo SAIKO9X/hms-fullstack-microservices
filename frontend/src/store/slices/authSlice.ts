@@ -60,7 +60,7 @@ export const loginUser = createAsyncThunk(
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 const authSlice = createSlice({
@@ -107,7 +107,7 @@ const authSlice = createSlice({
           state.user = action.payload.user;
           state.token = action.payload.token;
           localStorage.setItem("authToken", action.payload.token);
-        }
+        },
       )
       .addCase(loginUser.rejected, (state, action) => {
         state.status = "failed";

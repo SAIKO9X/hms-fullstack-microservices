@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useAdminCreateUserMutation } from "@/services/queries/admin-queries";
+import { useCreateUser } from "@/services/queries/admin-queries";
 import { UserRole } from "@/types/auth.types";
 import { SpecializationCombobox } from "@/components/ui/specialization-combobox";
 import {
@@ -66,13 +66,13 @@ export const CreateUserDialog = ({
 
   const selectedRole = form.watch("role");
 
-  const { mutate: createUser, isPending } = useAdminCreateUserMutation();
+  const { mutate: createUser, isPending } = useCreateUser();
 
   const onSubmit = (data: AdminCreateUserFormData) => {
     createUser(data, {
       onSuccess: () => {
         setNotification(
-          createSuccessNotification("Utilizador criado com sucesso!")
+          createSuccessNotification("Utilizador criado com sucesso!"),
         );
         onOpenChange(false);
         form.reset();
@@ -81,7 +81,7 @@ export const CreateUserDialog = ({
         const description =
           getErrorMessage(error) ?? "Ocorreu um erro inesperado.";
         setNotification(
-          createErrorNotification("Erro ao criar utilizador", description)
+          createErrorNotification("Erro ao criar utilizador", description),
         );
       },
     });

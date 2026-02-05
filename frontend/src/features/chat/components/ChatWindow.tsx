@@ -38,7 +38,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   className,
 }) => {
   const { user, token } = useAuth();
-  const API_BASE_URL = "http://localhost:9000";
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
 
   const {
     data: historyMessages,
@@ -64,7 +64,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   useEffect(() => {
     if (!user || !token) return;
 
-    const socket = new SockJS("http://localhost:8086/ws");
+    const socket = new SockJS(`${API_BASE_URL}/chat/ws`);
     const client = Stomp.over(socket);
 
     client.connect(

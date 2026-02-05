@@ -33,7 +33,7 @@ export const getNextAppointment = async (): Promise<Appointment | null> => {
     const { data } = await api.get<ApiResponse<Appointment>>(
       "/appointments/patient/next",
     );
-    return data.data;
+    return data.data ?? null;
   } catch (error: any) {
     if (error.response?.status === 404) return null;
     throw error;
