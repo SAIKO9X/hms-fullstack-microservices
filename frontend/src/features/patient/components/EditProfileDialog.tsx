@@ -78,6 +78,12 @@ const arrayToString = (value: string[] | undefined | null): string => {
   return value.join(", ");
 };
 
+const safeValueToString = (value: any): string => {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "string") return value;
+  return "";
+};
+
 export const EditProfileDialog = ({
   open,
   onOpenChange,
@@ -97,8 +103,8 @@ export const EditProfileDialog = ({
     address: data?.address || "",
     emergencyContactName: data?.emergencyContactName || "",
     emergencyContactPhone: data?.emergencyContactPhone || "",
-    allergies: data?.allergies || "",
-    chronicDiseases: data?.chronicDiseases || "",
+    allergies: safeValueToString(data?.allergies),
+    chronicDiseases: safeValueToString(data?.chronicDiseases),
   });
 
   const form = useForm<PatientProfileFormData>({
@@ -151,7 +157,6 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="phoneNumber"
@@ -171,7 +176,6 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="dateOfBirth"
@@ -207,9 +211,9 @@ export const EditProfileDialog = ({
                           }
                           locale={ptBR}
                           captionLayout="dropdown"
-                          fromYear={fromYear}
-                          toYear={toYear}
-                          initialFocus
+                          startMonth={new Date(fromYear, 0)}
+                          endMonth={new Date(toYear, 11)}
+                          autoFocus
                         />
                       </PopoverContent>
                     </Popover>
@@ -217,7 +221,6 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="gender"
@@ -245,7 +248,6 @@ export const EditProfileDialog = ({
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="bloodGroup"
@@ -351,6 +353,10 @@ export const EditProfileDialog = ({
                         }
                       />
                     </FormControl>
+                    <p className="text-[0.8rem] text-muted-foreground">
+                      Digite o nome e pressione <strong>Enter</strong> para
+                      adicionar. Você pode adicionar múltiplas alergias.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -370,6 +376,10 @@ export const EditProfileDialog = ({
                         }
                       />
                     </FormControl>
+                    <p className="text-[0.8rem] text-muted-foreground">
+                      Digite o nome e pressione <strong>Enter</strong> para
+                      adicionar. Você pode adicionar múltiplas doenças.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

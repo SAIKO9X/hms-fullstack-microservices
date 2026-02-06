@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/utils/utils";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ interface ReusableComboboxProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
-  label?: string;
+  label?: string | ReactNode;
   className?: string;
 }
 
@@ -58,13 +58,13 @@ export function Combobox({
 
   // Verifica se a opção digitada já existe
   const searchResultExists = options.some(
-    (option) => option.label.toLowerCase() === searchValue.toLowerCase()
+    (option) => option.label.toLowerCase() === searchValue.toLowerCase(),
   );
 
   const handleSelect = (selectedValue: string) => {
     // Encontrar a opção pelo label selecionado
     const option = options.find(
-      (opt) => opt.label.toLowerCase() === selectedValue.toLowerCase()
+      (opt) => opt.label.toLowerCase() === selectedValue.toLowerCase(),
     );
 
     if (option) {
@@ -92,7 +92,7 @@ export function Combobox({
               disabled={disabled}
               className={cn(
                 "w-full justify-between font-normal",
-                !value && "text-muted-foreground"
+                !value && "text-muted-foreground",
               )}
             >
               <span className="truncate">{displayLabel || placeholder}</span>
@@ -119,7 +119,7 @@ export function Combobox({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0" // Compara com value
+                        value === option.value ? "opacity-100" : "opacity-0", // Compara com value
                       )}
                     />
                     {option.label}

@@ -143,7 +143,6 @@ export const PatientAppointmentsPage = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      {/* Notification */}
       {notification.show && (
         <CustomNotification
           variant={notification.variant}
@@ -155,7 +154,6 @@ export const PatientAppointmentsPage = () => {
         />
       )}
 
-      {/* Header */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
@@ -174,7 +172,6 @@ export const PatientAppointmentsPage = () => {
         </Button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-card p-4 rounded-lg border shadow-sm">
           <div className="text-2xl font-bold text-blue-600">
@@ -202,7 +199,6 @@ export const PatientAppointmentsPage = () => {
         </div>
       </div>
 
-      {/* Data Table */}
       <div className="bg-card rounded-lg border shadow-sm">
         <DataTable
           columns={columns({

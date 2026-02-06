@@ -88,7 +88,7 @@ export const getAppointmentRecordByAppointmentId = async (
     const { data } = await api.get<ApiResponse<AppointmentRecord>>(
       `/records/appointment/${appointmentId}`,
     );
-    return data.data;
+    return data.data ?? null; // CORREÇÃO AQUI
   } catch (error: any) {
     if (error.response?.status === 404) {
       return null;
@@ -169,7 +169,7 @@ export const getLatestHealthMetric = async (): Promise<HealthMetric | null> => {
     const { data } = await api.get<ApiResponse<HealthMetric>>(
       "/health-metrics/latest",
     );
-    return data.data;
+    return data.data ?? null;
   } catch (error: any) {
     if (error.response?.status === 404) return null;
     throw error;

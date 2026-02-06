@@ -23,7 +23,6 @@ import {
   Pill,
   History,
   MessageSquare,
-  CreditCard,
 } from "lucide-react";
 import { useProfileStatus } from "@/hooks/use-profile-check";
 import {
@@ -99,12 +98,6 @@ export const PatientSidebar = () => {
   ];
 
   const accountItems = [
-    {
-      title: "Financeiro",
-      url: "/patient/billing",
-      icon: CreditCard,
-      restricted: true,
-    },
     {
       title: "Meu Perfil",
       url: "/patient/profile",
