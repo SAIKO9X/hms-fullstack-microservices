@@ -30,7 +30,6 @@ export const PatientMedicalHistoryPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* BREADCRUMB PARA NAVEGAÇÃO */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -48,7 +47,6 @@ export const PatientMedicalHistoryPage = () => {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* CABEÇALHO DA PÁGINA */}
       <div className="flex items-center gap-4">
         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
           <FileText className="h-6 w-6 text-primary" />
@@ -63,10 +61,8 @@ export const PatientMedicalHistoryPage = () => {
         </div>
       </div>
 
-      {/* Estado de Carregamento */}
       {isLoading && <LoadingSkeleton />}
 
-      {/* Estado de Erro */}
       {isError && (
         <Alert variant="destructive" className="shadow-sm">
           <XCircle className="h-4 w-4" />
@@ -78,7 +74,6 @@ export const PatientMedicalHistoryPage = () => {
         </Alert>
       )}
 
-      {/* Conteúdo Principal (Timeline) */}
       {!isLoading && !isError && medicalHistory && (
         <MedicalHistoryTimeline appointments={medicalHistory.appointments} />
       )}
@@ -86,7 +81,7 @@ export const PatientMedicalHistoryPage = () => {
   );
 };
 
-// Componente de Esqueleto para o estado de carregamento
+// componente de esqueleto para o estado de carregamento
 const LoadingSkeleton = () => (
   <div className="space-y-8">
     {[1, 2].map((i) => (

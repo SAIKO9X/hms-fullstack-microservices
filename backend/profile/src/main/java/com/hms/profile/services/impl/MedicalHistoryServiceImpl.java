@@ -1,5 +1,6 @@
 package com.hms.profile.services.impl;
 
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.response.AppointmentHistoryDto;
 import com.hms.profile.dto.response.AppointmentResponse;
@@ -38,10 +39,16 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
 
   @CircuitBreaker(name = "appointmentService", fallbackMethod = "fetchHistoryFallback")
   public MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
-    // A chamada Feign pode lançar exceção, o CircuitBreaker vai capturar
-    List<AppointmentResponse> appointmentsFromService = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
+    ApiResponse<List<AppointmentResponse>> response = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
 
-    if (appointmentsFromService == null || appointmentsFromService.isEmpty()) {
+    List<AppointmentResponse> appointmentsFromService;
+    if (response != null && response.data() != null) {
+      appointmentsFromService = response.data();
+    } else {
+      appointmentsFromService = Collections.emptyList();
+    }
+
+    if (appointmentsFromService.isEmpty()) {
       return new MedicalHistoryResponse(Collections.emptyList());
     }
 
@@ -72,7 +79,6 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
   // Método de fallback para Circuit Breaker
   public MedicalHistoryResponse fetchHistoryFallback(Long patientProfileId, Exception e) {
     log.error("Falha ao buscar histórico de consultas (Circuit Breaker): {}", e.getMessage());
-    // Retorna lista vazia, mas o sistema continua funcionando
     return new MedicalHistoryResponse(Collections.emptyList());
   }
 }

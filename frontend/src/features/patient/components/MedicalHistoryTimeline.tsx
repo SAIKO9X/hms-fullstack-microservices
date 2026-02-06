@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,16 +7,13 @@ import {
   XCircle,
   Activity,
   Stethoscope,
-  Loader2,
   type LucideProps,
 } from "lucide-react";
 import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getMedicalHistory } from "@/services/patient";
 import type { AppointmentHistory } from "@/types/patient.types";
 import type { FC, ForwardRefExoticComponent, RefAttributes } from "react";
 
-// Configuração de status
 type StatusConfigValue = {
   label: string;
   variant: "secondary" | "default" | "destructive" | "outline";
@@ -69,7 +65,6 @@ const statusConfig: { [key: string]: StatusConfigValue } = {
   },
 };
 
-// componente TimelineItem
 const TimelineItem: FC<{
   appointment: AppointmentHistory;
   isLast: boolean;
@@ -155,34 +150,15 @@ const TimelineItem: FC<{
   );
 };
 
-// componente Principal
 interface MedicalHistoryTimelineProps {
-  patientId: number;
+  appointments: AppointmentHistory[];
   compactMode?: boolean;
 }
 
 export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
-  patientId,
+  appointments = [],
   compactMode = false,
 }) => {
-  // busca do histórico médico
-  const { data: history, isLoading } = useQuery({
-    queryKey: ["medical-history", patientId],
-    queryFn: () => getMedicalHistory(patientId),
-    enabled: !!patientId,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // verifica se existe appointments dentro do objeto history ou se history é o array
-  const appointments = history?.appointments || [];
-
   const sortedAppointments = [...appointments].sort(
     (a, b) =>
       new Date(b.appointmentDateTime).getTime() -

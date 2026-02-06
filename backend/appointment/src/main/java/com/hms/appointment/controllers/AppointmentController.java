@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/appointments")
@@ -70,5 +71,10 @@ public class AppointmentController {
     appointmentService.joinWaitlist(patientId, request);
     return ResponseEntity.status(HttpStatus.CREATED)
       .body(ApiResponse.success(null, "Adicionado à lista de espera."));
+  }
+
+  @GetMapping("/history/patient/{patientId}")
+  public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAppointmentHistory(@PathVariable Long patientId) {
+    return ResponseEntity.ok(ApiResponse.success(appointmentService.getAppointmentsByPatientId(patientId)));
   }
 }
