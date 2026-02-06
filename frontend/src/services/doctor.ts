@@ -6,7 +6,7 @@ import type {
   DoctorDashboardStats,
   PatientGroup,
 } from "@/types/appointment.types";
-import type { PatientSummary } from "@/types/doctor.types";
+import type { DoctorProfile, PatientSummary } from "@/types/doctor.types";
 import type { Page } from "@/types/pagination.types";
 
 // APPOINTMENTS
@@ -71,5 +71,12 @@ export const getMyPatients = async (): Promise<PatientSummary[]> => {
   const { data } = await api.get<ApiResponse<PatientSummary[]>>(
     "/doctor/appointments/my-patients",
   );
+  return data.data;
+};
+
+// PROFILE
+export const getMyDoctorProfile = async (): Promise<DoctorProfile> => {
+  const { data } =
+    await api.get<ApiResponse<DoctorProfile>>("/profile/doctors");
   return data.data;
 };

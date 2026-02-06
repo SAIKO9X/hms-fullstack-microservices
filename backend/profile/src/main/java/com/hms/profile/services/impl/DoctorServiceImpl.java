@@ -120,9 +120,16 @@ public class DoctorServiceImpl implements DoctorService {
   @Transactional(readOnly = true)
   @CircuitBreaker(name = "appointmentService", fallbackMethod = "getDoctorsWithStatusFallback")
   public List<DoctorStatusResponse> getDoctorsWithStatus() {
-    List<Doctor> doctors = doctorRepository.findAll();
+    List<Doctor> doctors = doctorRepository.findAllCompleteProfiles();
+
     List<Long> activeDoctorIds = appointmentFeignClient.getActiveDoctorIds();
     return mapDoctorsToStatusResponse(doctors, activeDoctorIds);
+  }
+
+  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
+    log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
+    List<Doctor> doctors = doctorRepository.findAllCompleteProfiles();
+    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
   }
 
   @Override
@@ -194,11 +201,6 @@ public class DoctorServiceImpl implements DoctorService {
       .collect(Collectors.toList());
   }
 
-  public List<DoctorStatusResponse> getDoctorsWithStatusFallback(Throwable e) {
-    log.warn("Circuit Breaker ativado - Appointment Service indisponível: {}", e.getMessage());
-    List<Doctor> doctors = doctorRepository.findAll();
-    return mapDoctorsToStatusResponse(doctors, Collections.emptyList());
-  }
 
   private void publishDoctorEvent(Doctor doctor, String eventType) {
     try {

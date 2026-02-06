@@ -74,7 +74,7 @@ export const CreateAppointmentDialog = ({
       doctorId: defaultDoctorId ? String(defaultDoctorId) : "",
       appointmentTime: "",
       duration: "60",
-      type: "IN_PERSON", // Valor padrão
+      type: "IN_PERSON",
     },
   });
 
@@ -127,10 +127,8 @@ export const CreateAppointmentDialog = ({
 
     return timeSlots.filter((time) => {
       const [hours, minutes] = time.split(":").map(Number);
-
       const slotStart = new Date(selectedDate);
       slotStart.setHours(hours, minutes, 0, 0);
-
       const slotEnd = addMinutes(slotStart, durationMinutes);
 
       const isBlocked = unavailabilityList.some((block) => {
@@ -150,7 +148,6 @@ export const CreateAppointmentDialog = ({
       });
       return;
     }
-
     const transformedData = AppointmentFormSchema.parse(data);
     onSubmit(transformedData);
   };
@@ -161,6 +158,8 @@ export const CreateAppointmentDialog = ({
     }
     onOpenChange(newOpen);
   };
+
+  const hasDoctors = doctors && doctors.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -183,7 +182,10 @@ export const CreateAppointmentDialog = ({
                     onValueChange={field.onChange}
                     value={field.value}
                     disabled={
-                      isLoadingDoctors || isPending || !!defaultDoctorId
+                      isLoadingDoctors ||
+                      isPending ||
+                      !!defaultDoctorId ||
+                      !hasDoctors
                     }
                   >
                     <FormControl>
@@ -192,17 +194,29 @@ export const CreateAppointmentDialog = ({
                           placeholder={
                             isLoadingDoctors
                               ? "Carregando..."
-                              : "Selecione o doutor"
+                              : !hasDoctors
+                                ? "Nenhum médico disponível no momento"
+                                : "Selecione o doutor"
                           }
                         />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {doctors?.map((doc) => (
-                        <SelectItem key={doc.userId} value={String(doc.userId)}>
-                          {doc.name}
-                        </SelectItem>
-                      ))}
+                      {!hasDoctors ? (
+                        <div className="p-4 text-sm text-muted-foreground text-center">
+                          Nenhum médico completou o perfil para realizar
+                          consultas no momento.
+                        </div>
+                      ) : (
+                        doctors.map((doc) => (
+                          <SelectItem
+                            key={doc.userId}
+                            value={String(doc.userId)}
+                          >
+                            {doc.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -394,7 +408,8 @@ export const CreateAppointmentDialog = ({
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isPending}>
+              {/* se não houver médico desabilita o botão */}
+              <Button type="submit" disabled={isPending || !hasDoctors}>
                 {isPending ? "Confirmando..." : "Agendar Consulta"}
               </Button>
             </DialogFooter>

@@ -5,6 +5,7 @@ import type { DoctorProfile } from "@/types/doctor.types";
 import {
   DoctorProfileSchema,
   type DoctorProfileFormData,
+  type DoctorProfileFormInput,
 } from "@/lib/schemas/profile.schema";
 import { maskPhone } from "@/utils/masks";
 import { format } from "date-fns";
@@ -17,6 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -25,6 +27,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,7 +36,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CalendarIcon, Info } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { medicalSpecializations } from "@/data/medicalSpecializations";
@@ -46,7 +50,7 @@ interface EditDialogProps {
   onSave: (data: DoctorProfileFormData) => void;
 }
 
-const emptyProfileDefaults: DoctorProfileFormData = {
+const emptyProfileDefaults: DoctorProfileFormInput = {
   dateOfBirth: new Date(),
   specialization: "",
   department: "",
@@ -63,7 +67,7 @@ export const EditDoctorProfileDialog = ({
   profile,
   onSave,
 }: EditDialogProps) => {
-  const form = useForm<DoctorProfileFormData>({
+  const form = useForm<DoctorProfileFormInput>({
     resolver: zodResolver(DoctorProfileSchema),
     defaultValues: emptyProfileDefaults,
   });
@@ -97,16 +101,37 @@ export const EditDoctorProfileDialog = ({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Perfil Profissional</DialogTitle>
+          <DialogDescription>
+            Mantenha seus dados atualizados para atrair mais pacientes.
+          </DialogDescription>
         </DialogHeader>
+
+        <Alert className="bg-blue-50 text-blue-900 border-blue-200 dark:bg-blue-950/30 dark:text-blue-200 dark:border-blue-800">
+          <Info className="h-4 w-4" />
+          <AlertTitle className="ml-2 font-semibold">
+            Atenção à Visibilidade
+          </AlertTitle>
+          <AlertDescription className="ml-2 mt-1 text-sm">
+            Para aparecer na busca de agendamentos dos pacientes, é{" "}
+            <strong>obrigatório</strong> preencher: Especialização, Biografia e
+            Preço da Consulta.
+          </AlertDescription>
+        </Alert>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 py-2"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="dateOfBirth"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Data de Nascimento</FormLabel>
+                    <FormLabel>
+                      Data de Nascimento <span className="text-red-500">*</span>
+                    </FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -129,8 +154,8 @@ export const EditDoctorProfileDialog = ({
                           selected={field.value}
                           onSelect={field.onChange}
                           captionLayout="dropdown"
-                          fromYear={1900}
-                          toYear={new Date().getFullYear()}
+                          startMonth={new Date(1900, 0)}
+                          endMonth={new Date(new Date().getFullYear(), 11)}
                         />
                       </PopoverContent>
                     </Popover>
@@ -144,7 +169,11 @@ export const EditDoctorProfileDialog = ({
                 name="specialization"
                 render={({ field }) => (
                   <Combobox
-                    label="Especialização"
+                    label={
+                      <span>
+                        Especialização <span className="text-red-500">*</span>
+                      </span>
+                    }
                     placeholder="Selecione..."
                     searchPlaceholder="Buscar..."
                     emptyMessage="Nada encontrado."
@@ -160,7 +189,11 @@ export const EditDoctorProfileDialog = ({
                 name="department"
                 render={({ field }) => (
                   <Combobox
-                    label="Departamento"
+                    label={
+                      <span>
+                        Departamento <span className="text-red-500">*</span>
+                      </span>
+                    }
                     placeholder="Selecione..."
                     searchPlaceholder="Buscar..."
                     emptyMessage="Nada encontrado."
@@ -176,11 +209,16 @@ export const EditDoctorProfileDialog = ({
                 name="phoneNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Telefone</FormLabel>
+                    <FormLabel>
+                      Telefone <span className="text-red-500">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder="(00) 00000-0000"
-                        {...field}
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        disabled={field.disabled}
                         value={field.value || ""}
                         onChange={(e) =>
                           field.onChange(maskPhone(e.target.value))
@@ -201,11 +239,51 @@ export const EditDoctorProfileDialog = ({
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="15"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="Ex: 15"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        disabled={field.disabled}
+                        value={field.value === 0 ? "" : field.value}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          field.onChange(v === "" ? 0 : Number(v));
+                        }}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="consultationFee"
+                render={({ field }) => (
+                  <FormItem className="bg-slate-50 dark:bg-slate-900 p-3 rounded-md border border-slate-200 dark:border-slate-800">
+                    <FormLabel className="font-semibold text-primary">
+                      Valor da Consulta (R$){" "}
+                      <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Ex: 300.00"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        disabled={field.disabled}
+                        value={field.value === 0 ? "" : field.value}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          field.onChange(v === "" ? 0 : Number(v));
+                        }}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Este valor será exibido para os pacientes.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -214,37 +292,24 @@ export const EditDoctorProfileDialog = ({
 
             <FormField
               control={form.control}
-              name="qualifications"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Qualificações</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      value={field.value || ""}
-                      placeholder="Residência, doutorado..."
-                      rows={4}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="biography"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Biografia</FormLabel>
+                  <FormLabel>
+                    Biografia / Sobre Mim{" "}
+                    <span className="text-red-500">*</span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
                       value={field.value || ""}
-                      placeholder="Sobre sua carreira..."
+                      placeholder="Descreva sua formação, foco de atendimento e abordagem..."
                       rows={4}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Essencial para o paciente conhecer você antes de agendar.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -252,20 +317,16 @@ export const EditDoctorProfileDialog = ({
 
             <FormField
               control={form.control}
-              name="consultationFee"
+              name="qualifications"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor da Consulta (R$)</FormLabel>
+                  <FormLabel>Qualificações Adicionais</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Ex: 300.00"
+                    <Textarea
                       {...field}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? "" : val);
-                      }}
+                      value={field.value || ""}
+                      placeholder="Mestrado, Doutorado, Cursos de especialização..."
+                      rows={3}
                     />
                   </FormControl>
                   <FormMessage />
@@ -273,13 +334,13 @@ export const EditDoctorProfileDialog = ({
               )}
             />
 
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 gap-2 sm:gap-0">
               <DialogClose asChild>
                 <Button type="button" variant="outline">
                   Cancelar
                 </Button>
               </DialogClose>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="submit">Salvar e Atualizar Perfil</Button>
             </DialogFooter>
           </form>
         </Form>
