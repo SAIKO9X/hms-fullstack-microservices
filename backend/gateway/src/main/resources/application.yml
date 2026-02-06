@@ -13,7 +13,7 @@ spring:
       globalcors:
         cors-configurations:
           "[/**]":
-            allowed-origins: "${FRONTEND_URI}"
+            allowedOrigins: "${FRONTEND_URI:http://localhost:5173}"
             allowed-methods:
               - GET
               - POST

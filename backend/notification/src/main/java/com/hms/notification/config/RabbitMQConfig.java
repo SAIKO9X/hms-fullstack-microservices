@@ -27,15 +27,20 @@ public class RabbitMQConfig {
   public static final String PRESCRIPTION_QUEUE = "notification.prescription.queue";
   public static final String USER_CREATED_QUEUE = "notification.user.created.queue";
   public static final String STOCK_LOW_QUEUE = "notification.stock.low.queue";
+  public static final String NOTIFICATION_QUEUE = "notification.queue";
+  public static final String DELAYED_EXCHANGE = "delayed.exchange";
 
   @Value("${application.rabbitmq.routing-key}")
   private String routingKey;
 
-  public static final String DELAYED_EXCHANGE = "delayed.exchange";
-
   @Bean
   public TopicExchange exchange() {
     return new TopicExchange(exchange);
+  }
+
+  @Bean
+  public Queue notificationQueue() {
+    return new Queue(NOTIFICATION_QUEUE, true);
   }
 
   @Bean
@@ -133,6 +138,14 @@ public class RabbitMQConfig {
   @Bean
   public Binding stockLowBinding() {
     return BindingBuilder.bind(stockLowQueue()).to(exchange()).with("pharmacy.stock.#");
+  }
+
+  @Bean
+  public Binding notificationBinding() {
+    // liga a fila "notification.queue" usando a routing key "notification.email"
+    return BindingBuilder.bind(notificationQueue())
+      .to(exchange())
+      .with(routingKey);
   }
 
   @Bean
