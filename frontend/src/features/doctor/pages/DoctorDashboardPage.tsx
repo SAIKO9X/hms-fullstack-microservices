@@ -3,7 +3,6 @@ import {
   useDoctorDashboardStats,
   useUniquePatientsCount,
 } from "@/services/queries/appointment-queries";
-// Agora esta importação vai funcionar corretamente:
 import { useGetDoctorProfile } from "@/services/queries/doctor-queries";
 import {
   AlertCircle,

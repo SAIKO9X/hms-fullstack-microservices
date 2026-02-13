@@ -48,5 +48,8 @@ export const DoctorProfileSchema = z.object({
     }),
 });
 
+export type PatientProfileFormInput = z.input<typeof PatientProfileSchema>;
+export type PatientProfileFormData = z.output<typeof PatientProfileSchema>;
+
 export type DoctorProfileFormInput = z.input<typeof DoctorProfileSchema>;
 export type DoctorProfileFormData = z.output<typeof DoctorProfileSchema>;

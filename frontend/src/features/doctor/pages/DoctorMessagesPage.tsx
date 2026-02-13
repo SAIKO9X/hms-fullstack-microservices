@@ -105,7 +105,7 @@ export const DoctorMessagesPage = () => {
         </ScrollArea>
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 bg-white relative">
+      <div className="flex-1 flex flex-col min-w-0 bg-background relative">
         {selectedContact ? (
           <>
             <div className="absolute top-2 right-4 z-10">

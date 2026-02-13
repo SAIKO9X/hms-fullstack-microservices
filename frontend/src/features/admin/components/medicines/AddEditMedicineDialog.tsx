@@ -14,16 +14,8 @@ import type {
   MedicineCategory,
   MedicineType,
 } from "@/types/medicine.types";
+import { FormDialog } from "@/components/shared/FormDialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -31,7 +23,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -126,236 +117,197 @@ export const AddEditMedicineDialog = ({
   const error = addMutation.error || updateMutation.error;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl font-semibold">
-            {isEditing ? "Editar Medicamento" : "Adicionar Novo Medicamento"}
-          </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isEditing
-              ? "Atualize as informações do medicamento"
-              : "Preencha os dados do novo medicamento"}
-          </p>
-        </DialogHeader>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEditing ? "Editar Medicamento" : "Adicionar Novo Medicamento"}
+      description={
+        isEditing
+          ? "Atualize as informações do medicamento"
+          : "Preencha os dados do novo medicamento"
+      }
+      form={form}
+      onSubmit={onSubmit}
+      isSubmitting={isPending}
+      submitLabel={
+        isEditing ? "Atualizar Medicamento" : "Adicionar Medicamento"
+      }
+      className="sm:max-w-3xl max-h-[90vh]"
+    >
+      {error && (
+        <div className="mb-4">
+          <CustomNotification variant="error" title={error.message} />
+        </div>
+      )}
 
-        {error && (
-          <div className="mb-4">
-            <CustomNotification variant="error" title={error.message} />
-          </div>
-        )}
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Informações Básicas
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FormField
+            name="name"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Nome do Medicamento
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: Paracetamol"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Informações Básicas */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Informações Básicas
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <FormField
-                  name="name"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Nome do Medicamento
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Paracetamol"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <FormField
+            name="dosage"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">Dosagem</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: 500mg, 10ml, 250mg/5ml"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
 
-                <FormField
-                  name="dosage"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Dosagem
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: 500mg, 10ml, 250mg/5ml"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Classificação */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Classificação
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <FormField
-                  name="category"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Categoria
-                      </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-11 w-full">
-                            <SelectValue placeholder="Selecione a categoria" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categoryOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  name="type"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Tipo/Forma
-                      </FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-11 w-full">
-                            <SelectValue placeholder="Selecione o tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {typeOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Dados Comerciais */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Dados Comerciais
-              </h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <FormField
-                  name="manufacturer"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Fabricante
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Medley, EMS, Sanofi"
-                          className="h-11"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  name="unitPrice"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        Preço Unitário (R$)
-                      </FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                            R$
-                          </span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="0,00"
-                            className="h-11 pl-10"
-                            {...field}
-                            value={String(field.value ?? "")}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.valueAsNumber || undefined
-                              )
-                            }
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isPending}
-                  className="w-full sm:w-auto cursor-pointer"
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Classificação
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FormField
+            name="category"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">Categoria</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value || ""}
                 >
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                disabled={isPending}
-                className="w-full sm:w-auto text-secondary cursor-pointer"
-              >
-                {isPending ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Salvando...
+                  <FormControl>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categoryOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            name="type"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Tipo/Forma
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value || ""}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-11 w-full">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {typeOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Dados Comerciais
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FormField
+            name="manufacturer"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Fabricante
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Ex: Medley, EMS, Sanofi"
+                    className="h-11"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            name="unitPrice"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium">
+                  Preço Unitário (R$)
+                </FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                      R$
+                    </span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0,00"
+                      className="h-11 pl-10"
+                      {...field}
+                      value={String(field.value ?? "")}
+                      onChange={(e) =>
+                        field.onChange(e.target.valueAsNumber || undefined)
+                      }
+                    />
                   </div>
-                ) : isEditing ? (
-                  "Atualizar Medicamento"
-                ) : (
-                  "Adicionar Medicamento"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+    </FormDialog>
   );
 };

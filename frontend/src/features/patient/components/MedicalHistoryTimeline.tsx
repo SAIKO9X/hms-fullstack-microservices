@@ -13,6 +13,7 @@ import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { AppointmentHistory } from "@/types/patient.types";
 import type { FC, ForwardRefExoticComponent, RefAttributes } from "react";
+import { useMedicalHistory } from "@/services/queries/profile-queries";
 
 type StatusConfigValue = {
   label: string;
@@ -151,22 +152,37 @@ const TimelineItem: FC<{
 };
 
 interface MedicalHistoryTimelineProps {
-  appointments: AppointmentHistory[];
+  appointments?: AppointmentHistory[];
+  patientId?: number;
   compactMode?: boolean;
 }
 
 export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
-  appointments = [],
+  appointments: initialAppointments,
+  patientId,
   compactMode = false,
 }) => {
+  const { data: medicalHistoryData, isLoading } = useMedicalHistory(patientId);
+
+  const appointments =
+    initialAppointments || (medicalHistoryData as any)?.appointments || [];
+
   const sortedAppointments = [...appointments].sort(
-    (a, b) =>
+    (a: AppointmentHistory, b: AppointmentHistory) =>
       new Date(b.appointmentDateTime).getTime() -
       new Date(a.appointmentDateTime).getTime(),
   );
 
   const displayLimit = compactMode ? 3 : undefined;
   const displayedAppointments = sortedAppointments.slice(0, displayLimit);
+
+  if (isLoading && !initialAppointments && patientId) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Activity className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (!sortedAppointments || sortedAppointments.length === 0) {
     return (
@@ -188,13 +204,15 @@ export const MedicalHistoryTimeline: FC<MedicalHistoryTimelineProps> = ({
 
   return (
     <div className={compactMode ? "space-y-4" : "space-y-8"}>
-      {displayedAppointments.map((appointment, index) => (
-        <TimelineItem
-          key={appointment.id}
-          appointment={appointment}
-          isLast={index === displayedAppointments.length - 1}
-        />
-      ))}
+      {displayedAppointments.map(
+        (appointment: AppointmentHistory, index: number) => (
+          <TimelineItem
+            key={appointment.id}
+            appointment={appointment}
+            isLast={index === displayedAppointments.length - 1}
+          />
+        ),
+      )}
       {compactMode && sortedAppointments.length > 3 && (
         <p className="text-xs text-center text-muted-foreground mt-2">
           e mais {sortedAppointments.length - 3} consultas...

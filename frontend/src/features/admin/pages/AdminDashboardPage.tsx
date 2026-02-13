@@ -17,7 +17,6 @@ export const AdminDashboardPage = () => {
 
   return (
     <div className="container mx-auto py-8 space-y-8 px-4">
-      {/* Header */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
@@ -34,7 +33,6 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
 
-      {/* Cards de Estatísticas */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           title="Total de Pacientes"
@@ -62,7 +60,6 @@ export const AdminDashboardPage = () => {
         />
       </div>
 
-      {/* Gráficos e Listas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActivityChart />
         <DoctorStatusList />

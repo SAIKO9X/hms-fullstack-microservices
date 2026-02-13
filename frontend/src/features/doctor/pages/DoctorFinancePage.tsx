@@ -14,6 +14,7 @@ import { formatCurrency } from "@/utils/utils";
 import { DollarSign, Clock, CheckCircle } from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
 import { BillingService } from "@/services";
+import { StatCard } from "@/components/shared/StatCard";
 
 export default function DoctorFinancePage() {
   const { user } = useAuth();
@@ -54,52 +55,32 @@ export default function DoctorFinancePage() {
       <h1 className="text-3xl font-bold">Painel Financeiro</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receita Total Realizada
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {completedAppts} consultas pagas
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Receita Total Realizada"
+          value={formatCurrency(totalRevenue)}
+          icon={DollarSign}
+          variant="green"
+          description={`${completedAppts} consultas pagas`}
+          loading={loading}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receita Pendente
-            </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {formatCurrency(pendingRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Aguardando pagamento ou convênio
-            </p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Receita Pendente"
+          value={formatCurrency(pendingRevenue)}
+          icon={Clock}
+          variant="yellow"
+          description="Aguardando pagamento ou convênio"
+          loading={loading}
+        />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Consultas Faturadas
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invoices.length}</div>
-            <p className="text-xs text-muted-foreground">Total histórico</p>
-          </CardContent>
-        </Card>
+        <StatCard
+          title="Consultas Faturadas"
+          value={invoices.length}
+          icon={CheckCircle}
+          variant="blue"
+          description="Total histórico"
+          loading={loading}
+        />
       </div>
 
       <Card>

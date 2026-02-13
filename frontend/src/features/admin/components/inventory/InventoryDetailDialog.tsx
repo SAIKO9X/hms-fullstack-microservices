@@ -1,11 +1,7 @@
 import type { MedicineInventory } from "@/types/medicine.types";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { BaseDialog } from "@/components/shared/BaseDialog";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -46,26 +42,28 @@ export const InventoryDetailDialog = ({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Detalhes do Lote: {inventoryItem.batchNo}</DialogTitle>
-        </DialogHeader>
-        <div className="mt-4">
-          <Table>
-            <TableBody>
-              {details.map((detail) => (
-                <TableRow key={detail.label}>
-                  <TableCell className="font-semibold w-1/3">
-                    {detail.label}
-                  </TableCell>
-                  <TableCell>{detail.value}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <BaseDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Detalhes do Lote: ${inventoryItem.batchNo}`}
+      footer={
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Fechar
+        </Button>
+      }
+    >
+      <Table>
+        <TableBody>
+          {details.map((detail) => (
+            <TableRow key={detail.label}>
+              <TableCell className="font-semibold w-1/3">
+                {detail.label}
+              </TableCell>
+              <TableCell>{detail.value}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </BaseDialog>
   );
 };

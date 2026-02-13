@@ -5,6 +5,7 @@ import { CalendarIcon } from "lucide-react";
 import { format, getYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { BloodGroup, Gender, type PatientProfile } from "@/types/patient.types";
+import { FormDialog } from "@/components/shared/FormDialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -17,15 +18,6 @@ import {
   type PatientProfileFormData,
 } from "@/lib/schemas/profile.schema";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -60,6 +52,7 @@ interface EditProfileDialogProps {
   onOpenChange: (open: boolean) => void;
   profile: PatientProfile;
   onSave: (data: PatientProfileFormData) => void;
+  isLoading?: boolean;
 }
 
 const stringToArray = (value: any): string[] => {
@@ -89,6 +82,7 @@ export const EditProfileDialog = ({
   onOpenChange,
   profile,
   onSave,
+  isLoading = false,
 }: EditProfileDialogProps) => {
   const currentYear = getYear(new Date());
   const fromYear = currentYear - 100;
@@ -130,273 +124,265 @@ export const EditProfileDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-full">
-        <DialogHeader>
-          <DialogTitle>Editar Perfil</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="cpf"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CPF</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(maskCPF(e.target.value))
-                        }
-                        placeholder="000.000.000-00"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) =>
-                          field.onChange(maskPhone(e.target.value))
-                        }
-                        placeholder="(00) 00000-0000"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dateOfBirth"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data de Nascimento</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "font-normal w-full justify-start text-left",
-                              !field.value && "text-muted-foreground",
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? (
-                              format(field.value, "PPP", { locale: ptBR })
-                            ) : (
-                              <span>Selecione uma data</span>
-                            )}
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
-                          }
-                          locale={ptBR}
-                          captionLayout="dropdown"
-                          startMonth={new Date(fromYear, 0)}
-                          endMonth={new Date(toYear, 11)}
-                          autoFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gênero</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || undefined}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o gênero" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {genderOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="bloodGroup"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo Sanguíneo</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || undefined}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo sanguíneo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bloodGroupOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Editar Perfil"
+      form={form}
+      onSubmit={onSubmit}
+      isSubmitting={isLoading}
+      submitLabel="Salvar Alterações"
+      className="max-w-3xl max-h-[90vh] w-full"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="cpf"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>CPF</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => field.onChange(maskCPF(e.target.value))}
+                  placeholder="000.000.000-00"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço Completo</FormLabel>
+        <FormField
+          control={form.control}
+          name="phoneNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Telefone</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                  placeholder="(00) 00000-0000"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="dateOfBirth"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Data de Nascimento</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
                   <FormControl>
-                    <Textarea
-                      placeholder="Rua, Número, Bairro, Cidade - Estado"
-                      {...field}
-                    />
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "font-normal w-full justify-start text-left",
+                        !field.value && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value ? (
+                        format(field.value, "PPP", { locale: ptBR })
+                      ) : (
+                        <span>Selecione uma data</span>
+                      )}
+                    </Button>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1900-01-01")
+                    }
+                    locale={ptBR}
+                    captionLayout="dropdown"
+                    startMonth={new Date(fromYear, 0)}
+                    endMonth={new Date(toYear, 11)}
+                    autoFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <div className="space-y-4 pt-2">
-              <h3 className="text-lg font-medium border-b pb-2">
-                Contato de Emergência
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="emergencyContactName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome do Contato</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Nome completo" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="emergencyContactPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone do Contato</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(maskPhone(e.target.value))
-                          }
-                          placeholder="(00) 00000-0000"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Gênero</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || undefined}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o gênero" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {genderOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <div className="space-y-4 pt-2">
-              <h3 className="text-lg font-medium border-b pb-2">
-                Informações Médicas
-              </h3>
-              <FormField
-                control={form.control}
-                name="allergies"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Alergias</FormLabel>
-                    <FormControl>
-                      <BadgeInput
-                        placeholder="Digite e pressione Enter"
-                        value={stringToArray(field.value)}
-                        onChange={(valueArray) =>
-                          field.onChange(arrayToString(valueArray))
-                        }
-                      />
-                    </FormControl>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      Digite o nome e pressione <strong>Enter</strong> para
-                      adicionar. Você pode adicionar múltiplas alergias.
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
+        <FormField
+          control={form.control}
+          name="bloodGroup"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo Sanguíneo</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value || undefined}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo sanguíneo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {bloodGroupOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="address"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Endereço Completo</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Rua, Número, Bairro, Cidade - Estado"
+                {...field}
               />
-              <FormField
-                control={form.control}
-                name="chronicDiseases"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Doenças Crônicas</FormLabel>
-                    <FormControl>
-                      <BadgeInput
-                        placeholder="Digite e pressione Enter"
-                        value={stringToArray(field.value)}
-                        onChange={(valueArray) =>
-                          field.onChange(arrayToString(valueArray))
-                        }
-                      />
-                    </FormControl>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                      Digite o nome e pressione <strong>Enter</strong> para
-                      adicionar. Você pode adicionar múltiplas doenças.
-                    </p>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-            <DialogFooter className="pt-6">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button type="submit">Salvar Alterações</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      <div className="space-y-4 pt-2">
+        <h3 className="text-lg font-medium border-b pb-2">
+          Contato de Emergência
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="emergencyContactName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome do Contato</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Nome completo" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="emergencyContactPhone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone do Contato</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4 pt-2">
+        <h3 className="text-lg font-medium border-b pb-2">
+          Informações Médicas
+        </h3>
+
+        <FormField
+          control={form.control}
+          name="allergies"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Alergias</FormLabel>
+              <FormControl>
+                <BadgeInput
+                  placeholder="Digite e pressione Enter"
+                  value={stringToArray(field.value)}
+                  onChange={(valueArray) =>
+                    field.onChange(arrayToString(valueArray))
+                  }
+                />
+              </FormControl>
+              <p className="text-[0.8rem] text-muted-foreground">
+                Digite o nome e pressione <strong>Enter</strong> para adicionar.
+                Você pode adicionar múltiplas alergias.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="chronicDiseases"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Doenças Crônicas</FormLabel>
+              <FormControl>
+                <BadgeInput
+                  placeholder="Digite e pressione Enter"
+                  value={stringToArray(field.value)}
+                  onChange={(valueArray) =>
+                    field.onChange(arrayToString(valueArray))
+                  }
+                />
+              </FormControl>
+              <p className="text-[0.8rem] text-muted-foreground">
+                Digite o nome e pressione <strong>Enter</strong> para adicionar.
+                Você pode adicionar múltiplas doenças.
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </FormDialog>
   );
 };

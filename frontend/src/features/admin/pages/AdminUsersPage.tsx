@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LayoutGrid, List, Search, Phone, Calendar } from "lucide-react";
+import { LayoutGrid, List, Search, Phone, Calendar, Plus } from "lucide-react";
 import {
   useAllPatients,
   useAllDoctors,
@@ -18,8 +18,7 @@ import {
   patientColumns,
 } from "@/features/admin/components/users/userColumns";
 import { useNavigate } from "react-router";
-import { CreateUserDialog } from "../components/users/CreateUserDialog";
-import { EditUserDialog } from "../components/users/EditUserDialog";
+import { AddEditUserDialog } from "../components/users/AddEditUserDialog";
 import { useAllUsers } from "@/services/queries/admin-queries";
 import {
   isValidNotification,
@@ -125,17 +124,20 @@ const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
   );
 };
 
+// tipos Auxiliares
 type PatientWithDetails = PatientProfile & { email?: string; active?: boolean };
 type DoctorWithDetails = DoctorProfile & { email?: string; active?: boolean };
 
-export const AdminUsersPage = () => {
+export default function AdminUsersPage() {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [searchPatients, setSearchPatients] = useState("");
   const [searchDoctors, setSearchDoctors] = useState("");
-  const [isEditUserOpen, setEditUserOpen] = useState(false);
+  const [isDialogOpen, setDialogOpen] = useState(false);
+
   const [editingUser, setEditingUser] = useState<
     PatientWithDetails | DoctorWithDetails | null
   >(null);
+
   const [editingUserType, setEditingUserType] = useState<"patient" | "doctor">(
     "patient",
   );
@@ -143,25 +145,30 @@ export const AdminUsersPage = () => {
     null,
   );
 
+  const { data: patients, isLoading: isLoadingPatients } = useAllPatients();
+  const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
+  const { data: users, isLoading: isLoadingUsers } = useAllUsers();
+
+  const handleCreateUser = () => {
+    setEditingUser(null);
+    setEditingUserType("patient");
+    setDialogOpen(true);
+  };
+
   const handleEditPatient = (patient: PatientWithDetails) => {
     setEditingUser(patient);
     setEditingUserType("patient");
-    setEditUserOpen(true);
+    setDialogOpen(true);
   };
 
   const handleEditDoctor = (doctor: DoctorWithDetails) => {
     setEditingUser(doctor);
     setEditingUserType("doctor");
-    setEditUserOpen(true);
+    setDialogOpen(true);
   };
-
-  const { data: patients, isLoading: isLoadingPatients } = useAllPatients();
-  const { data: doctors, isLoading: isLoadingDoctors } = useAllDoctors();
-  const { data: users, isLoading: isLoadingUsers } = useAllUsers();
 
   const patientsWithDetails = useMemo<PatientWithDetails[]>(() => {
     if (!patients || !Array.isArray(patients) || !users) return [];
-
     return patients.map((patient: PatientProfile) => {
       const user = users.find((u) => u.id === patient.userId);
       return {
@@ -174,7 +181,6 @@ export const AdminUsersPage = () => {
 
   const doctorsWithDetails = useMemo<DoctorWithDetails[]>(() => {
     if (!doctors || !Array.isArray(doctors) || !users) return [];
-
     return doctors.map((doctor: DoctorProfile) => {
       const user = users.find((u) => u.id === doctor.userId);
       return {
@@ -184,8 +190,6 @@ export const AdminUsersPage = () => {
       };
     });
   }, [doctors, users]);
-
-  const [isCreateUserOpen, setCreateUserOpen] = useState(false);
 
   const filteredPatients = useMemo<PatientWithDetails[]>(() => {
     if (!patientsWithDetails) return [];
@@ -210,6 +214,8 @@ export const AdminUsersPage = () => {
     );
   }, [doctorsWithDetails, searchDoctors]);
 
+  const isLoading = isLoadingPatients || isLoadingDoctors || isLoadingUsers;
+
   return (
     <div className="container mx-auto py-8 space-y-6">
       <div className="fixed top-24 right-4 z-50 w-full max-w-sm">
@@ -225,7 +231,8 @@ export const AdminUsersPage = () => {
           />
         )}
       </div>
-      <div className="flex justify-between items-center">
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Gestão de Utilizadores</h1>
           <p className="text-muted-foreground">
@@ -233,22 +240,31 @@ export const AdminUsersPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "cards" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("cards")}
-          >
-            <LayoutGrid className="h-4 w-4" />
+          <Button onClick={handleCreateUser}>
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Utilizador
           </Button>
-          <Button
-            variant={viewMode === "table" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("table")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
+          <div className="border-l pl-2 flex gap-2">
+            <Button
+              variant={viewMode === "cards" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("cards")}
+              title="Visualização em Cards"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("table")}
+              title="Visualização em Lista"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
+
       <Tabs defaultValue="patients" className="space-y-6">
         <TabsList>
           <TabsTrigger value="patients">
@@ -258,6 +274,7 @@ export const AdminUsersPage = () => {
             Médicos ({filteredDoctors?.length || 0})
           </TabsTrigger>
         </TabsList>
+
         <TabsContent value="patients" className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
@@ -270,15 +287,22 @@ export const AdminUsersPage = () => {
               />
             </div>
           </div>
-          {isLoadingPatients || isLoadingUsers ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Carregando pacientes...
+
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
           ) : viewMode === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredPatients?.map((patient) => (
-                <PatientCard key={patient.id} patient={patient} />
-              ))}
+              {filteredPatients.length > 0 ? (
+                filteredPatients.map((patient) => (
+                  <PatientCard key={patient.id} patient={patient} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  Nenhum paciente encontrado.
+                </div>
+              )}
             </div>
           ) : (
             <DataTable
@@ -286,10 +310,11 @@ export const AdminUsersPage = () => {
                 onEdit: handleEditPatient,
                 setNotification: setNotification,
               })}
-              data={filteredPatients || []}
+              data={filteredPatients}
             />
           )}
         </TabsContent>
+
         <TabsContent value="doctors" className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
@@ -302,15 +327,22 @@ export const AdminUsersPage = () => {
               />
             </div>
           </div>
-          {isLoadingDoctors || isLoadingUsers ? (
-            <div className="text-center py-10 text-muted-foreground">
-              Carregando médicos...
+
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
             </div>
           ) : viewMode === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredDoctors?.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} />
-              ))}
+              {filteredDoctors.length > 0 ? (
+                filteredDoctors.map((doctor) => (
+                  <DoctorCard key={doctor.id} doctor={doctor} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  Nenhum médico encontrado.
+                </div>
+              )}
             </div>
           ) : (
             <DataTable
@@ -318,24 +350,20 @@ export const AdminUsersPage = () => {
                 onEdit: handleEditDoctor,
                 setNotification: setNotification,
               })}
-              data={filteredDoctors || []}
+              data={filteredDoctors}
             />
           )}
         </TabsContent>
       </Tabs>
-      <CreateUserDialog
-        isOpen={isCreateUserOpen}
-        onOpenChange={setCreateUserOpen}
-        setNotification={setNotification}
-      />
 
-      <EditUserDialog
-        isOpen={isEditUserOpen}
-        onOpenChange={setEditUserOpen}
+      {/* Modal Unificado de Criação/Edição */}
+      <AddEditUserDialog
+        open={isDialogOpen}
+        onOpenChange={setDialogOpen}
         user={editingUser}
         userType={editingUserType}
         setNotification={setNotification}
       />
     </div>
   );
-};
+}

@@ -87,7 +87,7 @@ spring:
         - id: billing-service-route
           uri: lb://billing-service
           predicates:
-            - Path=/api/billing/**
+            - Path=/billing/**
           filters:
             - name: TokenFilter
 

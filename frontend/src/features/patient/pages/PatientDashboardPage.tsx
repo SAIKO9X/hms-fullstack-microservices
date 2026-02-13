@@ -25,6 +25,7 @@ import { CustomNotification } from "@/components/notifications/CustomNotificatio
 import { ReportAdverseEffectDialog } from "@/features/patient/components/ReportAdverseEffectDialog";
 import { DocumentsCard } from "@/features/patient/components/DocumentsCard";
 import { QuickActions } from "../components/QuickActions";
+import { StatCard } from "@/components/shared/StatCard";
 
 export const PatientDashboardPage = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -33,6 +34,8 @@ export const PatientDashboardPage = () => {
     message: string;
     variant: "success" | "error";
   } | null>(null);
+
+  const { data: metric, isLoading: isLoadingMetrics } = useLatestHealthMetric();
 
   return (
     <div className="container mx-auto py-8 space-y-8">
@@ -52,8 +55,44 @@ export const PatientDashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <NextAppointmentCard />
-          <HealthMetricsCard />
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              title="Pressão Arterial"
+              value={metric?.bloodPressure || "N/A"}
+              unit="mmHg"
+              icon={Heart}
+              variant="red"
+              description="Última aferição"
+              loading={isLoadingMetrics}
+            />
+            <StatCard
+              title="Glicose"
+              value={metric?.glucoseLevel || "N/A"}
+              unit="mg/dL"
+              icon={Droplet}
+              variant="blue"
+              loading={isLoadingMetrics}
+            />
+            <StatCard
+              title="Peso"
+              value={metric?.weight || "N/A"}
+              unit="kg"
+              icon={Scale}
+              variant="purple"
+              loading={isLoadingMetrics}
+            />
+            <StatCard
+              title="Freq. Cardíaca"
+              value={metric?.heartRate || "N/A"}
+              unit="bpm"
+              icon={Thermometer}
+              variant="red"
+              loading={isLoadingMetrics}
+            />
+          </div>
         </div>
+
         <div className="space-y-6">
           <AppointmentStats />
           <CurrentMedicationsCard
@@ -113,7 +152,7 @@ const NextAppointmentCard = () => {
                 {format(
                   new Date(nextAppointment.appointmentDateTime),
                   "dd 'de' MMMM 'de' yyyy",
-                  { locale: ptBR }
+                  { locale: ptBR },
                 )}
               </p>
               <p className="flex items-center gap-2 text-muted-foreground">
@@ -171,58 +210,6 @@ const AppointmentStats = () => {
               <span className="text-red-500">{stats?.canceled || 0}</span>
             </div>
           </>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const HealthMetricsCard = () => {
-  const { data: metric, isLoading } = useLatestHealthMetric();
-
-  const metrics = [
-    {
-      icon: Heart,
-      label: "Pressão Arterial",
-      value: metric?.bloodPressure || "N/A",
-      unit: "mmHg",
-    },
-    {
-      icon: Droplet,
-      label: "Nível de Glicose",
-      value: metric?.glucoseLevel || "N/A",
-      unit: "mg/dL",
-    },
-    { icon: Scale, label: "Peso", value: metric?.weight || "N/A", unit: "kg" },
-    {
-      icon: Thermometer,
-      label: "Frequência Cardíaca",
-      value: metric?.heartRate || "N/A",
-      unit: "bpm",
-    },
-  ];
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Últimos Sinais Vitais</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full" />
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {metrics.map((m) => (
-              <div
-                key={m.label}
-                className="p-4 rounded-lg bg-muted/50 text-center"
-              >
-                <m.icon className="h-6 w-6 mx-auto text-primary mb-2" />
-                <p className="text-2xl font-bold">{m.value}</p>
-                <p className="text-xs text-muted-foreground">{m.label}</p>
-              </div>
-            ))}
-          </div>
         )}
       </CardContent>
     </Card>
