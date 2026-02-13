@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,11 +11,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { StarRating } from "@/components/shared/StarRating";
 import { createReview } from "@/services/profile";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
-import { useState } from "react";
+import { FormTextarea } from "@/components/ui/form-fields";
 
 const ReviewSchema = z.object({
   rating: z
@@ -111,21 +111,11 @@ export const CreateReviewDialog = ({
         )}
       />
 
-      <FormField
+      <FormTextarea
         control={form.control}
         name="comment"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Comentário (Opcional)</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Conte-nos mais sobre sua experiência..."
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Comentário (Opcional)"
+        placeholder="Conte-nos mais sobre sua experiência..."
       />
     </FormDialog>
   );

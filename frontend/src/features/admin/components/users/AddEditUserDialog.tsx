@@ -29,7 +29,7 @@ const formatStringOrArray = (
 
 // schema unificado
 const userFormSchema = z.object({
-  role: z.nativeEnum(UserRole).optional(),
+  role: z.enum(UserRole).optional(),
   password: z
     .string()
     .min(6, "Senha deve ter no mínimo 6 caracteres.")

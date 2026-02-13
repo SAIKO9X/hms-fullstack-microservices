@@ -19,15 +19,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Separator } from "@/components/ui/separator";
 import { commonSymptoms } from "@/data/commonSymptoms";
 import { COMMON_EXAMS } from "@/data/COMMON_EXAMS";
 import type { AppointmentRecord } from "@/types/record.types";
+import { FormInput, FormTextarea } from "@/components/ui/form-fields";
 
 interface AppointmentRecordFormProps {
   appointmentId: number;
@@ -102,26 +100,17 @@ export const AppointmentRecordForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* 1. Anamnese */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-primary">1. Anamnese</h3>
           <Separator />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
+            <FormInput
               control={form.control}
               name="chiefComplaint"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Queixa Principal *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Ex: Dor de cabeça intensa..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Queixa Principal *"
+              placeholder="Ex: Dor de cabeça intensa..."
             />
 
             <FormField
@@ -144,46 +133,28 @@ export const AppointmentRecordForm = ({
             />
           </div>
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="historyOfPresentIllness"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>História da Doença Atual (HMA)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Detalhes sobre o início, duração e evolução dos sintomas..."
-                    className="min-h-[80px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="História da Doença Atual (HMA)"
+            placeholder="Detalhes sobre o início, duração e evolução dos sintomas..."
+            rows={3}
           />
         </div>
 
+        {/* 2. Exame Físico */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-primary">
             2. Exame Físico
           </h3>
           <Separator />
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="physicalExamNotes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Achados do Exame Físico</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Ex: PA 120/80, Ausculta pulmonar limpa..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Achados do Exame Físico"
+            placeholder="Ex: PA 120/80, Ausculta pulmonar limpa..."
+            rows={3}
           />
         </div>
 
@@ -194,55 +165,30 @@ export const AppointmentRecordForm = ({
           <Separator />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
+            <FormInput
               control={form.control}
               name="diagnosisCid10"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CID-10</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: J00" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Código Internacional de Doenças
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="CID-10"
+              placeholder="Ex: J00"
+              description="Código Internacional de Doenças"
             />
 
             <div className="md:col-span-2">
-              <FormField
+              <FormInput
                 control={form.control}
                 name="diagnosisDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descrição do Diagnóstico *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Rinofaringite Aguda" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Descrição do Diagnóstico *"
+                placeholder="Ex: Rinofaringite Aguda"
               />
             </div>
           </div>
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="treatmentPlan"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Plano Terapêutico / Conduta</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Repouso, hidratação, orientações gerais..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Plano Terapêutico / Conduta"
+            placeholder="Repouso, hidratação, orientações gerais..."
+            rows={3}
           />
 
           <FormField
@@ -268,21 +214,12 @@ export const AppointmentRecordForm = ({
           />
         </div>
 
-        <FormField
+        <FormTextarea
           control={form.control}
           name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações Gerais / Internas</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Notas que não aparecem na receita ou atestado..."
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Observações Gerais / Internas"
+          placeholder="Notas que não aparecem na receita ou atestado..."
+          rows={3}
         />
 
         <div className="flex justify-end gap-3 pt-4">

@@ -7,26 +7,22 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PlusCircle, Trash2, FlaskConical } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { COMMON_EXAMS } from "@/data/COMMON_EXAMS";
 import { useCreateLabOrder } from "@/services/queries/appointment-queries";
+import {
+  FormInput,
+  FormTextarea,
+  FormSelect,
+} from "@/components/ui/form-fields";
 
 interface LabOrderFormProps {
   appointmentId: number;
@@ -34,6 +30,14 @@ interface LabOrderFormProps {
   onSuccess: () => void;
   onCancel: () => void;
 }
+
+const CATEGORY_OPTIONS = [
+  { value: "SANGUE", label: "Sangue / Laboratorial" },
+  { value: "IMAGEM", label: "Imagem (Raio-X, USG)" },
+  { value: "URINA", label: "Urina / Fezes" },
+  { value: "CARDIO", label: "Cardiológico" },
+  { value: "OUTROS", label: "Outros" },
+];
 
 export const LabOrderForm = ({
   appointmentId,
@@ -138,70 +142,26 @@ export const LabOrderForm = ({
                   )}
                 />
 
-                <FormField
+                <FormSelect
                   control={form.control}
                   name={`tests.${index}.category`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Categoria</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="SANGUE">
-                            Sangue / Laboratorial
-                          </SelectItem>
-                          <SelectItem value="IMAGEM">
-                            Imagem (Raio-X, USG)
-                          </SelectItem>
-                          <SelectItem value="URINA">Urina / Fezes</SelectItem>
-                          <SelectItem value="CARDIO">Cardiológico</SelectItem>
-                          <SelectItem value="OUTROS">Outros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Categoria"
+                  placeholder="Tipo"
+                  options={CATEGORY_OPTIONS}
                 />
 
-                <FormField
+                <FormInput
                   control={form.control}
                   name={`tests.${index}.instructions`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Instruções ao Paciente</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Jejum 8h, Bexiga cheia..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Instruções ao Paciente"
+                  placeholder="Ex: Jejum 8h, Bexiga cheia..."
                 />
 
-                <FormField
+                <FormInput
                   control={form.control}
                   name={`tests.${index}.clinicalIndication`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Indicação Clínica</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Investigação de dor abdominal"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Indicação Clínica"
+                  placeholder="Ex: Investigação de dor abdominal"
                 />
               </div>
             </div>
@@ -221,22 +181,12 @@ export const LabOrderForm = ({
 
           <Separator className="my-4" />
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Observações Gerais do Pedido</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Observações adicionais para o laboratório..."
-                    className="min-h-[80px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Observações Gerais do Pedido"
+            placeholder="Observações adicionais para o laboratório..."
+            rows={3}
           />
         </div>
 

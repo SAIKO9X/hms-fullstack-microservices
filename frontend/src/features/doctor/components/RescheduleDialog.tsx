@@ -2,31 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
 import { FormDialog } from "@/components/shared/FormDialog";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/utils/utils";
+import { FormDatePicker, FormSelect } from "@/components/ui/form-fields";
 
 const RescheduleSchema = z.object({
   appointmentDate: z.date({
@@ -59,6 +36,8 @@ const TIME_SLOTS = [
   "15:00",
   "16:00",
 ];
+
+const TIME_SLOT_OPTIONS = TIME_SLOTS.map((t) => ({ label: t, value: t }));
 
 export const RescheduleDialog = ({
   open,
@@ -105,73 +84,21 @@ export const RescheduleDialog = ({
       submitLabel="Confirmar Reagendamento"
       className="sm:max-w-md"
     >
-      <FormField
+      <FormDatePicker
         control={form.control}
         name="appointmentDate"
-        render={({ field }) => (
-          <FormItem className="flex flex-col">
-            <FormLabel>Nova Data</FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? (
-                      format(field.value, "PPP", { locale: ptBR })
-                    ) : (
-                      <span>Selecione uma data</span>
-                    )}
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  disabled={(date) =>
-                    date < new Date() ||
-                    date.getDay() === 0 ||
-                    date.getDay() === 6
-                  }
-                  autoFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Nova Data"
+        disabledDate={(date) =>
+          date < new Date() || date.getDay() === 0 || date.getDay() === 6
+        }
       />
 
-      <FormField
+      <FormSelect
         control={form.control}
         name="appointmentTime"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Novo Horário</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um horário" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {TIME_SLOTS.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Novo Horário"
+        placeholder="Selecione um horário"
+        options={TIME_SLOT_OPTIONS}
       />
     </FormDialog>
   );

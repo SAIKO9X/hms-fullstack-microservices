@@ -6,17 +6,21 @@ import { X } from "lucide-react";
 interface BadgeInputProps {
   value: string[];
   onChange: (value: string[]) => void;
-  placeholder: string;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export const BadgeInput = ({
   value = [],
   onChange,
   placeholder,
+  disabled,
 }: BadgeInputProps) => {
   const [inputValue, setInputValue] = useState("");
 
   const addItem = () => {
+    if (disabled) return;
+
     if (inputValue.trim() && !value.includes(inputValue.trim())) {
       onChange([...value, inputValue.trim()]);
       setInputValue("");
@@ -24,6 +28,7 @@ export const BadgeInput = ({
   };
 
   const removeItem = (itemToRemove: string) => {
+    if (disabled) return;
     onChange(value.filter((item) => item !== itemToRemove));
   };
 
@@ -41,6 +46,7 @@ export const BadgeInput = ({
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
+        disabled={disabled}
       />
       <div className="flex flex-wrap gap-2">
         {value.map((item, index) => (
@@ -50,10 +56,12 @@ export const BadgeInput = ({
             className="flex items-center gap-1.5"
           >
             {item}
-            <X
-              className="h-3 w-3 cursor-pointer hover:text-destructive"
-              onClick={() => removeItem(item)}
-            />
+            {!disabled && (
+              <X
+                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                onClick={() => removeItem(item)}
+              />
+            )}
           </Badge>
         ))}
       </div>

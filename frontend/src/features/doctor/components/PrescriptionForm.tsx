@@ -14,19 +14,17 @@ import { useMedicines } from "@/services/queries/pharmacy-queries";
 import { Button } from "@/components/ui/button";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { Prescription } from "@/types/record.types";
 import { useEffect } from "react";
 import { Combobox } from "@/components/ui/combobox";
+import { FormInput, FormTextarea } from "@/components/ui/form-fields";
 
 interface PrescriptionFormProps {
   appointmentId: number;
@@ -57,7 +55,7 @@ export const PrescriptionForm = ({
 
   const form = useForm<FormData>({
     resolver: zodResolver(
-      isEditing ? PrescriptionUpdateSchema : PrescriptionSchema
+      isEditing ? PrescriptionUpdateSchema : PrescriptionSchema,
     ),
     defaultValues: isEditing
       ? {
@@ -138,7 +136,7 @@ export const PrescriptionForm = ({
 
                           form.setValue(
                             `medicines.${index}.name`,
-                            name || selectedValue
+                            name || selectedValue,
                           );
                           if (dosage) {
                             form.setValue(`medicines.${index}.dosage`, dosage);
@@ -156,60 +154,26 @@ export const PrescriptionForm = ({
                 )}
               />
 
-              <FormField
+              <FormInput
                 control={form.control}
                 name={`medicines.${index}.dosage`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dosagem</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: 1 comprimido, 10ml" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Dosagem"
+                placeholder="Ex: 1 comprimido, 10ml"
               />
 
-              <FormField
+              <FormInput
                 control={form.control}
                 name={`medicines.${index}.frequency`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Frequência</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Ex: A cada 8 horas, 2x ao dia"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Frequência"
+                placeholder="Ex: A cada 8 horas, 2x ao dia"
               />
 
-              <FormField
+              <FormInput
                 control={form.control}
                 name={`medicines.${index}.duration`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duração (dias)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Ex: 7"
-                        min={1}
-                        max={365}
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value, 10);
-                          field.onChange(isNaN(value) ? "" : value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Duração (dias)"
+                type="number"
+                placeholder="Ex: 7"
               />
             </div>
           </div>
@@ -229,22 +193,12 @@ export const PrescriptionForm = ({
 
         <Separator />
 
-        <FormField
+        <FormTextarea
           control={form.control}
           name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notas da Prescrição (Opcional)</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Instruções especiais, cuidados, contraindicações..."
-                  className="min-h-[100px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Notas da Prescrição (Opcional)"
+          placeholder="Instruções especiais, cuidados, contraindicações..."
+          rows={4}
         />
 
         <div className="flex justify-end gap-3 pt-4">
@@ -262,8 +216,8 @@ export const PrescriptionForm = ({
             {isPending
               ? "A Guardar..."
               : isEditing
-              ? "Guardar Alterações"
-              : "Guardar Prescrição"}
+                ? "Guardar Alterações"
+                : "Guardar Prescrição"}
           </Button>
         </div>
       </form>

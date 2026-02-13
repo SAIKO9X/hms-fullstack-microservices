@@ -9,30 +9,12 @@ import {
   useAddMedicine,
   useUpdateMedicine,
 } from "@/services/queries/pharmacy-queries";
-import type {
-  Medicine,
-  MedicineCategory,
-  MedicineType,
-} from "@/types/medicine.types";
+import type { Medicine } from "@/types/medicine.types";
 import { FormDialog } from "@/components/shared/FormDialog";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
+import { FormInput, FormSelect } from "@/components/ui/form-fields";
 
-const categoryOptions: { value: MedicineCategory; label: string }[] = [
+const categoryOptions = [
   { value: "ANTIBIOTIC", label: "Antibiótico" },
   { value: "ANALGESIC", label: "Analgésico" },
   { value: "ANTIHISTAMINE", label: "Anti-histamínico" },
@@ -44,7 +26,7 @@ const categoryOptions: { value: MedicineCategory; label: string }[] = [
   { value: "OTHER", label: "Outro" },
 ];
 
-const typeOptions: { value: MedicineType; label: string }[] = [
+const typeOptions = [
   { value: "TABLET", label: "Comprimido" },
   { value: "CAPSULE", label: "Cápsula" },
   { value: "SYRUP", label: "Xarope" },
@@ -145,42 +127,20 @@ export const AddEditMedicineDialog = ({
           Informações Básicas
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FormField
+          <FormInput
             name="name"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Nome do Medicamento
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Ex: Paracetamol"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Nome do Medicamento"
+            placeholder="Ex: Paracetamol"
+            className="h-11"
           />
 
-          <FormField
+          <FormInput
             name="dosage"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">Dosagem</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Ex: 500mg, 10ml, 250mg/5ml"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Dosagem"
+            placeholder="Ex: 500mg, 10ml, 250mg/5ml"
+            className="h-11"
           />
         </div>
       </div>
@@ -190,62 +150,22 @@ export const AddEditMedicineDialog = ({
           Classificação
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FormField
+          <FormSelect
             name="category"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">Categoria</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-11 w-full">
-                      <SelectValue placeholder="Selecione a categoria" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categoryOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Categoria"
+            placeholder="Selecione a categoria"
+            options={categoryOptions}
+            className="h-11"
           />
 
-          <FormField
+          <FormSelect
             name="type"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Tipo/Forma
-                </FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ""}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-11 w-full">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {typeOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Tipo/Forma"
+            placeholder="Selecione o tipo"
+            options={typeOptions}
+            className="h-11"
           />
         </div>
       </div>
@@ -255,56 +175,26 @@ export const AddEditMedicineDialog = ({
           Dados Comerciais
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FormField
+          <FormInput
             name="manufacturer"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Fabricante
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Ex: Medley, EMS, Sanofi"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Fabricante"
+            placeholder="Ex: Medley, EMS, Sanofi"
+            className="h-11"
           />
 
-          <FormField
+          <FormInput
             name="unitPrice"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Preço Unitário (R$)
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                      R$
-                    </span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0,00"
-                      className="h-11 pl-10"
-                      {...field}
-                      value={String(field.value ?? "")}
-                      onChange={(e) =>
-                        field.onChange(e.target.valueAsNumber || undefined)
-                      }
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Preço Unitário (R$)"
+            type="number"
+            placeholder="0,00"
+            className="h-11"
+            onChange={(e) => {
+              const value =
+                e.target.value === "" ? undefined : Number(e.target.value);
+              form.setValue("unitPrice", value as any);
+            }}
           />
         </div>
       </div>

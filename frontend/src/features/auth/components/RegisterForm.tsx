@@ -13,20 +13,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { CardContent, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Mail, Lock, User } from "lucide-react";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
 import { RegisterFormSchema } from "@/lib/schemas/auth.schema";
 import { registerUser } from "@/services/auth";
 import { maskCPF } from "@/utils/masks";
 import { useNavigate } from "react-router";
+import {
+  FormInputWithIcon,
+  FormPasswordInput,
+} from "@/components/ui/form-fields";
+import { Input } from "@/components/ui/input";
 
 export const RegisterForm = () => {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,8 +53,6 @@ export const RegisterForm = () => {
     try {
       const { confirmPassword, ...dataToSend } = values;
       await registerUser(dataToSend);
-
-      // redireciona direto para a verificação de conta
       navigate(`/auth/verify?email=${encodeURIComponent(values.email)}`);
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro desconhecido.");
@@ -74,50 +74,20 @@ export const RegisterForm = () => {
             />
           )}
 
-          <FormField
+          <FormInputWithIcon
             control={form.control}
             name="name"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Nome Completo
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      placeholder="Seu nome completo"
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Nome Completo"
+            placeholder="Seu nome completo"
+            leftIcon={<User className="w-4 h-4" />}
           />
 
-          <FormField
+          <FormInputWithIcon
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Email
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      placeholder="seu@email.com"
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Email"
+            placeholder="seu@email.com"
+            leftIcon={<Mail className="w-4 h-4" />}
           />
 
           <FormField
@@ -129,98 +99,39 @@ export const RegisterForm = () => {
                   {watchedRole === "DOCTOR" ? "CRM" : "CPF"}
                 </FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Input
-                      placeholder={
-                        watchedRole === "DOCTOR"
-                          ? "123456/SP"
-                          : "000.000.000-00"
-                      }
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const maskedValue =
-                          watchedRole === "PATIENT" ? maskCPF(value) : value;
-                        field.onChange(maskedValue);
-                      }}
-                    />
-                  </div>
+                  <Input
+                    placeholder={
+                      watchedRole === "DOCTOR" ? "123456/SP" : "000.000.000-00"
+                    }
+                    className="h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
+                    {...field}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const maskedValue =
+                        watchedRole === "PATIENT" ? maskCPF(value) : value;
+                      field.onChange(maskedValue);
+                    }}
+                  />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
 
-          <FormField
+          <FormPasswordInput
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Senha
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Senha"
+            placeholder="••••••••"
+            leftIcon={<Lock className="w-4 h-4" />}
           />
 
-          <FormField
+          <FormPasswordInput
             control={form.control}
             name="confirmPassword"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Confirmar Senha
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Confirmar Senha"
+            placeholder="••••••••"
+            leftIcon={<Lock className="w-4 h-4" />}
           />
 
           <FormField

@@ -2,15 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FormDialog } from "@/components/shared/FormDialog";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { useCreateAdverseEffectReport } from "@/services/queries/appointment-queries";
+import { FormTextarea } from "@/components/ui/form-fields";
 
 const ReportSchema = z.object({
   description: z
@@ -65,22 +58,12 @@ export const ReportAdverseEffectDialog = ({
       isSubmitting={mutation.isPending}
       submitLabel="Enviar Relatório"
     >
-      <FormField
+      <FormTextarea
         control={form.control}
         name="description"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Descrição dos Efeitos</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Ex: Senti tonturas e náuseas após tomar o medicamento..."
-                rows={5}
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Descrição dos Efeitos"
+        placeholder="Ex: Senti tonturas e náuseas após tomar o medicamento..."
+        rows={5}
       />
     </FormDialog>
   );

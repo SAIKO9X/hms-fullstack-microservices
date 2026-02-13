@@ -1,32 +1,12 @@
 import type { UseFormReturn } from "react-hook-form";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
-import { format, getYear } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/utils/utils";
+import { getYear } from "date-fns";
 import { maskCPF, maskPhone } from "@/utils/masks";
+import {
+  FormInput,
+  FormSelect,
+  FormDatePicker,
+  FormTextarea,
+} from "@/components/ui/form-fields";
 
 const genderOptions = [
   { value: "MALE", label: "Masculino" },
@@ -57,232 +37,80 @@ export const PatientFields = ({ form, isEditing }: PatientFieldsProps) => {
 
   return (
     <>
-      <FormField
+      <FormInput
         control={form.control}
         name="cpf"
-        render={({ field }) => (
-          <FormItem className={!isEditing ? "md:col-span-2" : ""}>
-            <FormLabel>CPF</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="000.000.000-00"
-                {...field}
-                onChange={(e) => {
-                  field.onChange(maskCPF(e.target.value));
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="CPF"
+        placeholder="000.000.000-00"
+        mask={maskCPF}
+        maxLength={14}
+        className={!isEditing ? "md:col-span-2" : ""}
       />
 
       {isEditing && (
         <>
-          <FormField
+          <FormInput
             control={form.control}
             name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telefone</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(maskPhone(e.target.value));
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Telefone"
+            mask={maskPhone}
+            maxLength={15}
           />
 
-          <FormField
+          <FormDatePicker
             control={form.control}
             name="dateOfBirth"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data de Nascimento</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), "PPP", {
-                            locale: ptBR,
-                          })
-                        ) : (
-                          <span>Selecione uma data</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                      locale={ptBR}
-                      captionLayout="dropdown"
-                      fromYear={currentYear - 100}
-                      toYear={currentYear}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Data de Nascimento"
+            fromYear={currentYear - 100}
+            toYear={currentYear}
           />
 
-          <FormField
-            control={form.control}
-            name="address"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Endereço</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <FormInput control={form.control} name="address" label="Endereço" />
 
-          <FormField
+          <FormSelect
             control={form.control}
             name="gender"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Gênero</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o gênero" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {genderOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Gênero"
+            placeholder="Selecione o gênero"
+            options={genderOptions}
           />
 
-          <FormField
+          <FormSelect
             control={form.control}
             name="bloodGroup"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo Sanguíneo</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o tipo sanguíneo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {bloodGroupOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Tipo Sanguíneo"
+            placeholder="Selecione o tipo sanguíneo"
+            options={bloodGroupOptions}
           />
 
-          <FormField
+          <FormInput
             control={form.control}
             name="emergencyContactName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cont. Emergência (Nome)</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Cont. Emergência (Nome)"
           />
 
-          <FormField
+          <FormInput
             control={form.control}
             name="emergencyContactPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cont. Emergência (Telefone)</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(maskPhone(e.target.value));
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Cont. Emergência (Telefone)"
+            mask={maskPhone}
+            maxLength={15}
           />
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="allergies"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Alergias</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Ex: Penicilina, Amendoim..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Alergias"
+            placeholder="Ex: Penicilina, Amendoim..."
+            className="md:col-span-2"
           />
 
-          <FormField
+          <FormTextarea
             control={form.control}
             name="chronicDiseases"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel>Doenças Crônicas</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Ex: Hipertensão, Diabetes..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Doenças Crônicas"
+            placeholder="Ex: Hipertensão, Diabetes..."
+            className="md:col-span-2"
           />
         </>
       )}

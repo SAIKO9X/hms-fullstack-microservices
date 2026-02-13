@@ -1,10 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO, addMinutes } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Clock } from "lucide-react";
+import { parseISO, addMinutes } from "date-fns";
 import { useMemo, useEffect } from "react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AppointmentFormInputSchema,
   AppointmentFormSchema,
@@ -17,30 +14,13 @@ import {
 } from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
 import { FormDialog } from "@/components/shared/FormDialog";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { formatCurrency } from "@/utils/utils";
 import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Combobox } from "@/components/ui/combobox";
+  FormSelect,
+  FormDatePicker,
+  FormRadioGroup,
+  FormCombobox, // Novo componente importado
+} from "@/components/ui/form-fields";
 
 interface CreateAppointmentDialogProps {
   open: boolean;
@@ -69,6 +49,18 @@ const TIME_SLOTS = [
   "17:00",
 ];
 
+const DURATION_OPTIONS = [
+  { value: "15", label: "15 min (Rápida)" },
+  { value: "30", label: "30 min (Padrão)" },
+  { value: "45", label: "45 min" },
+  { value: "60", label: "1 hora (Completa)" },
+];
+
+const APPOINTMENT_TYPE_OPTIONS = [
+  { value: "IN_PERSON", label: "Presencial (Consultório)" },
+  { value: "ONLINE", label: "Online (Telemedicina)" },
+];
+
 export const CreateAppointmentDialog = ({
   open,
   onOpenChange,
@@ -89,19 +81,24 @@ export const CreateAppointmentDialog = ({
     },
   });
 
+  const selectedDoctorId = form.watch("doctorId");
+  const selectedDate = form.watch("appointmentDate");
+  const selectedDuration = form.watch("duration");
+
   useEffect(() => {
     if (defaultDoctorId) {
       form.setValue("doctorId", String(defaultDoctorId));
     }
   }, [defaultDoctorId, form]);
 
-  const selectedDoctorId = form.watch("doctorId");
-  const selectedDate = form.watch("appointmentDate");
-  const selectedDuration = form.watch("duration");
+  useEffect(() => {
+    form.setValue("appointmentTime", "");
+  }, [selectedDuration, form]);
 
   const selectedDoctor = doctors?.find(
     (d) => String(d.userId) === selectedDoctorId,
   );
+
   const { data: unavailabilityList } = useGetDoctorUnavailability(
     Number(selectedDoctorId),
   );
@@ -146,13 +143,23 @@ export const CreateAppointmentDialog = ({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      // reset com delay para evitar flicker visual
       setTimeout(() => form.reset(), 200);
     }
     onOpenChange(newOpen);
   };
 
   const hasDoctors = doctors && doctors.length > 0;
+
+  const doctorOptions =
+    doctors?.map((doc) => ({
+      label: doc.name,
+      value: String(doc.userId),
+    })) || [];
+
+  const timeSlotOptions = availableTimeSlots.map((time) => ({
+    label: time,
+    value: time,
+  }));
 
   return (
     <FormDialog
@@ -165,218 +172,76 @@ export const CreateAppointmentDialog = ({
       submitLabel="Agendar Consulta"
       className="max-w-md"
     >
-      <FormField
+      <FormSelect
         control={form.control}
         name="doctorId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Doutor</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              disabled={
-                isLoadingDoctors ||
-                isPending ||
-                !!defaultDoctorId ||
-                !hasDoctors
-              }
-            >
-              <FormControl>
-                <SelectTrigger className="w-full">
-                  <SelectValue
-                    placeholder={
-                      isLoadingDoctors
-                        ? "Carregando..."
-                        : !hasDoctors
-                          ? "Nenhum médico disponível no momento"
-                          : "Selecione o doutor"
-                    }
-                  />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {!hasDoctors ? (
-                  <div className="p-4 text-sm text-muted-foreground text-center">
-                    Nenhum médico completou o perfil para realizar consultas no
-                    momento.
-                  </div>
-                ) : (
-                  doctors.map((doc) => (
-                    <SelectItem key={doc.userId} value={String(doc.userId)}>
-                      {doc.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Doutor"
+        placeholder={
+          isLoadingDoctors
+            ? "Carregando..."
+            : !hasDoctors
+              ? "Nenhum médico disponível"
+              : "Selecione o doutor"
+        }
+        options={doctorOptions}
+        disabled={
+          isLoadingDoctors || isPending || !!defaultDoctorId || !hasDoctors
+        }
+        description={
+          !hasDoctors && !isLoadingDoctors
+            ? "Nenhum médico completou o perfil para realizar consultas no momento."
+            : undefined
+        }
       />
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField
+        <FormDatePicker
           control={form.control}
           name="appointmentDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className="font-normal justify-start text-left w-full pl-3"
-                      disabled={isPending || !selectedDoctorId}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {field.value ? (
-                        format(field.value, "dd/MM/yyyy")
-                      ) : (
-                        <span>Selecione</span>
-                      )}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
-                    locale={ptBR}
-                    autoFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Data"
+          placeholder="Selecione"
+          disabled={isPending || !selectedDoctorId}
+          disabledDate={(date) =>
+            date < new Date(new Date().setHours(0, 0, 0, 0))
+          }
         />
 
-        <FormField
+        <FormSelect
           control={form.control}
           name="duration"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Duração</FormLabel>
-              <Select
-                onValueChange={(val) => {
-                  field.onChange(val);
-                  form.setValue("appointmentTime", "");
-                }}
-                value={field.value}
-                disabled={isPending}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Duração" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="15">15 min (Rápida)</SelectItem>
-                  <SelectItem value="30">30 min (Padrão)</SelectItem>
-                  <SelectItem value="45">45 min</SelectItem>
-                  <SelectItem value="60">1 hora (Completa)</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Duração"
+          placeholder="Duração"
+          options={DURATION_OPTIONS}
+          disabled={isPending}
         />
       </div>
 
-      <FormField
+      <FormSelect
         control={form.control}
         name="appointmentTime"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Horário de Início</FormLabel>
-            <Select
-              onValueChange={field.onChange}
-              value={field.value}
-              disabled={isPending || !selectedDate}
-            >
-              <FormControl>
-                <SelectTrigger className="w-full">
-                  <Clock className="mr-2 h-4 w-4 opacity-50" />
-                  <SelectValue
-                    placeholder={
-                      selectedDate ? "Selecione o horário" : "Data primeiro"
-                    }
-                  />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent className="max-h-[200px]">
-                {availableTimeSlots.length === 0 ? (
-                  <div className="p-2 text-sm text-muted-foreground text-center">
-                    Sem horários disponíveis
-                  </div>
-                ) : (
-                  availableTimeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Mostrando horários livres para duração de {selectedDuration} min.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Horário de Início"
+        placeholder={
+          selectedDate ? "Selecione o horário" : "Selecione a data primeiro"
+        }
+        options={timeSlotOptions}
+        disabled={isPending || !selectedDate}
+        description={`Mostrando horários livres para duração de ${selectedDuration} min.`}
       />
 
-      <FormField
+      <FormCombobox
         control={form.control}
         name="reason"
-        render={({ field }) => (
-          <Combobox
-            label="Motivo da Consulta"
-            placeholder="Selecione ou digite o motivo"
-            options={appointmentReasons}
-            value={field.value}
-            onValueChange={field.onChange}
-            disabled={isPending}
-          />
-        )}
+        label="Motivo da Consulta"
+        placeholder="Selecione ou digite o motivo"
+        options={appointmentReasons}
+        disabled={isPending}
       />
 
-      <FormField
+      <FormRadioGroup
         control={form.control}
         name="type"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel>Tipo de Consulta</FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex space-x-4"
-              >
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="IN_PERSON" />
-                  </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">
-                    Presencial (Consultório)
-                  </FormLabel>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="ONLINE" />
-                  </FormControl>
-                  <FormLabel className="font-normal cursor-pointer">
-                    Online (Telemedicina)
-                  </FormLabel>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Tipo de Consulta"
+        options={APPOINTMENT_TYPE_OPTIONS}
       />
 
       {selectedDoctor && (

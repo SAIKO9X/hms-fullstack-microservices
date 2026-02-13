@@ -3,24 +3,20 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Form } from "@/components/ui/form";
 import { LoginSchema } from "@/lib/schemas/auth.schema";
 import { CardContent, CardFooter } from "@/components/ui/card";
-import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import { Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import type { NotificationState } from "@/features/auth/pages/AuthPage";
 import { CustomNotification } from "../../../components/notifications/CustomNotification";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser } from "@/store/slices/authSlice";
 import { useLocation, useNavigate } from "react-router";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  FormInputWithIcon,
+  FormPasswordInput,
+} from "@/components/ui/form-fields";
 
 interface LoginFormProps {
   notification: NotificationState;
@@ -34,9 +30,9 @@ export const LoginForm = ({
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const { status, error } = useAppSelector((state) => state.auth);
+
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { email: "", password: "" },
@@ -49,19 +45,16 @@ export const LoginForm = ({
         message: location.state.message,
       });
       setUnverifiedEmail(null);
-
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, setNotification, navigate]);
 
   async function onSubmit(values: z.infer<typeof LoginSchema>) {
     setUnverifiedEmail(null);
-
     const resultAction = await dispatch(loginUser(values));
 
     if (loginUser.rejected.match(resultAction)) {
       const errorMessage = resultAction.payload as string;
-
       if (
         errorMessage &&
         (errorMessage.toLowerCase().includes("não verificada") ||
@@ -118,62 +111,20 @@ export const LoginForm = ({
             <CustomNotification variant="error" title={error} />
           )}
 
-          <FormField
+          <FormInputWithIcon
             control={form.control}
             name="email"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Email
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      placeholder="medico@email.com"
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Email"
+            placeholder="medico@email.com"
+            leftIcon={<Mail className="w-4 h-4" />}
           />
 
-          <FormField
+          <FormPasswordInput
             control={form.control}
             name="password"
-            render={({ field }) => (
-              <FormItem className="group">
-                <FormLabel className="text-sm font-medium text-foreground/80 group-focus-within:text-primary transition-colors">
-                  Senha
-                </FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 transition-colors group-focus-within:text-primary" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:bg-background transition-all duration-200 hover:border-border"
-                      {...field}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </FormControl>
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+            label="Senha"
+            placeholder="••••••••"
+            leftIcon={<Lock className="w-4 h-4" />}
           />
 
           <div className="flex items-center justify-between">

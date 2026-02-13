@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 import {
   useAppointments,
   useCreateMedicalDocument,
@@ -21,12 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format } from "date-fns";
 import { DocumentType } from "@/types/document.types";
 import {
   DocumentSchema,
   type DocumentFormData,
 } from "@/lib/schemas/document.schema";
+import { FormInput, FormSelect } from "@/components/ui/form-fields";
 
 const DOCUMENT_OPTIONS = [
   { value: DocumentType.BLOOD_REPORT, label: "Resultado de Exame de Sangue" },
@@ -119,43 +120,19 @@ export const AddDocumentDialog = ({
         )}
       />
 
-      <FormField
+      <FormInput
         control={form.control}
         name="documentName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nome do Documento</FormLabel>
-            <FormControl>
-              <Input placeholder="Ex: Hemograma Completo" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Nome do Documento"
+        placeholder="Ex: Hemograma Completo"
       />
 
-      <FormField
+      <FormSelect
         control={form.control}
         name="documentType"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Tipo de Documento</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {DOCUMENT_OPTIONS.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Tipo de Documento"
+        placeholder="Selecione o tipo"
+        options={DOCUMENT_OPTIONS}
       />
 
       <FormField

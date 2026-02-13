@@ -1,41 +1,21 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon } from "lucide-react";
-import { format, getYear } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { getYear } from "date-fns";
 import { BloodGroup, Gender, type PatientProfile } from "@/types/patient.types";
 import { FormDialog } from "@/components/shared/FormDialog";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { BadgeInput } from "@/components/ui/badge-input";
 import { maskCPF, maskPhone } from "@/utils/masks";
-import { cn } from "@/utils/utils";
 import {
   PatientProfileSchema,
   type PatientProfileFormData,
 } from "@/lib/schemas/profile.schema";
 import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  FormInput,
+  FormSelect,
+  FormTextarea,
+  FormDatePicker,
+  FormBadgeInput,
+} from "@/components/ui/form-fields";
 
 const bloodGroupOptions = Object.entries(BloodGroup).map(([key, value]) => ({
   value: key,
@@ -59,16 +39,10 @@ const stringToArray = (value: any): string[] => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   if (typeof value !== "string") return [];
-
   return value
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-};
-
-const arrayToString = (value: string[] | undefined | null): string => {
-  if (!value) return "";
-  return value.join(", ");
 };
 
 const safeValueToString = (value: any): string => {
@@ -135,160 +109,55 @@ export const EditProfileDialog = ({
       className="max-w-3xl max-h-[90vh] w-full"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
+        <FormInput
           control={form.control}
           name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  onChange={(e) => field.onChange(maskCPF(e.target.value))}
-                  placeholder="000.000.000-00"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="CPF"
+          placeholder="000.000.000-00"
+          mask={maskCPF}
+          maxLength={14}
         />
 
-        <FormField
+        <FormInput
           control={form.control}
           name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Telefone</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  onChange={(e) => field.onChange(maskPhone(e.target.value))}
-                  placeholder="(00) 00000-0000"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Telefone"
+          placeholder="(00) 00000-0000"
+          mask={maskPhone}
+          maxLength={15}
         />
 
-        <FormField
+        <FormDatePicker
           control={form.control}
           name="dateOfBirth"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data de Nascimento</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "font-normal w-full justify-start text-left",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {field.value ? (
-                        format(field.value, "PPP", { locale: ptBR })
-                      ) : (
-                        <span>Selecione uma data</span>
-                      )}
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                    locale={ptBR}
-                    captionLayout="dropdown"
-                    startMonth={new Date(fromYear, 0)}
-                    endMonth={new Date(toYear, 11)}
-                    autoFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Data de Nascimento"
+          fromYear={fromYear}
+          toYear={toYear}
         />
 
-        <FormField
+        <FormSelect
           control={form.control}
           name="gender"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Gênero</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value || undefined}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o gênero" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {genderOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Gênero"
+          placeholder="Selecione o gênero"
+          options={genderOptions}
         />
 
-        <FormField
+        <FormSelect
           control={form.control}
           name="bloodGroup"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tipo Sanguíneo</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value || undefined}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo sanguíneo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {bloodGroupOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Tipo Sanguíneo"
+          placeholder="Selecione o tipo sanguíneo"
+          options={bloodGroupOptions}
         />
       </div>
 
-      <FormField
+      <FormTextarea
         control={form.control}
         name="address"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Endereço Completo</FormLabel>
-            <FormControl>
-              <Textarea
-                placeholder="Rua, Número, Bairro, Cidade - Estado"
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Endereço Completo"
+        placeholder="Rua, Número, Bairro, Cidade - Estado"
+        rows={3}
       />
 
       <div className="space-y-4 pt-2">
@@ -296,36 +165,20 @@ export const EditProfileDialog = ({
           Contato de Emergência
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
+          <FormInput
             control={form.control}
             name="emergencyContactName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome do Contato</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Nome completo" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Nome do Contato"
+            placeholder="Nome completo"
           />
 
-          <FormField
+          <FormInput
             control={form.control}
             name="emergencyContactPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telefone do Contato</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    onChange={(e) => field.onChange(maskPhone(e.target.value))}
-                    placeholder="(00) 00000-0000"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Telefone do Contato"
+            placeholder="(00) 00000-0000"
+            mask={maskPhone}
+            maxLength={15}
           />
         </div>
       </div>
@@ -335,52 +188,20 @@ export const EditProfileDialog = ({
           Informações Médicas
         </h3>
 
-        <FormField
+        <FormBadgeInput
           control={form.control}
           name="allergies"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Alergias</FormLabel>
-              <FormControl>
-                <BadgeInput
-                  placeholder="Digite e pressione Enter"
-                  value={stringToArray(field.value)}
-                  onChange={(valueArray) =>
-                    field.onChange(arrayToString(valueArray))
-                  }
-                />
-              </FormControl>
-              <p className="text-[0.8rem] text-muted-foreground">
-                Digite o nome e pressione <strong>Enter</strong> para adicionar.
-                Você pode adicionar múltiplas alergias.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Alergias"
+          placeholder="Digite e pressione Enter"
+          description="Digite o nome e pressione Enter para adicionar. Você pode adicionar múltiplas alergias."
         />
 
-        <FormField
+        <FormBadgeInput
           control={form.control}
           name="chronicDiseases"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Doenças Crônicas</FormLabel>
-              <FormControl>
-                <BadgeInput
-                  placeholder="Digite e pressione Enter"
-                  value={stringToArray(field.value)}
-                  onChange={(valueArray) =>
-                    field.onChange(arrayToString(valueArray))
-                  }
-                />
-              </FormControl>
-              <p className="text-[0.8rem] text-muted-foreground">
-                Digite o nome e pressione <strong>Enter</strong> para adicionar.
-                Você pode adicionar múltiplas doenças.
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
+          label="Doenças Crônicas"
+          placeholder="Digite e pressione Enter"
+          description="Digite o nome e pressione Enter para adicionar. Você pode adicionar múltiplas doenças."
         />
       </div>
     </FormDialog>

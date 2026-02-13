@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { format } from "date-fns";
-import { CalendarIcon, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/utils/utils";
 import {
   useAddInventoryItem,
@@ -19,9 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -36,6 +33,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
+import { FormInput, FormDatePicker } from "@/components/ui/form-fields";
 
 const InventoryFormSchema = z.object({
   medicineId: z.number({ message: "Selecione um medicamento" }),
@@ -177,7 +175,7 @@ export const AddEditInventoryDialog = ({
                         "w-full justify-between h-11",
                         !field.value && "text-muted-foreground",
                       )}
-                      disabled={isEditing} // não permite alterar o medicamento em edição
+                      disabled={isEditing}
                     >
                       {selectedMedicine
                         ? `${selectedMedicine.name} - ${selectedMedicine.dosage}`
@@ -231,96 +229,35 @@ export const AddEditInventoryDialog = ({
         </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FormField
+          <FormInput
             name="batchNo"
             control={form.control}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Número do Lote
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Ex: LT001, BATCH2024001"
-                    className="h-11"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Número do Lote"
+            placeholder="Ex: LT001, BATCH2024001"
+            className="h-11"
           />
 
-          <FormField
+          <FormInput
             name="quantity"
             control={form.control}
-            render={({ field: { onChange, value, ...fieldProps } }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium">
-                  Quantidade
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Ex: 100"
-                    className="h-11"
-                    value={value || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      onChange(
-                        val === "" ? undefined : parseInt(val, 10) || undefined,
-                      );
-                    }}
-                    {...fieldProps}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            label="Quantidade"
+            type="number"
+            placeholder="Ex: 100"
+            className="h-11"
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              form.setValue("quantity", (isNaN(val) ? undefined : val) as any);
+            }}
           />
         </div>
 
-        <FormField
-          name="expiryDate"
+        <FormDatePicker
           control={form.control}
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel className="text-sm font-medium">
-                Data de Validade
-              </FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal h-11",
-                        !field.value && "text-muted-foreground",
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "dd/MM/yyyy")
-                      ) : (
-                        <span>Selecionar data de validade</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
+          name="expiryDate"
+          label="Data de Validade"
+          placeholder="Selecionar data de validade"
+          className="h-11"
+          disabledDate={(date) => date < new Date()}
         />
       </div>
     </FormDialog>

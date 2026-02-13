@@ -20,7 +20,6 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -33,6 +32,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Combobox } from "@/components/ui/combobox";
 import { medicalSpecializations } from "@/data/medicalSpecializations";
 import { medicalDepartments } from "@/data/medicalDepartments";
+import { FormTextarea } from "@/components/ui/form-fields";
 
 interface EditDialogProps {
   open: boolean;
@@ -278,47 +278,21 @@ export const EditDoctorProfileDialog = ({
         />
       </div>
 
-      <FormField
+      <FormTextarea
         control={form.control}
         name="biography"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Biografia / Sobre Mim <span className="text-red-500">*</span>
-            </FormLabel>
-            <FormControl>
-              <Textarea
-                {...field}
-                value={field.value || ""}
-                placeholder="Descreva sua formação, foco de atendimento e abordagem..."
-                rows={4}
-              />
-            </FormControl>
-            <FormDescription>
-              Essencial para o paciente conhecer você antes de agendar.
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
+        label={"Biografia / Sobre Mim"}
+        placeholder="Descreva sua formação, foco de atendimento e abordagem..."
+        description="Essencial para o paciente conhecer você antes de agendar."
+        rows={4}
       />
 
-      <FormField
+      <FormTextarea
         control={form.control}
         name="qualifications"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Qualificações Adicionais</FormLabel>
-            <FormControl>
-              <Textarea
-                {...field}
-                value={field.value || ""}
-                placeholder="Mestrado, Doutorado, Cursos de especialização..."
-                rows={3}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
+        label="Qualificações Adicionais"
+        placeholder="Mestrado, Doutorado, Cursos de especialização..."
+        rows={3}
       />
     </FormDialog>
   );
