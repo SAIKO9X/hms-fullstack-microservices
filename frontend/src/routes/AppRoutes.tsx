@@ -1,58 +1,59 @@
 import { Routes, Route } from "react-router";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthLayout } from "@/features/auth/layouts/AuthLayout";
-import { PatientDashboard } from "@/features/patient/layouts/PatientLayout";
-import { DoctorDashboard } from "@/features/doctor/layouts/DoctorLayout";
-import { AuthPage } from "@/features/auth/pages/AuthPage";
-import { LandingPage } from "@/components/shared/LandingPage";
+import {
+  adminNavGroups,
+  doctorNavGroups,
+  patientNavGroups,
+} from "@/config/navigation";
 import { PrivateRoute } from "./PrivateRoute";
 import { PublicRoute } from "./PublicRoute";
 import { RoleBasedGuard } from "./RoleBasedGuard";
+import { ProfileCompletionGuard } from "./ProfileCompletionGuard";
+import { AuthPage } from "@/features/auth/pages/AuthPage";
+import VerifyAccountPage from "@/features/auth/pages/VerifyAccountPage";
+import { LandingPage } from "@/components/shared/LandingPage";
+import { PatientDashboardPage } from "@/features/patient/pages/PatientDashboardPage";
 import { PatientProfilePage } from "@/features/patient/pages/PatientProfilePage";
-import { DoctorProfilePage } from "@/features/doctor/pages/DoctorProfilePage";
 import { PatientAppointmentsPage } from "@/features/patient/pages/PatientAppointmentsPage";
+import { PatientAppointmentDetailPage } from "@/features/patient/pages/PatientAppointmentDetailPage";
+import { PatientPrescriptionsPage } from "@/features/patient/pages/PatientPrescriptionsPage";
+import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
+import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedicalHistoryPage";
+import { PatientDoctorsListPage } from "@/features/patient/pages/PatientDoctorsListPage";
+import { PatientViewDoctorProfilePage } from "@/features/patient/pages/PatientViewDoctorProfilePage";
+import { PatientMessagesPage } from "@/features/patient/pages/PatientMessagesPage";
+import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage";
+import { DoctorProfilePage } from "@/features/doctor/pages/DoctorProfilePage";
 import { DoctorAppointmentsPage } from "@/features/doctor/pages/DoctorAppointmentsPage";
 import { DoctorAppointmentsDetailPage } from "@/features/doctor/pages/DoctorAppointmentsDetailPage";
 import { DoctorPatientsPage } from "@/features/doctor/pages/DoctorPatientsPage";
 import { DoctorRecordsPage } from "@/features/doctor/pages/DoctorRecordsPage";
-import { AdminDashboard } from "@/features/admin/layouts/AdminLayout";
+import { DoctorAvailabilityPage } from "@/features/doctor/pages/DoctorAvailabilityPage";
+import { ConsultationPage } from "@/features/doctor/pages/ConsultationPage";
+import { DoctorMessagesPage } from "@/features/doctor/pages/DoctorMessagesPage";
+import DoctorFinancePage from "@/features/doctor/pages/DoctorFinancePage";
+import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
 import { AdminMedicinesPage } from "@/features/admin/pages/AdminMedicinePage";
 import { AdminInventoryPage } from "@/features/admin/pages/AdminInventoryPage";
 import { AdminSalesPage } from "@/features/admin/pages/AdminSalesPage";
 import { AdminSaleDetailPage } from "@/features/admin/pages/AdminSaleDetailPage";
 import { AdminNewSalePage } from "@/features/admin/pages/AdminNewSalePage";
-import { AdminUsersPage } from "@/features/admin/pages/AdminUsersPage";
+import AdminUsersPage from "@/features/admin/pages/AdminUsersPage";
 import { AdminPatientDetailPage } from "@/features/admin/pages/AdminPatientDetailPage";
 import { AdminDoctorDetailPage } from "@/features/admin/pages/AdminDoctorDetailPage";
-import { PatientDashboardPage } from "@/features/patient/pages/PatientDashboardPage";
-import { PatientAppointmentDetailPage } from "@/features/patient/pages/PatientAppointmentDetailPage";
-import { PatientPrescriptionsPage } from "@/features/patient/pages/PatientPrescriptionsPage";
-import { DoctorDashboardPage } from "@/features/doctor/pages/DoctorDashboardPage";
-import { PatientDocumentsPage } from "@/features/patient/pages/PatientDocumentsPage";
-import { AdminDashboardPage } from "@/features/admin/pages/AdminDashboardPage";
-import { PatientMedicalHistoryPage } from "@/features/patient/pages/PatientMedicalHistoryPage";
 import { AdminDoctorSchedulePage } from "@/features/admin/pages/AdminDoctorSchedulePage";
 import { AdminDoctorHistoryPage } from "@/features/admin/pages/AdminDoctorHistoryPage";
 import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
-import { ProfileCompletionGuard } from "./ProfileCompletionGuard";
-import { PatientDoctorsListPage } from "@/features/patient/pages/PatientDoctorsListPage";
-import { PatientViewDoctorProfilePage } from "@/features/patient/pages/PatientViewDoctorProfilePage";
-import VerifyAccountPage from "@/features/auth/pages/VerifyAccountPage";
-import { DoctorAvailabilityPage } from "@/features/doctor/pages/DoctorAvailabilityPage";
-// IMPORTANTE: Adicione o import da ConsultationPage
-import { ConsultationPage } from "@/features/doctor/pages/ConsultationPage";
-import { PatientMessagesPage } from "@/features/patient/pages/PatientMessagesPage";
-import { DoctorMessagesPage } from "@/features/doctor/pages/DoctorMessagesPage";
-import DoctorFinancePage from "@/features/doctor/pages/DoctorFinancePage";
 import { AdminInsurancePage } from "@/features/admin/pages/AdminInsurancePage";
 import AuditLogsPage from "@/features/admin/pages/AuditLogsPage";
 
 export const AppRoutes = () => {
   return (
     <Routes>
-      {/* --- Rota Pública Principal --- */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* --- Rotas de Autenticação (Apenas para deslogados) --- */}
+      {/* Rotas de Autenticação */}
       <Route element={<PublicRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/auth" element={<AuthPage />} />
@@ -60,12 +61,21 @@ export const AppRoutes = () => {
         </Route>
       </Route>
 
-      {/* --- Rotas Privadas --- */}
+      {/* Rotas Privadas */}
       <Route element={<PrivateRoute />}>
-        {/* Paciente */}
+        {/* PACIENTE */}
         <Route element={<ProfileCompletionGuard />}>
           <Route element={<RoleBasedGuard allowedRoles={["PATIENT"]} />}>
-            <Route path="/patient/*" element={<PatientDashboard />}>
+            <Route
+              path="/patient/*"
+              element={
+                <AppLayout
+                  subtitle="Portal do Paciente"
+                  groups={patientNavGroups}
+                  checkProfile={true}
+                />
+              }
+            >
               <Route path="dashboard" element={<PatientDashboardPage />} />
               <Route path="profile" element={<PatientProfilePage />} />
               <Route
@@ -94,9 +104,18 @@ export const AppRoutes = () => {
             </Route>
           </Route>
 
-          {/* Doutor */}
+          {/* ÁREA DO MÉDICO */}
           <Route element={<RoleBasedGuard allowedRoles={["DOCTOR"]} />}>
-            <Route path="/doctor/*" element={<DoctorDashboard />}>
+            <Route
+              path="/doctor/*"
+              element={
+                <AppLayout
+                  subtitle="Portal do Médico"
+                  groups={doctorNavGroups}
+                  checkProfile={true}
+                />
+              }
+            >
               <Route path="dashboard" element={<DoctorDashboardPage />} />
               <Route path="profile" element={<DoctorProfilePage />} />
               <Route path="appointments" element={<DoctorAppointmentsPage />} />
@@ -121,9 +140,18 @@ export const AppRoutes = () => {
           </Route>
         </Route>
 
-        {/* Admin */}
+        {/* ÁREA DO ADMINISTRADOR */}
         <Route element={<RoleBasedGuard allowedRoles={["ADMIN"]} />}>
-          <Route path="/admin/*" element={<AdminDashboard />}>
+          <Route
+            path="/admin/*"
+            element={
+              <AppLayout
+                subtitle="Administração"
+                groups={adminNavGroups}
+                checkProfile={false} // admin não precisa completar perfil
+              />
+            }
+          >
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="medicines" element={<AdminMedicinesPage />} />
             <Route path="inventory" element={<AdminInventoryPage />} />
@@ -133,6 +161,8 @@ export const AppRoutes = () => {
             <Route path="new-sale" element={<AdminNewSalePage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="insurance" element={<AdminInsurancePage />} />
+
+            {/* Rotas aninhadas */}
             <Route
               path="users/patient/:id/history"
               element={<AdminPatientMedicalHistoryPage />}
@@ -157,7 +187,16 @@ export const AppRoutes = () => {
         </Route>
       </Route>
 
-      <Route path="*" element={<h2>Página não encontrada</h2>} />
+      <Route
+        path="*"
+        element={
+          <div className="flex items-center justify-center h-screen">
+            <h2 className="text-2xl font-bold text-muted-foreground">
+              Página não encontrada (404)
+            </h2>
+          </div>
+        }
+      />
     </Routes>
   );
 };

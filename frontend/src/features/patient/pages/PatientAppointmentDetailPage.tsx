@@ -104,7 +104,7 @@ export const PatientAppointmentDetailPage = () => {
             {format(
               new Date(appointment.appointmentDateTime),
               "dd/MM/yyyy 'às' HH:mm",
-              { locale: ptBR }
+              { locale: ptBR },
             )}
           </CardDescription>
         </CardHeader>
@@ -117,7 +117,7 @@ export const PatientAppointmentDetailPage = () => {
               value={format(
                 new Date(appointment.appointmentDateTime),
                 "dd 'de' MMMM, yyyy",
-                { locale: ptBR }
+                { locale: ptBR },
               )}
             />
             <InfoItem

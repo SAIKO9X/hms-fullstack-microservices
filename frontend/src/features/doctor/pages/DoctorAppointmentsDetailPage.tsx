@@ -417,25 +417,33 @@ export const DoctorAppointmentsDetailPage = () => {
                       <h4 className="font-semibold">Diagnóstico</h4>
                     </div>
                     <p className="ml-4 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                      {record.diagnosis}
+                      {record.diagnosisDescription}
+                      {record.diagnosisCid10 && (
+                        <span className="ml-2 text-xs font-mono">
+                          ({record.diagnosisCid10})
+                        </span>
+                      )}
                     </p>
                   </div>
 
-                  {record.tests && record.tests.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <TestTube className="h-4 w-4 text-primary" />
-                        <h4 className="font-semibold">Testes Realizados</h4>
+                  {record.requestedTests &&
+                    record.requestedTests.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <TestTube className="h-4 w-4 text-primary" />
+                          <h4 className="font-semibold">Testes Realizados</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-2 ml-6">
+                          {record.requestedTests.map(
+                            (test: string, index: number) => (
+                              <Badge key={index} variant="outline">
+                                {test}
+                              </Badge>
+                            ),
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 ml-6">
-                        {record.tests.map((test, index) => (
-                          <Badge key={index} variant="outline">
-                            {test}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    )}
 
                   {record.notes && (
                     <div className="space-y-3">
