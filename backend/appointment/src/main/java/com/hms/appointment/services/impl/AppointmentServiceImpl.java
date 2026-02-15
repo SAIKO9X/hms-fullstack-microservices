@@ -1,9 +1,11 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.AppointmentEvent;
 import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
 import com.hms.appointment.dto.event.WaitlistNotificationEvent;
+import com.hms.appointment.dto.external.PatientProfile;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.*;
@@ -14,6 +16,7 @@ import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.dto.event.EventEnvelope;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
@@ -45,14 +48,49 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
 
+  private final ProfileFeignClient profileFeignClient;
+
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
+
+  // Método auxiliar para garantir que o paciente exista localmente, ou tentar sincronizar via Profile Service
+  private PatientReadModel getOrSyncPatient(Long userIdInput) {
+    return patientReadModelRepository.findByUserId(userIdInput)
+      .orElseGet(() -> {
+        log.info("Paciente com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
+        try {
+          log.info("Paciente com userId {} não encontrado localmente. Tentando sincronizar...", userIdInput);
+
+          ApiResponse<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
+
+          PatientProfile externalPatient = response.data();
+
+          if (externalPatient == null || externalPatient.id() == null) {
+            log.error("Dados do paciente vieram nulos no Profile Service para userId: {}", userIdInput);
+            throw new ResourceNotFoundException("Patient Profile (User ID)", userIdInput);
+          }
+
+          log.info(">>> Sincronizando Paciente: ID={}, Nome={}", externalPatient.id(), externalPatient.name());
+
+          PatientReadModel newModel = new PatientReadModel();
+          newModel.setPatientId(externalPatient.id());
+          newModel.setUserId(externalPatient.userId());
+          newModel.setFullName(externalPatient.name());
+          newModel.setEmail(externalPatient.email());
+          newModel.setPhoneNumber(externalPatient.phoneNumber());
+
+          return patientReadModelRepository.save(newModel);
+        } catch (Exception e) {
+          log.error("Falha ao sincronizar paciente userId {}: {}", userIdInput, e.getMessage());
+          throw new ResourceNotFoundException("Patient Profile (User ID)", userIdInput);
+        }
+      });
+  }
 
   @Override
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
-    if (!patientReadModelRepository.existsById(patientId))
-      throw new ResourceNotFoundException("Patient Profile", patientId);
+    PatientReadModel patient = getOrSyncPatient(patientId);
 
     if (!doctorReadModelRepository.existsById(request.doctorId()))
       throw new ResourceNotFoundException("Doctor Profile", request.doctorId());
@@ -61,10 +99,10 @@ public class AppointmentServiceImpl implements AppointmentService {
     LocalDateTime start = request.appointmentDateTime();
     LocalDateTime end = start.plusMinutes(duration);
 
-    validateNewAppointment(patientId, request.doctorId(), start, end);
+    validateNewAppointment(patient.getPatientId(), request.doctorId(), start, end);
 
     Appointment appointment = new Appointment();
-    appointment.setPatientId(patientId);
+    appointment.setPatientId(patient.getPatientId());
     appointment.setDoctorId(request.doctorId());
     appointment.setAppointmentDateTime(start);
     appointment.setDuration(duration);
@@ -303,10 +341,17 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidOperationException("Você já está na lista de espera para este dia.");
     }
 
-    PatientReadModel p = patientReadModelRepository.findById(patientId)
-      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", patientId));
+    PatientReadModel p = getOrSyncPatient(patientId);
 
-    waitlistRepository.save(new WaitlistEntry(null, request.doctorId(), patientId, p.getFullName(), p.getEmail(), request.appointmentDateTime().toLocalDate(), LocalDateTime.now()));
+    waitlistRepository.save(new WaitlistEntry(
+      null,
+      request.doctorId(),
+      p.getPatientId(),
+      p.getFullName(),
+      p.getEmail(),
+      request.appointmentDateTime().toLocalDate(),
+      LocalDateTime.now()
+    ));
   }
 
   @Override
