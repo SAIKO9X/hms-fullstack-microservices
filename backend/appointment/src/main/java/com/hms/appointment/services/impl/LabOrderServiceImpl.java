@@ -19,6 +19,7 @@ import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.LabOrderRepository;
 import com.hms.appointment.services.LabOrderService;
 import com.hms.common.dto.event.EventEnvelope;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,7 +117,8 @@ public class LabOrderServiceImpl implements LabOrderService {
     Long doctorUserId = null;
 
     try {
-      DoctorProfile doctorProfile = profileClient.getDoctor(order.getAppointment().getDoctorId());
+      ApiResponse<DoctorProfile> response = profileClient.getDoctor(order.getAppointment().getDoctorId());
+      DoctorProfile doctorProfile = (response != null) ? response.data() : null;
 
       if (doctorProfile != null) {
         doctorName = doctorProfile.name();

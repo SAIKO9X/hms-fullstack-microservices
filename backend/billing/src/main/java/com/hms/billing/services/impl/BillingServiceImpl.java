@@ -11,6 +11,7 @@ import com.hms.billing.repositories.InsuranceProviderRepository;
 import com.hms.billing.repositories.InvoiceRepository;
 import com.hms.billing.repositories.PatientInsuranceRepository;
 import com.hms.billing.services.BillingService;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -117,8 +118,15 @@ public class BillingServiceImpl implements BillingService {
   private BigDecimal fetchConsultationFee(String doctorId) {
     try {
       if (doctorId == null) return BASE_FEE;
-      DoctorDTO doc = profileClient.getDoctor(doctorId);
-      return (doc != null && doc.consultationFee() != null) ? doc.consultationFee() : BASE_FEE;
+
+      Long id = Long.valueOf(doctorId);
+
+      ApiResponse<DoctorDTO> response = profileClient.getDoctor(id);
+
+      if (response != null && response.data() != null && response.data().consultationFee() != null) {
+        return response.data().consultationFee();
+      }
+      return BASE_FEE;
     } catch (Exception e) {
       log.warn("Erro ao buscar taxa do médico, usando base. {}", e.getMessage());
       return BASE_FEE;
@@ -160,12 +168,24 @@ public class BillingServiceImpl implements BillingService {
     String dName = "Médico " + invoice.getDoctorId();
 
     try {
-      PatientDTO p = profileClient.getPatient(invoice.getPatientId());
-      if (p != null) pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
+      if (invoice.getPatientId() != null) {
+        Long patientId = Long.valueOf(invoice.getPatientId());
+        ApiResponse<PatientDTO> pResponse = profileClient.getPatient(patientId);
+        PatientDTO p = (pResponse != null) ? pResponse.data() : null;
+
+        if (p != null) {
+          pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
+        }
+      }
 
       if (invoice.getDoctorId() != null) {
-        DoctorDTO d = profileClient.getDoctor(invoice.getDoctorId());
-        if (d != null) dName = "Dr. " + d.name();
+        Long doctorId = Long.valueOf(invoice.getDoctorId());
+        ApiResponse<DoctorDTO> dResponse = profileClient.getDoctor(doctorId);
+        DoctorDTO d = (dResponse != null) ? dResponse.data() : null;
+
+        if (d != null) {
+          dName = "Dr. " + d.name();
+        }
       }
     } catch (Exception e) {
       log.warn("PDF parcial: {}", e.getMessage());

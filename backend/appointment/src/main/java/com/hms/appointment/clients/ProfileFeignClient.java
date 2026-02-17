@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(name = "profile-service", configuration = FeignClientInterceptor.class)
 public interface ProfileFeignClient {
 
+  @GetMapping("/profile/doctors/by-user/{userId}")
+  ApiResponse<DoctorProfile> getDoctorByUserId(@PathVariable("userId") Long userId);
+
   @GetMapping("/profile/doctors/{id}")
-  DoctorProfile getDoctor(@PathVariable("id") Long id);
+  ApiResponse<DoctorProfile> getDoctor(@PathVariable("id") Long id);
 
   @GetMapping("/profile/patients/{id}")
   PatientProfile getPatient(@PathVariable("id") Long id);

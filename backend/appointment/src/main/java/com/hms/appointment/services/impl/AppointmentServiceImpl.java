@@ -5,6 +5,7 @@ import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.AppointmentEvent;
 import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
 import com.hms.appointment.dto.event.WaitlistNotificationEvent;
+import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AvailabilityRequest;
@@ -53,14 +54,43 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
-  // Método auxiliar para garantir que o paciente exista localmente, ou tentar sincronizar via Profile Service
+  private DoctorReadModel getOrSyncDoctor(Long userIdInput) {
+    // 1. Tenta achar localmente pelo userId (agora temos esse método no repository)
+    return doctorReadModelRepository.findByUserId(userIdInput)
+      .orElseGet(() -> {
+        log.info("Médico com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
+        try {
+          ApiResponse<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userIdInput);
+
+          if (response == null || response.data() == null) {
+            log.error("Dados do médico vieram nulos para userId: {}", userIdInput);
+            throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
+          }
+
+          DoctorProfile externalDoctor = response.data();
+
+          log.info(">>> Sincronizando Médico: ProfileID={}, UserID={}, Nome={}",
+            externalDoctor.id(), externalDoctor.userId(), externalDoctor.name());
+
+          DoctorReadModel newModel = new DoctorReadModel();
+          newModel.setDoctorId(externalDoctor.id());
+          newModel.setUserId(externalDoctor.userId());
+          newModel.setFullName(externalDoctor.name());
+          newModel.setSpecialization(externalDoctor.specialization());
+
+          return doctorReadModelRepository.save(newModel);
+        } catch (Exception e) {
+          log.error("Falha ao sincronizar médico userId {}: {}", userIdInput, e.getMessage());
+          throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
+        }
+      });
+  }
+
   private PatientReadModel getOrSyncPatient(Long userIdInput) {
     return patientReadModelRepository.findByUserId(userIdInput)
       .orElseGet(() -> {
         log.info("Paciente com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
         try {
-          log.info("Paciente com userId {} não encontrado localmente. Tentando sincronizar...", userIdInput);
-
           ApiResponse<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
 
           PatientProfile externalPatient = response.data();
@@ -87,23 +117,20 @@ public class AppointmentServiceImpl implements AppointmentService {
       });
   }
 
-  @Override
   @Transactional
   public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
     PatientReadModel patient = getOrSyncPatient(patientId);
-
-    if (!doctorReadModelRepository.existsById(request.doctorId()))
-      throw new ResourceNotFoundException("Doctor Profile", request.doctorId());
+    DoctorReadModel doctor = getOrSyncDoctor(request.doctorId());
 
     int duration = request.duration() != null ? request.duration() : 60;
     LocalDateTime start = request.appointmentDateTime();
     LocalDateTime end = start.plusMinutes(duration);
 
-    validateNewAppointment(patient.getPatientId(), request.doctorId(), start, end);
+    validateNewAppointment(patient.getPatientId(), doctor.getDoctorId(), start, end);
 
     Appointment appointment = new Appointment();
     appointment.setPatientId(patient.getPatientId());
-    appointment.setDoctorId(request.doctorId());
+    appointment.setDoctorId(doctor.getDoctorId());
     appointment.setAppointmentDateTime(start);
     appointment.setDuration(duration);
     appointment.setAppointmentEndTime(end);
