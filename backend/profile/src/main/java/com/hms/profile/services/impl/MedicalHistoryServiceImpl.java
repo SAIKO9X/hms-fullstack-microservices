@@ -57,8 +57,8 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
       .distinct()
       .collect(Collectors.toList());
 
-    Map<Long, Doctor> doctorsMap = doctorRepository.findAllByUserIdIn(doctorIds).stream()
-      .collect(Collectors.toMap(Doctor::getUserId, Function.identity()));
+    Map<Long, Doctor> doctorsMap = doctorRepository.findAllById(doctorIds).stream()
+      .collect(Collectors.toMap(Doctor::getId, Function.identity()));
 
     List<AppointmentHistoryDto> appointmentHistories = appointmentsFromService.stream().map(app -> {
       Doctor doctor = doctorsMap.get(app.doctorId());

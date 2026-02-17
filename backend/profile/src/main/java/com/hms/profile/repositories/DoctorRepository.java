@@ -18,6 +18,7 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
   @Query("""
     SELECT new com.hms.profile.dto.response.DoctorDropdownResponse(
+        d.id,        
         d.userId, 
         d.name, 
         d.consultationFee

@@ -161,19 +161,26 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public Page<AppointmentResponse> getAppointmentsForPatient(Long patientId, Pageable pageable) {
-    return appointmentRepository.findByPatientId(patientId, pageable).map(AppointmentResponse::fromEntity);
+  public Page<AppointmentResponse> getAppointmentsForPatient(Long userId, Pageable pageable) {
+    PatientReadModel patient = getOrSyncPatient(userId);
+    return appointmentRepository.findByPatientId(patient.getPatientId(), pageable)
+      .map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public Page<AppointmentResponse> getAppointmentsForDoctor(Long doctorId, Pageable pageable) {
-    return appointmentRepository.findByDoctorId(doctorId, pageable).map(AppointmentResponse::fromEntity);
+  public Page<AppointmentResponse> getAppointmentsForDoctor(Long userId, Pageable pageable) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    return appointmentRepository.findByDoctorId(doctor.getDoctorId(), pageable)
+      .map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long doctorId, String dateFilter) {
+  public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long userId, String dateFilter) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    Long doctorId = doctor.getDoctorId();
+
     List<Appointment> appointments;
 
     if (dateFilter == null || "all".equalsIgnoreCase(dateFilter)) {
@@ -184,9 +191,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     if (appointments.isEmpty()) return List.of();
-
-    DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId)
-      .orElse(new DoctorReadModel(doctorId, null, "Médico", "N/A", null));
 
     return appointments.stream()
       .map(app -> mapToDetailResponse(app, doctor))
@@ -278,14 +282,20 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public AppointmentResponse getNextAppointmentForPatient(Long patientId) {
+  public AppointmentResponse getNextAppointmentForPatient(Long userId) {
+    PatientReadModel patient = getOrSyncPatient(userId);
+
     return appointmentRepository.findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
-      patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now()).map(AppointmentResponse::fromEntity).orElse(null);
+        patient.getPatientId(), AppointmentStatus.SCHEDULED, LocalDateTime.now())
+      .map(AppointmentResponse::fromEntity)
+      .orElse(null);
   }
 
   @Override
-  public AppointmentStatsResponse getAppointmentStatsForPatient(Long patientId) {
-    List<Appointment> apps = appointmentRepository.findByPatientId(patientId);
+  public AppointmentStatsResponse getAppointmentStatsForPatient(Long userId) {
+    PatientReadModel patient = getOrSyncPatient(userId);
+    List<Appointment> apps = appointmentRepository.findByPatientId(patient.getPatientId());
+
     return new AppointmentStatsResponse(
       apps.size(),
       apps.stream().filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED).count(),
@@ -295,7 +305,10 @@ public class AppointmentServiceImpl implements AppointmentService {
   }
 
   @Override
-  public DoctorDashboardStatsResponse getDoctorDashboardStats(Long doctorId) {
+  public DoctorDashboardStatsResponse getDoctorDashboardStats(Long userId) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    Long doctorId = doctor.getDoctorId();
+
     long today = appointmentRepository.countAppointmentsForToday(doctorId);
     long weekCompleted = appointmentRepository.countCompletedAppointmentsSince(doctorId, LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay());
 
@@ -353,8 +366,11 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   @Transactional(readOnly = true)
   public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
-    return appointmentRepository.findByPatientIdAndAppointmentDateTimeBefore(patientId, LocalDateTime.now())
-      .stream().map(AppointmentResponse::fromEntity).toList();
+    return appointmentRepository.findByPatientId(patientId)
+      .stream()
+      .sorted(Comparator.comparing(Appointment::getAppointmentDateTime))
+      .map(AppointmentResponse::fromEntity)
+      .toList();
   }
 
   @Override
@@ -477,10 +493,21 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidOperationException("Horário inválido. O sistema opera entre 06:00 e 22:00.");
   }
 
-  private void validateAccess(Appointment app, Long requesterId) {
-    if (!app.getPatientId().equals(requesterId) && !app.getDoctorId().equals(requesterId)) {
-      throw new AccessDeniedException("Você não tem permissão para acessar este agendamento.");
-    }
+  private void validateAccess(Appointment app, Long requesterUserId) {
+    boolean isPatientOwner = patientReadModelRepository.findByUserId(requesterUserId)
+      .map(patient -> patient.getPatientId().equals(app.getPatientId()))
+      .orElse(false);
+
+    if (isPatientOwner) return;
+
+    boolean isDoctorOwner = doctorReadModelRepository.findByUserId(requesterUserId)
+      .map(doctor -> doctor.getDoctorId().equals(app.getDoctorId()))
+      .orElse(false);
+
+    if (isDoctorOwner) return;
+
+    // se não for nem o paciente nem o médico, nega o acesso
+    throw new AccessDeniedException("Você não tem permissão para acessar este agendamento.");
   }
 
   private Appointment findAppointmentByIdOrThrow(Long id) {

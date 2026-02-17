@@ -51,7 +51,6 @@ export const PatientAppointmentsPage = () => {
 
       setIsDialogOpen(false);
     } catch (error: any) {
-      // Melhor tratamento de erros específicos
       let errorMessage =
         "Houve um problema ao agendar sua consulta. Tente novamente.";
 

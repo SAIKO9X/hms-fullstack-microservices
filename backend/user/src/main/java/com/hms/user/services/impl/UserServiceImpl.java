@@ -1,6 +1,7 @@
 package com.hms.user.services.impl;
 
 import com.hms.common.dto.event.EventEnvelope;
+import com.hms.common.exceptions.InvalidCredentialsException;
 import com.hms.common.exceptions.ResourceAlreadyExistsException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.user.dto.event.UserCreatedEvent;
@@ -26,6 +27,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -54,6 +56,27 @@ public class UserServiceImpl implements UserService {
 
   @Value("${application.rabbitmq.user-updated-routing-key:user.event.updated}")
   private String userUpdatedRoutingKey;
+
+  @Override
+  public AuthResponse login(LoginRequest request) {
+    try {
+      authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(request.email(), request.password())
+      );
+    } catch (BadCredentialsException ex) {
+      throw new InvalidCredentialsException();
+    }
+
+    User user = userRepository.findByEmail(request.email())
+      .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
+
+    if (!user.isActive()) throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
+
+    String jwtToken = jwtService.generateToken(user);
+    long expirationTime = jwtService.getExpirationTime();
+
+    return AuthResponse.create(jwtToken, UserResponse.fromEntity(user), expirationTime);
+  }
 
   @Override
   @Transactional
@@ -106,21 +129,6 @@ public class UserServiceImpl implements UserService {
     user.setPassword(encoder.encode(request.password()));
 
     return UserResponse.fromEntity(userRepository.save(user));
-  }
-
-  @Override
-  public AuthResponse login(LoginRequest request) {
-    authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.email(), request.password()));
-
-    User user = userRepository.findByEmail(request.email())
-      .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
-
-    if (!user.isActive()) throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
-
-    String jwtToken = jwtService.generateToken(user);
-    long expirationTime = jwtService.getExpirationTime();
-
-    return AuthResponse.create(jwtToken, UserResponse.fromEntity(user), expirationTime);
   }
 
   @Override

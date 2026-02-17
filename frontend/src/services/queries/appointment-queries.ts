@@ -112,7 +112,7 @@ export const useAppointmentsWithDoctorNames = (page = 0, size = 10) => {
 
     return appointmentsList.map((appointment) => {
       const doctor = doctorsQuery.data.find(
-        (doc) => doc.userId === appointment.doctorId,
+        (doc) => doc.id === appointment.doctorId,
       );
       return {
         ...appointment,

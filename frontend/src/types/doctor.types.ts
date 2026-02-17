@@ -16,6 +16,7 @@ export interface DoctorProfile {
 }
 
 export interface DoctorDropdown {
+  id: number;
   userId: number;
   name: string;
   consultationFee?: number;
