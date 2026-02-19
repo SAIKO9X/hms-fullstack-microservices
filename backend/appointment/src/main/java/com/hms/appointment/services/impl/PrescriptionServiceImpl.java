@@ -9,11 +9,11 @@ import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
 import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
 import com.hms.appointment.dto.response.PrescriptionResponse;
-import com.hms.appointment.entities.Appointment;
-import com.hms.appointment.entities.Medicine;
-import com.hms.appointment.entities.Prescription;
+import com.hms.appointment.entities.*;
 import com.hms.appointment.enums.PrescriptionStatus;
 import com.hms.appointment.repositories.AppointmentRepository;
+import com.hms.appointment.repositories.DoctorReadModelRepository;
+import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
 import com.hms.common.dto.event.EventEnvelope;
@@ -47,6 +47,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   private final ProfileFeignClient profileClient;
   private final PdfGeneratorService pdfGeneratorService;
   private final RabbitTemplate rabbitTemplate;
+  private final PatientReadModelRepository patientReadModelRepository;
+  private final DoctorReadModelRepository doctorReadModelRepository;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -54,13 +56,28 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   @Value("${application.rabbitmq.prescription-issued-routing-key}")
   private String prescriptionIssuedRoutingKey;
 
+  // Métodos auxiliares para resolver IDs a partir do userId, lançando exceção se não encontrado
+  private Long resolvePatientId(Long userId) {
+    return patientReadModelRepository.findByUserId(userId)
+      .map(PatientReadModel::getPatientId)
+      .orElseThrow(() -> new ResourceNotFoundException("Paciente não encontrado para UserID " + userId));
+  }
+
+  private Long resolveDoctorId(Long userId) {
+    return doctorReadModelRepository.findByUserId(userId)
+      .map(DoctorReadModel::getDoctorId)
+      .orElseThrow(() -> new ResourceNotFoundException("Médico não encontrado para UserID " + userId));
+  }
+
   @Override
   @Transactional
-  public PrescriptionResponse createPrescription(PrescriptionCreateRequest request, Long doctorId) {
+  public PrescriptionResponse createPrescription(PrescriptionCreateRequest request, Long userDoctorId) {
+    Long doctorProfileId = resolveDoctorId(userDoctorId);
+
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
       .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
-    validateDoctorAuthority(appointment, doctorId);
+    validateDoctorAuthority(appointment, doctorProfileId);
 
     if (prescriptionRepository.findByAppointmentId(request.appointmentId()).isPresent()) {
       throw new InvalidOperationException("Já existe uma prescrição para esta consulta.");
@@ -79,10 +96,23 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   @Override
   @Transactional(readOnly = true)
-  public PrescriptionResponse getPrescriptionByAppointmentId(Long appointmentId, Long requesterId) {
+  public PrescriptionResponse getPrescriptionByAppointmentId(Long appointmentId, Long requesterUserId) {
+    Long requesterProfileId = null;
+    try {
+      requesterProfileId = resolvePatientId(requesterUserId);
+    } catch (ResourceNotFoundException e) {
+      try {
+        requesterProfileId = resolveDoctorId(requesterUserId);
+      } catch (ResourceNotFoundException ex) {
+        throw new AccessDeniedException("Usuário desconhecido.");
+      }
+    }
+
+    final Long resolvedId = requesterProfileId; // effectively final
+
     return prescriptionRepository.findByAppointmentId(appointmentId)
       .map(prescription -> {
-        validateViewerAuthority(prescription.getAppointment(), requesterId);
+        validateViewerAuthority(prescription.getAppointment(), resolvedId);
         return PrescriptionResponse.fromEntity(prescription);
       })
       .orElse(null);
@@ -90,11 +120,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   @Override
   @Transactional
-  public PrescriptionResponse updatePrescription(Long prescriptionId, PrescriptionUpdateRequest request, Long doctorId) {
+  public PrescriptionResponse updatePrescription(Long prescriptionId, PrescriptionUpdateRequest request, Long userDoctorId) {
+    Long doctorProfileId = resolveDoctorId(userDoctorId);
+
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
       .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
-    validateDoctorAuthority(prescription.getAppointment(), doctorId);
+    validateDoctorAuthority(prescription.getAppointment(), doctorProfileId);
 
     prescription.setMedicines(mapToMedicineEntities(request.medicines()));
     prescription.setNotes(request.notes());
@@ -104,18 +136,24 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   @Override
   @Transactional(readOnly = true)
-  public Page<PrescriptionResponse> getPrescriptionsByPatientId(Long patientId, Long requesterId, Pageable pageable) {
-    if (patientId.equals(requesterId)) {
-      return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
-        .map(PrescriptionResponse::fromEntity);
+  public Page<PrescriptionResponse> getPrescriptionsByPatientId(Long userIdOrPatientId, Long requesterUserId, Pageable pageable) {
+    Long patientProfileId;
+
+    boolean isSelf = userIdOrPatientId.equals(requesterUserId);
+
+    if (isSelf) {
+      patientProfileId = resolvePatientId(requesterUserId);
+    } else {
+      patientProfileId = userIdOrPatientId; // assume que o médico selecionou um patient_id específico
+      Long doctorProfileId = resolveDoctorId(requesterUserId);
+
+      boolean hasRelationship = appointmentRepository.existsByDoctorIdAndPatientId(doctorProfileId, patientProfileId);
+      if (!hasRelationship) {
+        throw new AccessDeniedException("Acesso negado. Você não possui histórico com este paciente.");
+      }
     }
 
-    boolean hasRelationship = appointmentRepository.existsByDoctorIdAndPatientId(requesterId, patientId);
-    if (!hasRelationship) {
-      throw new AccessDeniedException("Acesso negado. Você não possui histórico de consultas com este paciente.");
-    }
-
-    return prescriptionRepository.findByAppointmentPatientId(patientId, pageable)
+    return prescriptionRepository.findByAppointmentPatientId(patientProfileId, pageable)
       .map(PrescriptionResponse::fromEntity);
   }
 
@@ -149,32 +187,53 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
   @Override
   @Transactional(readOnly = true)
-  public PrescriptionResponse getLatestPrescriptionByPatientId(Long patientId) {
+  public PrescriptionResponse getLatestPrescriptionByPatientId(Long userId) {
+    Long patientId = resolvePatientId(userId);
     return prescriptionRepository.findFirstByAppointmentPatientIdOrderByCreatedAtDesc(patientId)
       .map(PrescriptionResponse::fromEntity)
       .orElse(null);
   }
 
   @Override
-  public byte[] generatePrescriptionPdf(Long prescriptionId, Long requesterId) {
+  public byte[] generatePrescriptionPdf(Long prescriptionId, Long requesterUserId) {
     Prescription prescription = prescriptionRepository.findById(prescriptionId)
       .orElseThrow(() -> new ResourceNotFoundException("Prescription", prescriptionId));
 
-    validateViewerAuthority(prescription.getAppointment(), requesterId);
+    Long patientId = prescription.getAppointment().getPatientId();
+    Long doctorId = prescription.getAppointment().getDoctorId();
+
+    // tenta verificar se o requester corresponde a algum dos dois
+    boolean canView = false;
+    try {
+      Long pId = resolvePatientId(requesterUserId);
+      if (pId.equals(patientId)) canView = true;
+    } catch (Exception ignored) {
+    }
+
+    if (!canView) {
+      try {
+        Long dId = resolveDoctorId(requesterUserId);
+        if (dId.equals(doctorId)) canView = true;
+      } catch (Exception ignored) {
+      }
+    }
+
+    if (!canView) {
+      throw new AccessDeniedException("Acesso negado ao PDF da prescrição.");
+    }
 
     Map<String, Object> data = buildPdfContext(prescription);
-
     return pdfGeneratorService.generatePdfFromHtml("prescription", data);
   }
 
-  private void validateDoctorAuthority(Appointment appointment, Long doctorId) {
-    if (!appointment.getDoctorId().equals(doctorId)) {
+  private void validateDoctorAuthority(Appointment appointment, Long doctorProfileId) {
+    if (!appointment.getDoctorId().equals(doctorProfileId)) {
       throw new AccessDeniedException("Acesso negado. Apenas o médico responsável pode realizar esta ação.");
     }
   }
 
-  private void validateViewerAuthority(Appointment appointment, Long requesterId) {
-    if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
+  private void validateViewerAuthority(Appointment appointment, Long profileId) {
+    if (!appointment.getDoctorId().equals(profileId) && !appointment.getPatientId().equals(profileId)) {
       throw new AccessDeniedException("Acesso negado. Você não tem permissão para visualizar este registro.");
     }
   }
@@ -198,18 +257,16 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     try {
       ApiResponse<DoctorProfile> response = profileClient.getDoctor(prescription.getAppointment().getDoctorId());
       DoctorProfile doctor = (response != null) ? response.data() : null;
-
       if (doctor != null) {
         doctorName = doctor.name();
         doctorCrm = doctor.crmNumber();
       }
-
       PatientProfile patient = profileClient.getPatient(prescription.getAppointment().getPatientId());
       if (patient != null) {
         patientName = patient.name();
       }
     } catch (Exception e) {
-      log.warn("Falha ao obter dados de perfil para PDF da prescrição {}: {}", prescription.getId(), e.getMessage());
+      log.warn("Falha ao obter dados de perfil para PDF: {}", e.getMessage());
     }
 
     Map<String, Object> data = new HashMap<>();
@@ -250,7 +307,6 @@ public class PrescriptionServiceImpl implements PrescriptionService {
       );
 
       rabbitTemplate.convertAndSend(exchange, prescriptionIssuedRoutingKey, envelope);
-      log.info("Evento PRESCRIPTION_ISSUED enviado. ID: {}", prescription.getId());
     } catch (Exception e) {
       log.error("Erro ao publicar evento de prescrição: {}", e.getMessage());
     }

@@ -55,7 +55,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   private String exchange;
 
   private DoctorReadModel getOrSyncDoctor(Long userIdInput) {
-    // 1. Tenta achar localmente pelo userId (agora temos esse método no repository)
     return doctorReadModelRepository.findByUserId(userIdInput)
       .orElseGet(() -> {
         log.info("Médico com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
@@ -117,10 +116,13 @@ public class AppointmentServiceImpl implements AppointmentService {
       });
   }
 
+  @Override
   @Transactional
-  public AppointmentResponse createAppointment(Long patientId, AppointmentCreateRequest request) {
-    PatientReadModel patient = getOrSyncPatient(patientId);
-    DoctorReadModel doctor = getOrSyncDoctor(request.doctorId());
+  public AppointmentResponse createAppointment(Long patientUserId, AppointmentCreateRequest request) {
+    PatientReadModel patient = getOrSyncPatient(patientUserId);
+
+    DoctorReadModel doctor = doctorReadModelRepository.findById(request.doctorId())
+      .orElseThrow(() -> new ResourceNotFoundException("Doctor Profile", request.doctorId()));
 
     int duration = request.duration() != null ? request.duration() : 60;
     LocalDateTime start = request.appointmentDateTime();
@@ -139,7 +141,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     if (request.type() == AppointmentType.ONLINE) {
       appointment.setType(AppointmentType.ONLINE);
-      appointment.setMeetingUrl("https://meet.jit.si/hms-" + System.currentTimeMillis() + "-" + patientId);
+      appointment.setMeetingUrl("https://meet.jit.si/hms-" + System.currentTimeMillis() + "-" + patient.getPatientId());
     } else {
       appointment.setType(AppointmentType.IN_PERSON);
     }
@@ -251,19 +253,17 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long doctorId) {
+  public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    if (!app.getDoctorId().equals(doctorId)) {
+
+    DoctorReadModel doctor = getOrSyncDoctor(requesterUserId);
+    if (!app.getDoctorId().equals(doctor.getDoctorId())) {
       throw new AccessDeniedException("Apenas o médico responsável pode finalizar a consulta.");
     }
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED && app.getStatus() != AppointmentStatus.COMPLETED) {
-      throw new InvalidOperationException("Não é possível completar uma consulta que está " + app.getStatus());
+      throw new InvalidOperationException("Status inválido para finalização.");
     }
-
-    if (!Objects.equals(app.getNotes(), notes)) AuditChangeTracker.addChange("notes", app.getNotes(), notes);
-    if (app.getStatus() != AppointmentStatus.COMPLETED)
-      AuditChangeTracker.addChange("status", app.getStatus(), AppointmentStatus.COMPLETED);
 
     app.setStatus(AppointmentStatus.COMPLETED);
     app.setNotes(notes);
@@ -365,8 +365,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
-    return appointmentRepository.findByPatientId(patientId)
+  public List<AppointmentResponse> getAppointmentsByPatientId(Long userId) {
+    PatientReadModel patient = getOrSyncPatient(userId);
+
+    return appointmentRepository.findByPatientId(patient.getPatientId())
       .stream()
       .sorted(Comparator.comparing(Appointment::getAppointmentDateTime))
       .map(AppointmentResponse::fromEntity)
@@ -416,24 +418,34 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  public AvailabilityResponse addAvailability(Long doctorId, AvailabilityRequest request) {
+  public AvailabilityResponse addAvailability(Long userId, AvailabilityRequest request) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    Long doctorId = doctor.getDoctorId();
+
     if (request.startTime().isAfter(request.endTime()))
-      throw new InvalidOperationException("A data de início deve ser anterior à data de fim.");
+      throw new InvalidOperationException("Início deve ser antes do fim.");
 
     boolean conflict = availabilityRepository.findByDoctorId(doctorId).stream()
       .filter(s -> s.getDayOfWeek() == request.dayOfWeek())
       .anyMatch(s -> request.startTime().isBefore(s.getEndTime()) && request.endTime().isAfter(s.getStartTime()));
 
-    if (conflict) throw new InvalidOperationException("Conflito com horário existente na grade.");
+    if (conflict) throw new InvalidOperationException("Conflito de horário.");
 
     DoctorAvailability saved = availabilityRepository.save(DoctorAvailability.builder()
-      .doctorId(doctorId).dayOfWeek(request.dayOfWeek()).startTime(request.startTime()).endTime(request.endTime()).build());
+      .doctorId(doctorId)
+      .dayOfWeek(request.dayOfWeek())
+      .startTime(request.startTime())
+      .endTime(request.endTime()).build());
+
     return new AvailabilityResponse(saved.getId(), saved.getDayOfWeek(), saved.getStartTime(), saved.getEndTime());
   }
 
   @Override
-  public List<AvailabilityResponse> getDoctorAvailability(Long doctorId) {
-    return availabilityRepository.findByDoctorId(doctorId).stream()
+  public List<AvailabilityResponse> getDoctorAvailability(Long userIdOrDoctorId) {
+    Optional<DoctorReadModel> doctor = doctorReadModelRepository.findByUserId(userIdOrDoctorId);
+    Long actualDoctorId = doctor.map(DoctorReadModel::getDoctorId).orElse(userIdOrDoctorId);
+
+    return availabilityRepository.findByDoctorId(actualDoctorId).stream()
       .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime())).toList();
   }
 

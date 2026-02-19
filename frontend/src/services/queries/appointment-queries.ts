@@ -66,6 +66,8 @@ export const appointmentKeys = {
   doctorUniquePatients: ["doctorUniquePatients"] as const,
   doctorPatientGroups: ["doctorPatientGroups"] as const,
   doctorPatients: ["doctor-patients"] as const,
+  history: (patientId: number) =>
+    [...appointmentKeys.all, "history", patientId] as const,
 };
 
 // === APPOINTMENTS QUERIES ===
@@ -236,6 +238,14 @@ export const useCreatePrescription = () => {
       );
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
     },
+  });
+};
+
+export const useAppointmentsByPatientId = (patientId: number) => {
+  return useQuery({
+    queryKey: appointmentKeys.history(patientId),
+    queryFn: () => AppointmentService.getAppointmentsByPatientId(patientId),
+    enabled: !!patientId, // só executa se tiver um ID
   });
 };
 

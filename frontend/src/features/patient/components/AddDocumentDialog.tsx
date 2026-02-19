@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import {
-  useAppointments,
+  useAppointmentsByPatientId,
   useCreateMedicalDocument,
 } from "@/services/queries/appointment-queries";
 import { uploadFile } from "@/services/media";
@@ -63,13 +63,10 @@ export const AddDocumentDialog = ({
     },
   });
 
-  const { data: appointmentsPage } = useAppointments(0, 100);
-  const createDocumentMutation = useCreateMedicalDocument();
-  const appointmentsList = appointmentsPage?.content || [];
+  const { data: patientAppointments = [], isLoading } =
+    useAppointmentsByPatientId(patientId);
 
-  const patientAppointments = appointmentsList.filter(
-    (app) => app.patientId === patientId,
-  );
+  const createDocumentMutation = useCreateMedicalDocument();
 
   const onSubmit = async (data: DocumentFormData) => {
     const mediaResponse = await uploadFile(data.file);
@@ -109,9 +106,7 @@ export const AddDocumentDialog = ({
                 accept=".jpg,.jpeg,.png,.pdf"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    onChange(file);
-                  }
+                  if (file) onChange(file);
                 }}
               />
             </FormControl>
@@ -144,10 +139,17 @@ export const AddDocumentDialog = ({
             <Select
               onValueChange={(value) => field.onChange(Number(value))}
               defaultValue={field.value ? String(field.value) : undefined}
+              disabled={isLoading || patientAppointments.length === 0}
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma consulta" />
+                  <SelectValue
+                    placeholder={
+                      isLoading
+                        ? "Carregando consultas..."
+                        : "Selecione uma consulta"
+                    }
+                  />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>

@@ -111,6 +111,15 @@ export const updateAppointmentRecord = async ({
   return responseData.data;
 };
 
+export const getAppointmentsByPatientId = async (
+  patientId: number,
+): Promise<Appointment[]> => {
+  const { data } = await api.get<ApiResponse<Appointment[]>>(
+    `/appointments/history/patient/${patientId}`,
+  );
+  return data.data;
+};
+
 // === PRESCRIPTIONS ===
 export const createPrescription = async (
   data: PrescriptionFormData,

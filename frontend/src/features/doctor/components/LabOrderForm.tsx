@@ -28,7 +28,7 @@ interface LabOrderFormProps {
   appointmentId: number;
   patientId: number;
   onSuccess: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 const CATEGORY_OPTIONS = [
@@ -191,9 +191,11 @@ export const LabOrderForm = ({
         </div>
 
         <div className="flex justify-end pt-4 gap-3">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancelar
+            </Button>
+          )}
           <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
             <FlaskConical className="mr-2 h-4 w-4" />
             Gerar Pedido

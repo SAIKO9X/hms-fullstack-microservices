@@ -1,14 +1,20 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.request.DoctorUnavailabilityRequest;
 import com.hms.appointment.dto.response.DoctorUnavailabilityResponse;
+import com.hms.appointment.entities.DoctorReadModel;
 import com.hms.appointment.entities.DoctorUnavailability;
 import com.hms.appointment.repositories.AppointmentRepository;
+import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.DoctorUnavailabilityRepository;
 import com.hms.appointment.services.DoctorUnavailabilityService;
+import com.hms.common.dto.response.ApiResponse;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +23,42 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityService {
 
   private final DoctorUnavailabilityRepository repository;
   private final AppointmentRepository appointmentRepository;
+  private final DoctorReadModelRepository doctorReadModelRepository;
+  private final ProfileFeignClient profileFeignClient;
+
+  // Tenta resolver o doctorId a partir do userId, e se não encontrar, assume que o ID fornecido é o doctorId
+  private Long resolveDoctorId(Long userId) {
+    return doctorReadModelRepository.findByUserId(userId)
+      .map(DoctorReadModel::getDoctorId)
+      .orElseGet(() -> {
+        try {
+          ApiResponse<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userId);
+          if (response != null && response.data() != null) {
+            return response.data().id();
+          }
+        } catch (Exception e) {
+          log.error("Erro ao buscar perfil médico para user {}: {}", userId, e.getMessage());
+        }
+        throw new ResourceNotFoundException("Perfil médico não encontrado para o usuário " + userId);
+      });
+  }
 
   @Override
   @Transactional
   public DoctorUnavailabilityResponse createUnavailability(DoctorUnavailabilityRequest request) {
+    Long realDoctorId = resolveDoctorId(request.doctorId());
+
     if (request.startDateTime().isAfter(request.endDateTime())) {
       throw new InvalidOperationException("A data de início deve ser anterior à data de fim.");
     }
 
     boolean hasOverlap = repository.hasUnavailability(
-      request.doctorId(),
+      realDoctorId,
       request.startDateTime(),
       request.endDateTime()
     );
@@ -40,17 +68,17 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
     }
 
     boolean hasAppointments = appointmentRepository.hasDoctorConflict(
-      request.doctorId(),
+      realDoctorId,
       request.startDateTime(),
       request.endDateTime()
     );
 
     if (hasAppointments) {
-      throw new InvalidOperationException("Não é possível bloquear a agenda: Existem consultas agendadas neste período. Cancele ou remarque as consultas existentes primeiro.");
+      throw new InvalidOperationException("Não é possível bloquear a agenda: Existem consultas agendadas neste período.");
     }
 
     DoctorUnavailability entity = DoctorUnavailability.builder()
-      .doctorId(request.doctorId())
+      .doctorId(realDoctorId)
       .startDateTime(request.startDateTime())
       .endDateTime(request.endDateTime())
       .reason(request.reason())
@@ -62,7 +90,14 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
 
   @Override
   @Transactional(readOnly = true)
-  public List<DoctorUnavailabilityResponse> getUnavailabilityByDoctor(Long doctorId) {
+  public List<DoctorUnavailabilityResponse> getUnavailabilityByDoctor(Long userIdOrDoctorId) {
+    Long doctorId;
+    try {
+      doctorId = resolveDoctorId(userIdOrDoctorId);
+    } catch (ResourceNotFoundException e) {
+      doctorId = userIdOrDoctorId;
+    }
+
     return repository.findByDoctorId(doctorId).stream()
       .map(this::mapToResponse)
       .collect(Collectors.toList());

@@ -39,6 +39,21 @@ public class BillingServiceImpl implements BillingService {
 
   private static final BigDecimal BASE_FEE = new BigDecimal("200.00");
 
+  private String resolvePatientId(String userIdInput) {
+    try {
+      Long userId = Long.valueOf(userIdInput);
+      ApiResponse<PatientDTO> response = profileClient.getPatientByUserId(userId);
+      if (response != null && response.data() != null) {
+        return String.valueOf(response.data().id()); // retorna o patient_id como String
+      }
+    } catch (NumberFormatException e) {
+      return userIdInput;
+    } catch (Exception e) {
+      log.warn("Não foi possível resolver PatientID para UserID {}. Usando input original.", userIdInput);
+    }
+    return userIdInput;
+  }
+
   @Override
   @Transactional
   public void generateInvoiceForAppointment(Long appointmentId, String patientId, String doctorId) {
@@ -47,20 +62,24 @@ public class BillingServiceImpl implements BillingService {
     BigDecimal fee = fetchConsultationFee(doctorId);
 
     Invoice invoice = Invoice.builder()
-      .appointmentId(appointmentId).patientId(patientId).doctorId(doctorId).totalAmount(fee).build();
+      .appointmentId(appointmentId)
+      .patientId(patientId)
+      .doctorId(doctorId)
+      .totalAmount(fee).build();
 
     applyInsuranceIfAvailable(invoice, patientId, fee);
     invoiceRepository.save(invoice);
   }
 
   @Override
-  public List<Invoice> getInvoicesByPatient(String id) {
-    return invoiceRepository.findByPatientId(id);
+  public List<Invoice> getInvoicesByPatient(String userIdOrPatientId) {
+    String realPatientId = resolvePatientId(userIdOrPatientId);
+    return invoiceRepository.findByPatientId(realPatientId);
   }
 
   @Override
-  public List<Invoice> getInvoicesByDoctor(String id) {
-    return invoiceRepository.findByDoctorId(id);
+  public List<Invoice> getInvoicesByDoctor(String doctorId) {
+    return invoiceRepository.findByDoctorId(doctorId);
   }
 
   @Override
@@ -70,12 +89,17 @@ public class BillingServiceImpl implements BillingService {
 
   @Override
   @Transactional
-  public PatientInsurance registerPatientInsurance(String patientId, Long providerId, String policyNumber) {
+  public PatientInsurance registerPatientInsurance(String userId, Long providerId, String policyNumber) {
+    String patientId = resolvePatientId(userId);
+
     InsuranceProvider provider = providerRepository.findById(providerId)
       .orElseThrow(() -> new ResourceNotFoundException("Insurance Provider", providerId));
 
     return patientInsuranceRepository.save(PatientInsurance.builder()
-      .patientId(patientId).provider(provider).policyNumber(policyNumber).validUntil(LocalDate.now().plusYears(1)).build());
+      .patientId(patientId)
+      .provider(provider)
+      .policyNumber(policyNumber)
+      .validUntil(LocalDate.now().plusYears(1)).build());
   }
 
   @Override
@@ -118,11 +142,8 @@ public class BillingServiceImpl implements BillingService {
   private BigDecimal fetchConsultationFee(String doctorId) {
     try {
       if (doctorId == null) return BASE_FEE;
-
       Long id = Long.valueOf(doctorId);
-
       ApiResponse<DoctorDTO> response = profileClient.getDoctor(id);
-
       if (response != null && response.data() != null && response.data().consultationFee() != null) {
         return response.data().consultationFee();
       }
@@ -172,17 +193,14 @@ public class BillingServiceImpl implements BillingService {
         Long patientId = Long.valueOf(invoice.getPatientId());
         ApiResponse<PatientDTO> pResponse = profileClient.getPatient(patientId);
         PatientDTO p = (pResponse != null) ? pResponse.data() : null;
-
         if (p != null) {
           pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
         }
       }
-
       if (invoice.getDoctorId() != null) {
         Long doctorId = Long.valueOf(invoice.getDoctorId());
         ApiResponse<DoctorDTO> dResponse = profileClient.getDoctor(doctorId);
         DoctorDTO d = (dResponse != null) ? dResponse.data() : null;
-
         if (d != null) {
           dName = "Dr. " + d.name();
         }
