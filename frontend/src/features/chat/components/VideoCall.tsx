@@ -107,12 +107,14 @@ export const VideoCall: React.FC<VideoCallProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl bg-black border-gray-800 text-white p-0 overflow-hidden h-[80vh] flex flex-col">
-        <DialogHeader className="absolute top-4 left-4 z-10 bg-black/50 px-3 py-1 rounded-full backdrop-blur-md">
+        <DialogHeader className="absolute top-4 left-4 z-10 bg-black/50 px-3 py-1 rounded-full backdrop-blur-md flex flex-row items-center gap-2">
           {!isTestMode && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger>
-                  <Info className="w-4 h-4 text-zinc-500" />
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-center">
+                    <Info className="w-4 h-4 text-zinc-500" />
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Conexão P2P Local (Sem servidor TURN configurado)</p>
@@ -121,7 +123,7 @@ export const VideoCall: React.FC<VideoCallProps> = ({
             </TooltipProvider>
           )}
 
-          <DialogTitle className="text-sm font-normal flex items-center gap-2">
+          <DialogTitle className="text-sm font-normal flex items-center gap-2 m-0 border-none p-0">
             {isTestMode ? (
               <span className="text-yellow-400 font-bold flex items-center gap-1">
                 <RefreshCw className="w-3 h-3" /> MODO DE TESTE (ESPELHO)

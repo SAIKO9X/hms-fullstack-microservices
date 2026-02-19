@@ -72,8 +72,9 @@ spring:
           predicates:
             - Path=/chat/ws/**
           filters:
-            - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
             - name: TokenFilter
+            - RewritePath=/chat/ws/(?<segment>.*), /ws/${segment}
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
 
         # Rota para o Chat REST
         - id: chat-rest-route

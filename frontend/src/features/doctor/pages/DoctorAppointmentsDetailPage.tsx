@@ -346,7 +346,7 @@ export const DoctorAppointmentsDetailPage = () => {
       </div>
 
       <Tabs defaultValue="record" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:grid-cols-5">
           <TabsTrigger value="record" className="flex items-center gap-2">
             <Stethoscope className="h-4 w-4" />
             <span className="hidden sm:inline">Registo</span>

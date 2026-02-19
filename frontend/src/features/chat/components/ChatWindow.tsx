@@ -229,17 +229,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </span>
             </div>
           </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
-            onClick={() => setIsVideoCallOpen(true)}
-            disabled={!isConnected}
-            title="Iniciar Videochamada"
-          >
-            <Video className="w-5 h-5" />
-          </Button>
         </div>
 
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
@@ -386,6 +375,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
           <div className="p-4 border-t border-border/50 bg-background/80 backdrop-blur-xl shrink-0">
             <div className="flex gap-2 items-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-11 w-11 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                onClick={() => setIsVideoCallOpen(true)}
+                disabled={!isConnected}
+                title="Iniciar Videochamada"
+              >
+                <Video className="w-5 h-5" />
+              </Button>
+
               <div className="flex-1 relative">
                 <Input
                   value={newMessage}
