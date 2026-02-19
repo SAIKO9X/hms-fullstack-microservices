@@ -19,7 +19,7 @@ public class MedicalHistoryController {
 
   private final MedicalHistoryService medicalHistoryService;
 
-  @PreAuthorize("hasRole('PATIENT')")
+  @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR')")
   @GetMapping("/patient/medical-history/{patientProfileId}")
   public ResponseEntity<ApiResponse<MedicalHistoryResponse>> getMedicalHistory(@PathVariable Long patientProfileId) {
     return ResponseEntity.ok(ApiResponse.success(medicalHistoryService.getPatientMedicalHistory(patientProfileId)));

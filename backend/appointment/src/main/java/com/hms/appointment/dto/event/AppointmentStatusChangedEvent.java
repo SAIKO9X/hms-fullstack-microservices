@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 public record AppointmentStatusChangedEvent(
   Long appointmentId,
   Long patientId,
+  Long doctorId,
   String patientEmail,
   String patientName,
   String doctorName,

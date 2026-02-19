@@ -31,8 +31,8 @@ public class BillingEventListener {
     if ("COMPLETED".equals(event.status())) {
       billingService.generateInvoiceForAppointment(
         event.appointmentId(),
-        event.patientId(),
-        event.doctorId()
+        String.valueOf(event.patientId()),
+        String.valueOf(event.doctorId())
       );
     }
   }

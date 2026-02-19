@@ -118,10 +118,9 @@ export function StatusPieChart({ data }: StatusPieChartProps) {
                       <text
                         x={x}
                         y={y}
-                        fill="white"
-                        textAnchor={x > cx ? "start" : "end"}
+                        textAnchor="middle"
                         dominantBaseline="central"
-                        className="text-xs font-bold"
+                        className="fill-foreground text-xs font-bold"
                       >
                         {`${(percent * 100).toFixed(0)}%`}
                       </text>

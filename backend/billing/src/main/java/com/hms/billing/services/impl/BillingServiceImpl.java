@@ -57,18 +57,27 @@ public class BillingServiceImpl implements BillingService {
   @Override
   @Transactional
   public void generateInvoiceForAppointment(Long appointmentId, String patientId, String doctorId) {
-    if (invoiceRepository.findByAppointmentId(appointmentId).isPresent()) return;
+    if (invoiceRepository.findByAppointmentId(appointmentId).isPresent()) {
+      log.warn("Fatura já gerada para a consulta ID {}", appointmentId);
+      return;
+    }
 
-    BigDecimal fee = fetchConsultationFee(doctorId);
+    BigDecimal consultationFee = new BigDecimal("150.00");
 
-    Invoice invoice = Invoice.builder()
-      .appointmentId(appointmentId)
-      .patientId(patientId)
-      .doctorId(doctorId)
-      .totalAmount(fee).build();
+    Invoice invoice = new Invoice();
+    invoice.setAppointmentId(appointmentId);
+    invoice.setPatientId(patientId);
+    invoice.setDoctorId(doctorId);
+    invoice.setTotalAmount(consultationFee);
+    invoice.setPatientPayable(consultationFee);
+    invoice.setInsuranceCovered(BigDecimal.ZERO);
 
-    applyInsuranceIfAvailable(invoice, patientId, fee);
+    invoice.setStatus(InvoiceStatus.PAID);
+    invoice.setPatientPaidAt(LocalDateTime.now());
+    invoice.setPaidAt(LocalDateTime.now());
+
     invoiceRepository.save(invoice);
+    log.info("Fatura gerada e marcada como PAGA para a consulta ID {}", appointmentId);
   }
 
   @Override

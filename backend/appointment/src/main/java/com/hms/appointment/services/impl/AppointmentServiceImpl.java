@@ -267,7 +267,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     app.setStatus(AppointmentStatus.COMPLETED);
     app.setNotes(notes);
-    return AppointmentResponse.fromEntity(appointmentRepository.save(app));
+
+    Appointment saved = appointmentRepository.save(app);
+
+    publishStatusEvent(saved, "COMPLETED", notes);
+
+    return AppointmentResponse.fromEntity(saved);
   }
 
   @Override
@@ -322,12 +327,16 @@ public class AppointmentServiceImpl implements AppointmentService {
   }
 
   @Override
-  public long countUniquePatientsForDoctor(Long doctorId) {
-    return appointmentRepository.countDistinctPatientsByDoctorId(doctorId);
+  public long countUniquePatientsForDoctor(Long userId) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    return appointmentRepository.countDistinctPatientsByDoctorId(doctor.getDoctorId());
   }
 
   @Override
-  public List<PatientGroupResponse> getPatientGroupsForDoctor(Long doctorId) {
+  public List<PatientGroupResponse> getPatientGroupsForDoctor(Long userId) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    Long doctorId = doctor.getDoctorId();
+
     var groups = Map.of(
       "Diabéticos", List.of("diabetes", "diabético", "glicemia"),
       "Hipertensos", List.of("hipertensão", "pressão alta", "has"),
@@ -400,8 +409,9 @@ public class AppointmentServiceImpl implements AppointmentService {
   }
 
   @Override
-  public List<DoctorPatientSummaryDto> getPatientsForDoctor(Long doctorId) {
-    return appointmentRepository.findPatientsSummaryByDoctor(doctorId).stream()
+  public List<DoctorPatientSummaryDto> getPatientsForDoctor(Long userId) {
+    DoctorReadModel doctor = getOrSyncDoctor(userId);
+    return appointmentRepository.findPatientsSummaryByDoctor(doctor.getDoctorId()).stream()
       .map(p -> new DoctorPatientSummaryDto(
         p.getPatientId(), p.getUserId(), p.getPatientName(), p.getPatientEmail(),
         p.getTotalAppointments(), p.getLastAppointmentDate(),
@@ -558,13 +568,20 @@ public class AppointmentServiceImpl implements AppointmentService {
 
       if (patient != null && doctor != null) {
         AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
-          app.getId(), app.getPatientId(), patient.getEmail(), patient.getFullName(), doctor.getFullName(),
-          app.getAppointmentDateTime(), status, notes
+          app.getId(),
+          app.getPatientId(),
+          doctor.getDoctorId(),
+          patient.getEmail(),
+          patient.getFullName(),
+          doctor.getFullName(),
+          app.getAppointmentDateTime(),
+          status,
+          notes
         );
 
         EventEnvelope<AppointmentStatusChangedEvent> envelope = EventEnvelope.create(
           "APPOINTMENT_STATUS_CHANGED",
-          UUID.randomUUID().toString(), // traceid simples
+          UUID.randomUUID().toString(),
           event
         );
 
