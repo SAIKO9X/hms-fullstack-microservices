@@ -1,15 +1,17 @@
 package com.hms.appointment.services.impl;
 
-import com.hms.common.audit.AuditChangeTracker;
 import com.hms.appointment.dto.request.AppointmentRecordCreateRequest;
 import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentRecordResponse;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.AppointmentRecord;
+import com.hms.appointment.entities.DoctorReadModel;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.repositories.AppointmentRecordRepository;
 import com.hms.appointment.repositories.AppointmentRepository;
+import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.services.AppointmentRecordService;
+import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +26,18 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
 
   private final AppointmentRecordRepository recordRepository;
   private final AppointmentRepository appointmentRepository;
+  private final DoctorReadModelRepository doctorReadModelRepository;
 
   @Override
   @Transactional
-  public AppointmentRecordResponse createAppointmentRecord(AppointmentRecordCreateRequest request, Long doctorId) {
+  public AppointmentRecordResponse createAppointmentRecord(AppointmentRecordCreateRequest request, Long userId) {
     Appointment appointment = appointmentRepository.findById(request.appointmentId())
       .orElseThrow(() -> new ResourceNotFoundException("Appointment", request.appointmentId()));
 
-    if (!appointment.getDoctorId().equals(doctorId)) {
+    DoctorReadModel doctor = doctorReadModelRepository.findByUserId(userId)
+      .orElseThrow(() -> new AccessDeniedException("Perfil de médico não encontrado para o usuário atual."));
+
+    if (!appointment.getDoctorId().equals(doctor.getDoctorId())) {
       throw new AccessDeniedException("Você não tem permissão para criar registro para esta consulta.");
     }
 
@@ -72,12 +78,15 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
 
   @Override
   @Transactional
-  public AppointmentRecordResponse updateAppointmentRecord(Long recordId, AppointmentRecordUpdateRequest request, Long doctorId) {
+  public AppointmentRecordResponse updateAppointmentRecord(Long recordId, AppointmentRecordUpdateRequest request, Long userId) {
     AppointmentRecord record = recordRepository.findById(recordId)
-      .orElseThrow(() -> new ResourceNotFoundException("Appointment Record", recordId));
+      .orElseThrow(() -> new ResourceNotFoundException("AppointmentRecord", recordId));
 
-    if (!record.getAppointment().getDoctorId().equals(doctorId)) {
-      throw new AccessDeniedException("Apenas o médico responsável pode atualizar este registro.");
+    DoctorReadModel doctor = doctorReadModelRepository.findByUserId(userId)
+      .orElseThrow(() -> new AccessDeniedException("Perfil de médico não encontrado."));
+
+    if (!record.getAppointment().getDoctorId().equals(doctor.getDoctorId())) {
+      throw new AccessDeniedException("Você não tem permissão para editar este prontuário.");
     }
 
     applyChanges(record, request);

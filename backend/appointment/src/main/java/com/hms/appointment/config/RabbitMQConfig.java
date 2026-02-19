@@ -53,7 +53,7 @@ public class RabbitMQConfig {
 
   @Bean
   public TopicExchange auditExchange() {
-    return new TopicExchange("hms.audit.exchange");
+    return new TopicExchange("audit.exchange");
   }
 
   @Bean

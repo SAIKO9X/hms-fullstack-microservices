@@ -3,8 +3,11 @@ package com.hms.appointment.services.impl;
 import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
 import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.entities.MedicalDocument;
+import com.hms.appointment.entities.PatientReadModel;
 import com.hms.appointment.repositories.AppointmentRepository;
+import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.MedicalDocumentRepository;
+import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.services.MedicalDocumentService;
 import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.exceptions.AccessDeniedException;
@@ -24,12 +27,19 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
 
   private final MedicalDocumentRepository documentRepository;
   private final AppointmentRepository appointmentRepository;
+  private final DoctorReadModelRepository doctorReadModelRepository;
+  private final PatientReadModelRepository patientReadModelRepository;
 
   @Override
   @Transactional
   public MedicalDocumentResponse createDocument(Long uploaderId, String uploaderRole, MedicalDocumentCreateRequest request) {
-    if ("PATIENT".equalsIgnoreCase(uploaderRole) && !uploaderId.equals(request.patientId())) {
-      throw new AccessDeniedException("Acesso negado. Pacientes só podem enviar documentos para si mesmos.");
+    if ("PATIENT".equalsIgnoreCase(uploaderRole)) {
+      PatientReadModel patient = patientReadModelRepository.findByUserId(uploaderId)
+        .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", uploaderId));
+
+      if (!patient.getPatientId().equals(request.patientId())) {
+        throw new AccessDeniedException("Acesso negado. Pacientes só podem enviar documentos para si mesmos.");
+      }
     }
 
     validateMediaSecurity(request.mediaUrl());
