@@ -10,6 +10,7 @@ import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.repositories.AppointmentRecordRepository;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorReadModelRepository;
+import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.services.AppointmentRecordService;
 import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.exceptions.AccessDeniedException;
@@ -27,6 +28,7 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
   private final AppointmentRecordRepository recordRepository;
   private final AppointmentRepository appointmentRepository;
   private final DoctorReadModelRepository doctorReadModelRepository;
+  private final PatientReadModelRepository patientReadModelRepository;
 
   @Override
   @Transactional
@@ -64,13 +66,23 @@ public class AppointmentRecordServiceImpl implements AppointmentRecordService {
 
   @Override
   @Transactional(readOnly = true)
-  public AppointmentRecordResponse getAppointmentRecordByAppointmentId(Long appointmentId, Long requesterId) {
+  public AppointmentRecordResponse getAppointmentRecordByAppointmentId(Long appointmentId, Long requesterUserId) {
     return recordRepository.findByAppointmentId(appointmentId)
       .map(record -> {
         Appointment appointment = record.getAppointment();
-        if (!appointment.getDoctorId().equals(requesterId) && !appointment.getPatientId().equals(requesterId)) {
+
+        boolean isDoctorOwner = doctorReadModelRepository.findByUserId(requesterUserId)
+          .map(doctor -> doctor.getDoctorId().equals(appointment.getDoctorId()))
+          .orElse(false);
+
+        boolean isPatientOwner = patientReadModelRepository.findByUserId(requesterUserId)
+          .map(patient -> patient.getPatientId().equals(appointment.getPatientId()))
+          .orElse(false);
+
+        if (!isDoctorOwner && !isPatientOwner) {
           throw new AccessDeniedException("Acesso negado. Você não tem permissão para ver este registo.");
         }
+
         return AppointmentRecordResponse.fromEntity(record);
       })
       .orElse(null);

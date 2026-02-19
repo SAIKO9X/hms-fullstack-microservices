@@ -373,8 +373,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<AppointmentResponse> getAppointmentsByPatientId(Long userId) {
-    Long patientId = resolvePatientId(userId);
+  public List<AppointmentResponse> getAppointmentsByPatientId(Long patientId) {
     return appointmentRepository.findByPatientId(patientId)
       .stream()
       .sorted(Comparator.comparing(Appointment::getAppointmentDateTime))

@@ -14,7 +14,7 @@ export const DoctorRecordsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPatients = patients?.filter((p: PatientSummary) =>
-    p.patientName.toLowerCase().includes(searchTerm.toLowerCase())
+    p.patientName.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const hasPatients = patients && patients.length > 0;

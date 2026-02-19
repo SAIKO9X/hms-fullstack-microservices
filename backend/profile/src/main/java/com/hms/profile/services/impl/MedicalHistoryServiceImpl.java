@@ -1,12 +1,14 @@
 package com.hms.profile.services.impl;
 
 import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.response.AppointmentHistoryDto;
 import com.hms.profile.dto.response.AppointmentResponse;
 import com.hms.profile.dto.response.MedicalHistoryResponse;
 import com.hms.profile.entities.Doctor;
 import com.hms.profile.repositories.DoctorRepository;
+import com.hms.profile.repositories.PatientRepository;
 import com.hms.profile.services.MedicalHistoryService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +28,14 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
 
   private final AppointmentFeignClient appointmentFeignClient;
   private final DoctorRepository doctorRepository;
+  private final PatientRepository patientRepository;
 
   @Override
-  public MedicalHistoryResponse getPatientMedicalHistory(Long patientId) {
-    return fetchAndProcessHistory(patientId);
+  public MedicalHistoryResponse getPatientMedicalHistory(Long patientProfileId) {
+    patientRepository.findById(patientProfileId)
+      .orElseThrow(() -> new ResourceNotFoundException("Patient Profile", patientProfileId));
+
+    return fetchAndProcessHistory(patientProfileId);
   }
 
   @Override
@@ -39,20 +45,17 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
 
   @CircuitBreaker(name = "appointmentService", fallbackMethod = "fetchHistoryFallback")
   public MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
-    ApiResponse<List<AppointmentResponse>> response = appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
+    ApiResponse<List<AppointmentResponse>> response =
+      appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
 
-    List<AppointmentResponse> appointmentsFromService;
-    if (response != null && response.data() != null) {
-      appointmentsFromService = response.data();
-    } else {
-      appointmentsFromService = Collections.emptyList();
-    }
+    List<AppointmentResponse> appointments =
+      (response != null && response.data() != null) ? response.data() : Collections.emptyList();
 
-    if (appointmentsFromService.isEmpty()) {
+    if (appointments.isEmpty()) {
       return new MedicalHistoryResponse(Collections.emptyList());
     }
 
-    List<Long> doctorIds = appointmentsFromService.stream()
+    List<Long> doctorIds = appointments.stream()
       .map(AppointmentResponse::doctorId)
       .distinct()
       .collect(Collectors.toList());
@@ -60,25 +63,26 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
     Map<Long, Doctor> doctorsMap = doctorRepository.findAllById(doctorIds).stream()
       .collect(Collectors.toMap(Doctor::getId, Function.identity()));
 
-    List<AppointmentHistoryDto> appointmentHistories = appointmentsFromService.stream().map(app -> {
-      Doctor doctor = doctorsMap.get(app.doctorId());
-      String doctorName = (doctor != null) ? doctor.getName() : "Médico Desconhecido";
+    List<AppointmentHistoryDto> history = appointments.stream()
+      .map(app -> {
+        Doctor doctor = doctorsMap.get(app.doctorId());
+        String doctorName = (doctor != null) ? doctor.getName() : "Médico Desconhecido";
+        return new AppointmentHistoryDto(
+          app.id(),
+          app.appointmentDateTime(),
+          app.reason(),
+          app.status().name(),
+          doctorName
+        );
+      })
+      .collect(Collectors.toList());
 
-      return new AppointmentHistoryDto(
-        app.id(),
-        app.appointmentDateTime(),
-        app.reason(),
-        app.status().name(),
-        doctorName
-      );
-    }).collect(Collectors.toList());
-
-    return new MedicalHistoryResponse(appointmentHistories);
+    return new MedicalHistoryResponse(history);
   }
 
-  // Método de fallback para Circuit Breaker
   public MedicalHistoryResponse fetchHistoryFallback(Long patientProfileId, Exception e) {
-    log.error("Falha ao buscar histórico de consultas (Circuit Breaker): {}", e.getMessage());
+    log.error("Circuit Breaker ativado ao buscar histórico para patientProfileId={}: {}",
+      patientProfileId, e.getMessage());
     return new MedicalHistoryResponse(Collections.emptyList());
   }
 }

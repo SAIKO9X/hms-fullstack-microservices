@@ -6,7 +6,7 @@ import { MedicalHistoryTimeline } from "../components/MedicalHistoryTimeline";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileText, XCircle, Home } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,14 +17,17 @@ import {
 } from "@/components/ui/breadcrumb";
 
 export const PatientMedicalHistoryPage = () => {
+  const { patientId } = useParams();
   const { profile, isLoading: isLoadingProfile } = useProfile();
+
+  const targetPatientId = patientId ? Number(patientId) : profile?.id;
 
   const {
     data: medicalHistory,
     isLoading: isLoadingHistory,
     isError,
     error,
-  } = useMedicalHistory(profile?.id);
+  } = useMedicalHistory(targetPatientId);
 
   const isLoading = isLoadingProfile || isLoadingHistory;
 
