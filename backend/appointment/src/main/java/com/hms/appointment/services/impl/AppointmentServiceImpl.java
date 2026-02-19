@@ -48,7 +48,6 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final DoctorUnavailabilityRepository unavailabilityRepository;
   private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
-
   private final ProfileFeignClient profileFeignClient;
 
   @Value("${application.rabbitmq.exchange}")
@@ -57,27 +56,24 @@ public class AppointmentServiceImpl implements AppointmentService {
   private DoctorReadModel getOrSyncDoctor(Long userIdInput) {
     return doctorReadModelRepository.findByUserId(userIdInput)
       .orElseGet(() -> {
-        log.info("Médico com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
+        log.info("Médico com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
           ApiResponse<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userIdInput);
 
           if (response == null || response.data() == null) {
-            log.error("Dados do médico vieram nulos para userId: {}", userIdInput);
             throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
           }
 
-          DoctorProfile externalDoctor = response.data();
+          DoctorProfile ext = response.data();
+          log.info("Sincronizando Médico: ProfileID={}, UserID={}, Nome={}", ext.id(), ext.userId(), ext.name());
 
-          log.info(">>> Sincronizando Médico: ProfileID={}, UserID={}, Nome={}",
-            externalDoctor.id(), externalDoctor.userId(), externalDoctor.name());
+          DoctorReadModel model = new DoctorReadModel();
+          model.setDoctorId(ext.id());
+          model.setUserId(ext.userId());
+          model.setFullName(ext.name());
+          model.setSpecialization(ext.specialization());
 
-          DoctorReadModel newModel = new DoctorReadModel();
-          newModel.setDoctorId(externalDoctor.id());
-          newModel.setUserId(externalDoctor.userId());
-          newModel.setFullName(externalDoctor.name());
-          newModel.setSpecialization(externalDoctor.specialization());
-
-          return doctorReadModelRepository.save(newModel);
+          return doctorReadModelRepository.save(model);
         } catch (Exception e) {
           log.error("Falha ao sincronizar médico userId {}: {}", userIdInput, e.getMessage());
           throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
@@ -88,32 +84,38 @@ public class AppointmentServiceImpl implements AppointmentService {
   private PatientReadModel getOrSyncPatient(Long userIdInput) {
     return patientReadModelRepository.findByUserId(userIdInput)
       .orElseGet(() -> {
-        log.info("Paciente com userId {} não encontrado localmente. Tentando sincronizar via Profile Service...", userIdInput);
+        log.info("Paciente com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
           ApiResponse<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
+          PatientProfile ext = response.data();
 
-          PatientProfile externalPatient = response.data();
-
-          if (externalPatient == null || externalPatient.id() == null) {
-            log.error("Dados do paciente vieram nulos no Profile Service para userId: {}", userIdInput);
+          if (ext == null || ext.id() == null) {
             throw new ResourceNotFoundException("Patient Profile (User ID)", userIdInput);
           }
 
-          log.info(">>> Sincronizando Paciente: ID={}, Nome={}", externalPatient.id(), externalPatient.name());
+          log.info("Sincronizando Paciente: ID={}, Nome={}", ext.id(), ext.name());
 
-          PatientReadModel newModel = new PatientReadModel();
-          newModel.setPatientId(externalPatient.id());
-          newModel.setUserId(externalPatient.userId());
-          newModel.setFullName(externalPatient.name());
-          newModel.setEmail(externalPatient.email());
-          newModel.setPhoneNumber(externalPatient.phoneNumber());
+          PatientReadModel model = new PatientReadModel();
+          model.setPatientId(ext.id());
+          model.setUserId(ext.userId());
+          model.setFullName(ext.name());
+          model.setEmail(ext.email());
+          model.setPhoneNumber(ext.phoneNumber());
 
-          return patientReadModelRepository.save(newModel);
+          return patientReadModelRepository.save(model);
         } catch (Exception e) {
           log.error("Falha ao sincronizar paciente userId {}: {}", userIdInput, e.getMessage());
           throw new ResourceNotFoundException("Patient Profile (User ID)", userIdInput);
         }
       });
+  }
+
+  private Long resolveDoctorId(Long requesterUserId) {
+    return getOrSyncDoctor(requesterUserId).getDoctorId();
+  }
+
+  private Long resolvePatientId(Long requesterUserId) {
+    return getOrSyncPatient(requesterUserId).getPatientId();
   }
 
   @Override
@@ -155,25 +157,25 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public AppointmentResponse getAppointmentById(Long appointmentId, Long requesterId) {
+  public AppointmentResponse getAppointmentById(Long appointmentId, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    validateAccess(app, requesterId);
+    validateAccess(app, requesterUserId);
     return AppointmentResponse.fromEntity(app);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Page<AppointmentResponse> getAppointmentsForPatient(Long userId, Pageable pageable) {
-    PatientReadModel patient = getOrSyncPatient(userId);
-    return appointmentRepository.findByPatientId(patient.getPatientId(), pageable)
+    Long patientId = resolvePatientId(userId);
+    return appointmentRepository.findByPatientId(patientId, pageable)
       .map(AppointmentResponse::fromEntity);
   }
 
   @Override
   @Transactional(readOnly = true)
   public Page<AppointmentResponse> getAppointmentsForDoctor(Long userId, Pageable pageable) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    return appointmentRepository.findByDoctorId(doctor.getDoctorId(), pageable)
+    Long doctorId = resolveDoctorId(userId);
+    return appointmentRepository.findByDoctorId(doctorId, pageable)
       .map(AppointmentResponse::fromEntity);
   }
 
@@ -181,15 +183,14 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Transactional(readOnly = true)
   public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long userId, String dateFilter) {
     DoctorReadModel doctor = getOrSyncDoctor(userId);
-    Long doctorId = doctor.getDoctorId();
 
     List<Appointment> appointments;
-
     if (dateFilter == null || "all".equalsIgnoreCase(dateFilter)) {
-      appointments = appointmentRepository.findByDoctorId(doctorId);
+      appointments = appointmentRepository.findByDoctorId(doctor.getDoctorId());
     } else {
       var range = calculateDateRange(dateFilter);
-      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(doctorId, range.start(), range.end());
+      appointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(
+        doctor.getDoctorId(), range.start(), range.end());
     }
 
     if (appointments.isEmpty()) return List.of();
@@ -201,9 +202,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  public AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterId) {
+  public AppointmentResponse rescheduleAppointment(Long appointmentId, LocalDateTime newDateTime, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    validateAccess(app, requesterId);
+    validateAccess(app, requesterUserId);
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED)
       throw new InvalidOperationException("Apenas consultas agendadas podem ser remarcadas.");
@@ -211,9 +212,9 @@ public class AppointmentServiceImpl implements AppointmentService {
     int duration = app.getDuration() != null ? app.getDuration() : 60;
     LocalDateTime newEnd = newDateTime.plusMinutes(duration);
 
-    if (appointmentRepository.hasDoctorConflictExcludingId(app.getDoctorId(), newDateTime, newEnd, appointmentId)) {
+    if (appointmentRepository.hasDoctorConflictExcludingId(app.getDoctorId(), newDateTime, newEnd, appointmentId))
       throw new InvalidOperationException("Conflito de horário com outra consulta existente.");
-    }
+
     validateAvailability(app.getDoctorId(), newDateTime, newEnd);
 
     LocalDateTime oldDate = app.getAppointmentDateTime();
@@ -234,9 +235,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  public AppointmentResponse cancelAppointment(Long appointmentId, Long requesterId) {
+  public AppointmentResponse cancelAppointment(Long appointmentId, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    validateAccess(app, requesterId);
+    validateAccess(app, requesterUserId);
 
     if (app.getStatus() != AppointmentStatus.SCHEDULED)
       throw new InvalidOperationException("Status inválido para cancelamento. A consulta deve estar AGENDADA.");
@@ -256,20 +257,18 @@ public class AppointmentServiceImpl implements AppointmentService {
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
 
-    DoctorReadModel doctor = getOrSyncDoctor(requesterUserId);
-    if (!app.getDoctorId().equals(doctor.getDoctorId())) {
+    Long doctorId = resolveDoctorId(requesterUserId);
+    if (!app.getDoctorId().equals(doctorId)) {
       throw new AccessDeniedException("Apenas o médico responsável pode finalizar a consulta.");
     }
 
-    if (app.getStatus() != AppointmentStatus.SCHEDULED && app.getStatus() != AppointmentStatus.COMPLETED) {
+    if (app.getStatus() != AppointmentStatus.SCHEDULED && app.getStatus() != AppointmentStatus.COMPLETED)
       throw new InvalidOperationException("Status inválido para finalização.");
-    }
 
     app.setStatus(AppointmentStatus.COMPLETED);
     app.setNotes(notes);
 
     Appointment saved = appointmentRepository.save(app);
-
     publishStatusEvent(saved, "COMPLETED", notes);
 
     return AppointmentResponse.fromEntity(saved);
@@ -277,9 +276,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public AppointmentDetailResponse getAppointmentDetailsById(Long appointmentId, Long requesterId) {
+  public AppointmentDetailResponse getAppointmentDetailsById(Long appointmentId, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
-    validateAccess(app, requesterId);
+    validateAccess(app, requesterUserId);
 
     DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
     return mapToDetailResponse(app, doctor);
@@ -288,18 +287,18 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   @Transactional(readOnly = true)
   public AppointmentResponse getNextAppointmentForPatient(Long userId) {
-    PatientReadModel patient = getOrSyncPatient(userId);
-
-    return appointmentRepository.findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
-        patient.getPatientId(), AppointmentStatus.SCHEDULED, LocalDateTime.now())
+    Long patientId = resolvePatientId(userId);
+    return appointmentRepository
+      .findFirstByPatientIdAndStatusAndAppointmentDateTimeAfterOrderByAppointmentDateTimeAsc(
+        patientId, AppointmentStatus.SCHEDULED, LocalDateTime.now())
       .map(AppointmentResponse::fromEntity)
       .orElse(null);
   }
 
   @Override
   public AppointmentStatsResponse getAppointmentStatsForPatient(Long userId) {
-    PatientReadModel patient = getOrSyncPatient(userId);
-    List<Appointment> apps = appointmentRepository.findByPatientId(patient.getPatientId());
+    Long patientId = resolvePatientId(userId);
+    List<Appointment> apps = appointmentRepository.findByPatientId(patientId);
 
     return new AppointmentStatsResponse(
       apps.size(),
@@ -311,31 +310,28 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   public DoctorDashboardStatsResponse getDoctorDashboardStats(Long userId) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    Long doctorId = doctor.getDoctorId();
+    Long doctorId = resolveDoctorId(userId);
 
     long today = appointmentRepository.countAppointmentsForToday(doctorId);
-    long weekCompleted = appointmentRepository.countCompletedAppointmentsSince(doctorId, LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay());
+    long weekCompleted = appointmentRepository.countCompletedAppointmentsSince(
+      doctorId, LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay());
 
     Map<AppointmentStatus, Long> distribution = new EnumMap<>(AppointmentStatus.class);
     Arrays.stream(AppointmentStatus.values()).forEach(s -> distribution.put(s, 0L));
-
-    appointmentRepository.countAppointmentsByStatus(doctorId).forEach(row ->
-      distribution.put((AppointmentStatus) row[0], (Long) row[1]));
+    appointmentRepository.countAppointmentsByStatus(doctorId)
+      .forEach(row -> distribution.put((AppointmentStatus) row[0], (Long) row[1]));
 
     return new DoctorDashboardStatsResponse(today, weekCompleted, distribution);
   }
 
   @Override
   public long countUniquePatientsForDoctor(Long userId) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    return appointmentRepository.countDistinctPatientsByDoctorId(doctor.getDoctorId());
+    return appointmentRepository.countDistinctPatientsByDoctorId(resolveDoctorId(userId));
   }
 
   @Override
   public List<PatientGroupResponse> getPatientGroupsForDoctor(Long userId) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    Long doctorId = doctor.getDoctorId();
+    Long doctorId = resolveDoctorId(userId);
 
     var groups = Map.of(
       "Diabéticos", List.of("diabetes", "diabético", "glicemia"),
@@ -346,7 +342,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     return groups.entrySet().stream()
       .map(entry -> {
         Set<Long> ids = new HashSet<>();
-        entry.getValue().forEach(k -> ids.addAll(appointmentRepository.findDistinctPatientIdsByDoctorAndDiagnosisKeyword(doctorId, k)));
+        entry.getValue().forEach(k ->
+          ids.addAll(appointmentRepository.findDistinctPatientIdsByDoctorAndDiagnosisKeyword(doctorId, k)));
         return new PatientGroupResponse(entry.getKey(), ids.size());
       })
       .filter(g -> g.patientCount() > 0)
@@ -357,8 +354,10 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   public List<DailyActivityDto> getDailyActivityStats() {
     LocalDateTime start = LocalDateTime.now().minusDays(30);
-    Map<LocalDate, Long> appointments = mapQueryResults(appointmentRepository.countAppointmentsFromDateGroupedByDay(start));
-    Map<LocalDate, Long> newPatients = mapQueryResults(appointmentRepository.findFirstAppointmentDateForPatients(start));
+    Map<LocalDate, Long> appointments = mapQueryResults(
+      appointmentRepository.countAppointmentsFromDateGroupedByDay(start));
+    Map<LocalDate, Long> newPatients = mapQueryResults(
+      appointmentRepository.findFirstAppointmentDateForPatients(start));
 
     return IntStream.range(0, 30)
       .mapToObj(i -> LocalDate.now().minusDays(i))
@@ -375,9 +374,8 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   @Transactional(readOnly = true)
   public List<AppointmentResponse> getAppointmentsByPatientId(Long userId) {
-    PatientReadModel patient = getOrSyncPatient(userId);
-
-    return appointmentRepository.findByPatientId(patient.getPatientId())
+    Long patientId = resolvePatientId(userId);
+    return appointmentRepository.findByPatientId(patientId)
       .stream()
       .sorted(Comparator.comparing(Appointment::getAppointmentDateTime))
       .map(AppointmentResponse::fromEntity)
@@ -386,23 +384,28 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  public void joinWaitlist(Long patientId, AppointmentCreateRequest request) {
+  public void joinWaitlist(Long patientUserId, AppointmentCreateRequest request) {
     int duration = request.duration() != null ? request.duration() : 60;
-    if (!appointmentRepository.hasDoctorConflict(request.doctorId(), request.appointmentDateTime(), request.appointmentDateTime().plusMinutes(duration))) {
-      throw new InvalidOperationException("O horário selecionado está disponível. Agende diretamente em vez de entrar na lista de espera.");
-    }
-    if (waitlistRepository.existsByPatientIdAndDoctorIdAndDate(patientId, request.doctorId(), request.appointmentDateTime().toLocalDate())) {
-      throw new InvalidOperationException("Você já está na lista de espera para este dia.");
+    if (!appointmentRepository.hasDoctorConflict(
+      request.doctorId(), request.appointmentDateTime(),
+      request.appointmentDateTime().plusMinutes(duration))) {
+      throw new InvalidOperationException(
+        "O horário selecionado está disponível. Agende diretamente em vez de entrar na lista de espera.");
     }
 
-    PatientReadModel p = getOrSyncPatient(patientId);
+    PatientReadModel patient = getOrSyncPatient(patientUserId);
+
+    if (waitlistRepository.existsByPatientIdAndDoctorIdAndDate(
+      patient.getPatientId(), request.doctorId(), request.appointmentDateTime().toLocalDate())) {
+      throw new InvalidOperationException("Você já está na lista de espera para este dia.");
+    }
 
     waitlistRepository.save(new WaitlistEntry(
       null,
       request.doctorId(),
-      p.getPatientId(),
-      p.getFullName(),
-      p.getEmail(),
+      patient.getPatientId(),
+      patient.getFullName(),
+      patient.getEmail(),
       request.appointmentDateTime().toLocalDate(),
       LocalDateTime.now()
     ));
@@ -410,8 +413,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   public List<DoctorPatientSummaryDto> getPatientsForDoctor(Long userId) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    return appointmentRepository.findPatientsSummaryByDoctor(doctor.getDoctorId()).stream()
+    Long doctorId = resolveDoctorId(userId);
+    return appointmentRepository.findPatientsSummaryByDoctor(doctorId).stream()
       .map(p -> new DoctorPatientSummaryDto(
         p.getPatientId(), p.getUserId(), p.getPatientName(), p.getPatientEmail(),
         p.getTotalAppointments(), p.getLastAppointmentDate(),
@@ -422,15 +425,15 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  public List<DoctorSummaryProjection> getMyDoctors(Long patientId) {
+  public List<DoctorSummaryProjection> getMyDoctors(Long patientUserId) {
+    Long patientId = resolvePatientId(patientUserId);
     return appointmentRepository.findDoctorsSummaryByPatient(patientId);
   }
 
   @Override
   @Transactional
   public AvailabilityResponse addAvailability(Long userId, AvailabilityRequest request) {
-    DoctorReadModel doctor = getOrSyncDoctor(userId);
-    Long doctorId = doctor.getDoctorId();
+    Long doctorId = resolveDoctorId(userId);
 
     if (request.startTime().isAfter(request.endTime()))
       throw new InvalidOperationException("Início deve ser antes do fim.");
@@ -445,7 +448,8 @@ public class AppointmentServiceImpl implements AppointmentService {
       .doctorId(doctorId)
       .dayOfWeek(request.dayOfWeek())
       .startTime(request.startTime())
-      .endTime(request.endTime()).build());
+      .endTime(request.endTime())
+      .build());
 
     return new AvailabilityResponse(saved.getId(), saved.getDayOfWeek(), saved.getStartTime(), saved.getEndTime());
   }
@@ -456,25 +460,27 @@ public class AppointmentServiceImpl implements AppointmentService {
     Long actualDoctorId = doctor.map(DoctorReadModel::getDoctorId).orElse(userIdOrDoctorId);
 
     return availabilityRepository.findByDoctorId(actualDoctorId).stream()
-      .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime())).toList();
+      .map(a -> new AvailabilityResponse(a.getId(), a.getDayOfWeek(), a.getStartTime(), a.getEndTime()))
+      .toList();
   }
 
   @Override
   public void deleteAvailability(Long id) {
-    if (!availabilityRepository.existsById(id)) {
+    if (!availabilityRepository.existsById(id))
       throw new ResourceNotFoundException("Doctor Availability", id);
-    }
     availabilityRepository.deleteById(id);
   }
 
   @Override
   public List<Long> getActiveDoctorIdsInLastHour() {
-    return appointmentRepository.findByAppointmentDateTimeBetween(LocalDateTime.now().minusHours(1), LocalDateTime.now())
+    return appointmentRepository
+      .findByAppointmentDateTimeBetween(LocalDateTime.now().minusHours(1), LocalDateTime.now())
       .stream().map(Appointment::getDoctorId).distinct().toList();
   }
 
   private void validateNewAppointment(Long patientId, Long doctorId, LocalDateTime start, LocalDateTime end) {
     validateBusinessHours(start);
+
     if (start.isBefore(LocalDateTime.now().plusHours(2)))
       throw new InvalidOperationException("Agendamentos devem ser feitos com antecedência mínima de 2 horas.");
 
@@ -494,19 +500,19 @@ public class AppointmentServiceImpl implements AppointmentService {
   }
 
   private void validateAvailability(Long doctorId, LocalDateTime start, LocalDateTime end) {
-    boolean isBlocked = unavailabilityRepository.hasUnavailability(doctorId, start, end);
-    if (isBlocked) throw new InvalidOperationException("Médico indisponível (Bloqueio de agenda).");
+    if (unavailabilityRepository.hasUnavailability(doctorId, start, end))
+      throw new InvalidOperationException("Médico indisponível (Bloqueio de agenda).");
 
     List<DoctorAvailability> slots = availabilityRepository.findByDoctorId(doctorId);
-    if (slots.isEmpty())
-      return;
+    if (slots.isEmpty()) return;
 
     boolean isCovered = slots.stream().anyMatch(slot ->
       slot.getDayOfWeek() == start.getDayOfWeek() &&
         !start.toLocalTime().isBefore(slot.getStartTime()) &&
         !end.toLocalTime().isAfter(slot.getEndTime()));
 
-    if (!isCovered) throw new InvalidOperationException("O horário selecionado está fora do expediente do médico.");
+    if (!isCovered)
+      throw new InvalidOperationException("O horário selecionado está fora do expediente do médico.");
   }
 
   private void validateBusinessHours(LocalDateTime date) {
@@ -515,6 +521,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidOperationException("Horário inválido. O sistema opera entre 06:00 e 22:00.");
   }
 
+  // Verifica se o requester é o paciente ou o médico envolvido na consulta
   private void validateAccess(Appointment app, Long requesterUserId) {
     boolean isPatientOwner = patientReadModelRepository.findByUserId(requesterUserId)
       .map(patient -> patient.getPatientId().equals(app.getPatientId()))
@@ -528,7 +535,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     if (isDoctorOwner) return;
 
-    // se não for nem o paciente nem o médico, nega o acesso
     throw new AccessDeniedException("Você não tem permissão para acessar este agendamento.");
   }
 
@@ -539,97 +545,130 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   private DateRange calculateDateRange(String filter) {
     LocalDateTime now = LocalDate.now().atStartOfDay();
-    if ("today".equalsIgnoreCase(filter)) return new DateRange(now, now.plusDays(1).minusNanos(1));
-    if ("week".equalsIgnoreCase(filter))
-      return new DateRange(now.with(DayOfWeek.MONDAY), now.with(DayOfWeek.SUNDAY).plusDays(1).minusNanos(1));
-    if ("month".equalsIgnoreCase(filter))
-      return new DateRange(now.withDayOfMonth(1), now.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1).minusNanos(1));
-    return new DateRange(now.minusYears(1), now.plusYears(1));
+    return switch (filter.toLowerCase()) {
+      case "today" -> new DateRange(now, now.plusDays(1).minusNanos(1));
+      case "week" -> new DateRange(
+        now.with(DayOfWeek.MONDAY),
+        now.with(DayOfWeek.SUNDAY).plusDays(1).minusNanos(1));
+      case "month" -> new DateRange(
+        now.withDayOfMonth(1),
+        now.with(TemporalAdjusters.lastDayOfMonth()).plusDays(1).minusNanos(1));
+      default -> new DateRange(now.minusYears(1), now.plusYears(1));
+    };
   }
 
   private AppointmentDetailResponse mapToDetailResponse(Appointment app, DoctorReadModel doctor) {
     PatientReadModel p = patientReadModelRepository.findById(app.getPatientId())
       .orElse(new PatientReadModel(app.getPatientId(), null, "Paciente", "N/A", null, null));
     String docName = (doctor != null) ? doctor.getFullName() : "Dr. Desconhecido";
-    return new AppointmentDetailResponse(app.getId(), app.getPatientId(), p.getFullName(), p.getPhoneNumber(),
+    return new AppointmentDetailResponse(
+      app.getId(), app.getPatientId(), p.getFullName(), p.getPhoneNumber(),
       app.getDoctorId(), docName, app.getAppointmentDateTime(), app.getReason(), app.getStatus());
   }
 
   private Map<LocalDate, Long> mapQueryResults(List<Object[]> results) {
     return results.stream().collect(Collectors.toMap(
-      r -> ((java.sql.Date) r[0]).toLocalDate(), r -> (Long) r[1]
+      r -> ((java.sql.Date) r[0]).toLocalDate(),
+      r -> (Long) r[1]
     ));
   }
 
+
   private void publishStatusEvent(Appointment app, String status, String notes) {
     try {
-      var patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
-      var doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
+      PatientReadModel patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
+      DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
 
-      if (patient != null && doctor != null) {
-        AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
-          app.getId(),
-          app.getPatientId(),
-          doctor.getDoctorId(),
-          patient.getEmail(),
-          patient.getFullName(),
-          doctor.getFullName(),
-          app.getAppointmentDateTime(),
-          status,
-          notes
-        );
-
-        EventEnvelope<AppointmentStatusChangedEvent> envelope = EventEnvelope.create(
-          "APPOINTMENT_STATUS_CHANGED",
-          UUID.randomUUID().toString(),
-          event
-        );
-
-        rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", envelope);
+      if (patient == null) {
+        PatientProfile profile = profileFeignClient.getPatientById(app.getPatientId());
+        if (profile == null) {
+          log.warn("Paciente {} não encontrado. Evento não publicado.", app.getPatientId());
+          return;
+        }
+        // sincroniza localmente
+        PatientReadModel newModel = new PatientReadModel();
+        newModel.setPatientId(profile.id());
+        newModel.setUserId(profile.userId());
+        newModel.setFullName(profile.name());
+        newModel.setEmail(profile.email());
+        newModel.setPhoneNumber(profile.phoneNumber());
+        patient = patientReadModelRepository.save(newModel);
       }
+
+      if (doctor == null) {
+        log.warn("Médico {} não encontrado. Evento não publicado.", app.getDoctorId());
+        return;
+      }
+
+      AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
+        app.getId(),
+        app.getPatientId(),
+        doctor.getDoctorId(),
+        patient.getEmail(),
+        patient.getFullName(),
+        doctor.getFullName(),
+        app.getAppointmentDateTime(),
+        status,
+        notes
+      );
+
+      EventEnvelope<AppointmentStatusChangedEvent> envelope = EventEnvelope.create(
+        "APPOINTMENT_STATUS_CHANGED",
+        UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", envelope);
     } catch (Exception e) {
-      log.error("Erro RabbitMQ Status: {}", e.getMessage());
+      log.error("Erro ao publicar evento de status: {}", e.getMessage());
     }
   }
 
+
   private void scheduleReminder(Appointment app) {
     try {
-      long delay = Duration.between(LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
-      if (delay > 0) {
-        var event = new AppointmentEvent(app.getId(), app.getPatientId(), "email-placeholder", "dr-placeholder", app.getAppointmentDateTime(), app.getMeetingUrl());
+      long delay = Duration.between(
+        LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
 
-        EventEnvelope<AppointmentEvent> envelope = EventEnvelope.create(
-          "APPOINTMENT_REMINDER",
-          String.valueOf(app.getId()),
-          event
-        );
+      if (delay <= 0) return;
 
-        rabbitTemplate.convertAndSend(RabbitMQConfig.DELAYED_EXCHANGE, RabbitMQConfig.REMINDER_ROUTING_KEY, envelope, m -> {
+      var event = new AppointmentEvent(
+        app.getId(), app.getPatientId(),
+        "email-placeholder", "dr-placeholder",
+        app.getAppointmentDateTime(), app.getMeetingUrl()
+      );
+
+      EventEnvelope<AppointmentEvent> envelope = EventEnvelope.create(
+        "APPOINTMENT_REMINDER", String.valueOf(app.getId()), event);
+
+      rabbitTemplate.convertAndSend(
+        RabbitMQConfig.DELAYED_EXCHANGE,
+        RabbitMQConfig.REMINDER_ROUTING_KEY,
+        envelope,
+        m -> {
           m.getMessageProperties().setHeader("x-delay", delay);
           return m;
         });
-      }
     } catch (Exception e) {
-      log.error("Erro RabbitMQ Lembrete: {}", e.getMessage());
+      log.error("Erro ao agendar lembrete: {}", e.getMessage());
     }
   }
 
   private void checkAndNotifyWaitlist(Long doctorId, LocalDateTime date) {
     try {
-      waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate()).ifPresent(entry -> {
-        WaitlistNotificationEvent event = new WaitlistNotificationEvent(entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date);
+      waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate())
+        .ifPresent(entry -> {
+          WaitlistNotificationEvent event = new WaitlistNotificationEvent(
+            entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date);
 
-        EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
-          "WAITLIST_NOTIFICATION",
-          String.valueOf(entry.getId()),
-          event
-        );
+          EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
+            "WAITLIST_NOTIFICATION", String.valueOf(entry.getId()), event);
 
-        rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, envelope);
-        waitlistRepository.delete(entry);
-      });
+          rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, envelope);
+          waitlistRepository.delete(entry);
+        });
     } catch (Exception e) {
-      log.error("Erro Waitlist: {}", e.getMessage());
+      log.error("Erro ao notificar lista de espera: {}", e.getMessage());
     }
   }
 

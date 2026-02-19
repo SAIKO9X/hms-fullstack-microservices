@@ -22,4 +22,7 @@ public interface ProfileFeignClient {
 
   @GetMapping("/profile/patients/by-user/{userId}")
   ApiResponse<PatientProfile> getPatientByUserId(@PathVariable("userId") Long userId);
+
+  @GetMapping("/api/patients/{id}")
+  PatientProfile getPatientById(@PathVariable("id") Long id);
 }

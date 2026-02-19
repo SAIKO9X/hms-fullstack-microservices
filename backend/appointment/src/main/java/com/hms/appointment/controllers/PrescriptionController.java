@@ -54,6 +54,12 @@ public class PrescriptionController {
     return ResponseEntity.ok(ApiResponse.success(prescriptionService.updatePrescription(id, request, doctorId)));
   }
 
+  @GetMapping("/appointment/{appointmentId}")
+  public ResponseEntity<ApiResponse<PrescriptionResponse>> getPrescriptionByAppointmentId(@PathVariable Long appointmentId, Authentication authentication) {
+    Long requesterId = SecurityUtils.getUserId(authentication);
+    return ResponseEntity.ok(ApiResponse.success(prescriptionService.getPrescriptionByAppointmentId(appointmentId, requesterId)));
+  }
+
   @GetMapping("/patient/{patientId}")
   public ResponseEntity<ApiResponse<PagedResponse<PrescriptionResponse>>> getPrescriptionsByPatientId(
     Authentication authentication,

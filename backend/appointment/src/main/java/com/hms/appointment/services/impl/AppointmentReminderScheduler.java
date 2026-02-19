@@ -74,7 +74,10 @@ public class AppointmentReminderScheduler {
       PatientReadModel patient = patientRepository.findById(app.getPatientId()).orElse(null);
       DoctorReadModel doctor = doctorRepository.findById(app.getDoctorId()).orElse(null);
 
-      if (patient == null || doctor == null) return;
+      if (patient == null || doctor == null) {
+        log.warn("Paciente ou médico não encontrado para consulta {}. Lembrete não enviado.", app.getId());
+        return;
+      }
 
       AppointmentEvent event = new AppointmentEvent(
         app.getId(),
