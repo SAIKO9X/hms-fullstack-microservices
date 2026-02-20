@@ -24,6 +24,7 @@ public class SecurityConfig {
       .csrf(csrf -> csrf.disable())
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(HttpMethod.GET, "/media/**", "/actuator/**").permitAll()
+        .requestMatchers(HttpMethod.GET, "/media/**", "/media/{id}").permitAll()
         .requestMatchers(HttpMethod.POST, "/media/upload").authenticated()
         .anyRequest().authenticated()
       )
