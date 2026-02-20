@@ -43,6 +43,7 @@ export interface AvailabilitySlot {
 export interface DoctorSummary {
   doctorId: number;
   doctorName: string;
+  userId: number;
   specialization: string;
   profilePicture?: string;
   lastAppointmentDate: string;

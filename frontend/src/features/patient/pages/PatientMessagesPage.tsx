@@ -55,12 +55,12 @@ export const PatientMessagesPage = () => {
               <Button
                 key={doc.doctorId}
                 variant={
-                  selectedDoctor?.id === doc.doctorId ? "secondary" : "ghost"
+                  selectedDoctor?.id === doc.userId ? "secondary" : "ghost"
                 }
                 className="justify-start px-3 py-6 h-auto"
                 onClick={() =>
                   setSelectedDoctor({
-                    id: doc.doctorId,
+                    id: doc.userId,
                     name: doc.doctorName,
                     profilePicture: doc.profilePicture,
                   })

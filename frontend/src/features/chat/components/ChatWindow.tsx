@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from "react";
 import SockJS from "sockjs-client";
 import Stomp from "stompjs";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useChatMessages,
   useChatCacheUpdater,
+  chatKeys,
 } from "@/services/queries/chat-queries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +40,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   className,
 }) => {
   const { user, token } = useAuth();
+  const queryClient = useQueryClient();
   const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
 
   const {
@@ -50,14 +53,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [isTyping] = useState(false);
   const [isVideoCallOpen, setIsVideoCallOpen] = useState(false);
   const stompClientRef = useRef<Stomp.Client | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // mistura as mensagens reais do db com as temporárias que ainda estão carregando
   useEffect(() => {
     if (historyMessages) {
-      setMessages(historyMessages);
+      setMessages((prev) => {
+        // mantém apenas as temporárias que ainda não chegaram no histórico real
+        const temps = prev.filter((m) => String(m.id).startsWith("temp-"));
+        const activeTemps = temps.filter(
+          (t) =>
+            !historyMessages.some(
+              (rm) => rm.content === t.content && rm.senderId === t.senderId,
+            ),
+        );
+        return [...historyMessages, ...activeTemps];
+      });
     }
   }, [historyMessages]);
 
@@ -66,6 +79,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const socket = new SockJS(`${API_BASE_URL}/chat/ws`);
     const client = Stomp.over(socket);
+
+    client.debug = () => {};
 
     client.connect(
       { Authorization: `Bearer ${token}` },
@@ -90,13 +105,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 updatedList = prev.filter(
                   (m) =>
                     !(
-                      m.id.toString().startsWith("temp-") &&
-                      m.content === receivedMessage.content
+                      String(m.id).startsWith("temp-") &&
+                      m.content.trim() === receivedMessage.content.trim()
                     ),
                 );
               }
               const newList = [...updatedList, receivedMessage];
-              addMessageToCache(user.id, recipientId, receivedMessage);
+
+              setTimeout(() => {
+                addMessageToCache(user.id, recipientId, receivedMessage);
+              }, 0);
+
               return newList;
             });
           }
@@ -128,6 +147,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       senderId: user.id,
       recipientId: recipientId,
       content: newMessage,
+      senderName: user.name || "Usuário",
     };
 
     stompClientRef.current.send(
@@ -148,6 +168,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage("");
+
+    setTimeout(() => {
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.conversation(user.id, recipientId),
+      });
+    }, 800);
   };
 
   const getInitials = (name: string) => {
@@ -189,43 +215,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       >
         <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-card/50 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div
-                className={cn(
-                  "absolute -right-0.5 -bottom-0.5 w-3 h-3 rounded-full border-2 border-background z-10",
-                  isConnected ? "bg-green-500" : "bg-gray-400",
-                )}
+            <Avatar className="h-9 w-9 border border-border/50">
+              <AvatarImage
+                src={
+                  recipientProfilePictureUrl
+                    ? `${API_BASE_URL}${recipientProfilePictureUrl}`
+                    : undefined
+                }
+                alt={recipientName}
               />
-              <Avatar className="h-9 w-9 border border-border/50">
-                <AvatarImage
-                  src={
-                    recipientProfilePictureUrl
-                      ? `${API_BASE_URL}${recipientProfilePictureUrl}`
-                      : undefined
-                  }
-                  alt={recipientName}
-                />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs">
-                  {getInitials(recipientName)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-xs">
+                {getInitials(recipientName)}
+              </AvatarFallback>
+            </Avatar>
+
             <div className="flex flex-col">
               <span className="text-sm font-semibold leading-none tracking-tight">
                 {recipientName}
               </span>
-              <span className="text-[11px] text-muted-foreground mt-1 font-medium">
-                {isConnected ? (
-                  isTyping ? (
-                    <span className="text-primary animate-pulse">
-                      digitando...
-                    </span>
-                  ) : (
-                    "Online"
-                  )
-                ) : (
-                  "Offline"
-                )}
+              <span className="text-[11px] text-muted-foreground mt-1 font-medium flex items-center gap-1">
+                {isConnected ? "Chat Seguro (Conectado)" : "Reconectando..."}
               </span>
             </div>
           </div>
@@ -279,7 +288,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   !nextMsg || nextMsg.senderId !== msg.senderId;
                 const showAvatar = !isMe && isLastInGroup;
                 const showTimestamp = isLastInGroup;
-                const isTemp = msg.id.toString().startsWith("temp-");
+                const isTemp = String(msg.id).startsWith("temp-");
 
                 return (
                   <div
