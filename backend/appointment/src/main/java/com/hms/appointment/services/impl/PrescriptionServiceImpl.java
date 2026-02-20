@@ -223,7 +223,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     }
 
     Map<String, Object> data = buildPdfContext(prescription);
-    return pdfGeneratorService.generatePdfFromHtml("prescription", data);
+    return pdfGeneratorService.generatePdfFromHtml("prescription-template", data);
   }
 
   private void validateDoctorAuthority(Appointment appointment, Long doctorProfileId) {

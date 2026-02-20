@@ -18,12 +18,13 @@ public class PrescriptionEventListener {
 
   @RabbitListener(queues = RabbitMQConfig.PRESCRIPTION_DISPENSED_QUEUE)
   public void handlePrescriptionDispensed(EventEnvelope<PrescriptionDispensedEvent> envelope) {
-    PrescriptionDispensedEvent event = envelope.getPayload();
-    log.info("Recebido envelope de receita aviada [Correlation: {}]", envelope.getCorrelationId());
     try {
+      PrescriptionDispensedEvent event = envelope.getPayload();
+      log.info("Recebido envelope de receita aviada [Correlation: {}]", envelope.getCorrelationId());
+
       prescriptionService.markAsDispensed(event.prescriptionId());
     } catch (Exception e) {
-      log.error("Erro ao processar receita aviada", e);
+      log.error("Erro ao processar receita aviada. Descartando mensagem.", e);
     }
   }
 }

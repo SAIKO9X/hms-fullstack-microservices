@@ -37,7 +37,6 @@ public class PdfGeneratorService {
       log.info("PDF gerado com sucesso a partir do template: {}", templateName);
 
       return outputStream.toByteArray();
-
     } catch (Exception e) {
       log.error("Erro ao gerar PDF do template {}: {}", templateName, e.getMessage(), e);
       throw new RuntimeException("Falha ao gerar PDF: " + e.getMessage(), e);
