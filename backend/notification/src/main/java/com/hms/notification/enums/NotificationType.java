@@ -8,5 +8,6 @@ public enum NotificationType {
   PRESCRIPTION,
   NEW_MESSAGE,
   SYSTEM_ALERT,
-  LOW_STOCK
+  LOW_STOCK,
+  NEW_REVIEW
 }

@@ -169,6 +169,28 @@ public class NotificationConsumer {
     notificationService.sendNotification(notification);
   }
 
+  @RabbitListener(bindings = @org.springframework.amqp.rabbit.annotation.QueueBinding(
+    value = @org.springframework.amqp.rabbit.annotation.Queue(value = "${application.rabbitmq.notification-review:notification.review.queue}", durable = "true"),
+    exchange = @org.springframework.amqp.rabbit.annotation.Exchange(value = "internal.exchange", type = "topic"),
+    key = "notification.review.alert"
+  ))
+  public void handleNewReview(EventEnvelope<ReviewNotificationEvent> envelope) {
+    ReviewNotificationEvent event = envelope.getPayload();
+    log.info("Nova avaliação recebida para médico ID: {}", event.doctorId());
+
+    String message = String.format("O paciente %s avaliou seu atendimento com %d estrela(s).", event.patientName(), event.rating());
+    if (event.comment() != null && !event.comment().isBlank()) {
+      message += " Comentário: \"" + event.comment() + "\"";
+    }
+
+    saveInAppNotification(
+      event.doctorId(),
+      "Nova Avaliação Recebida",
+      message,
+      NotificationType.NEW_REVIEW
+    );
+  }
+
   private void processPatientStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
     String title = "";
     String message = "";

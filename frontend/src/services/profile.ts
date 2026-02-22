@@ -113,6 +113,26 @@ export const createReview = async (
   return data.data;
 };
 
+export const getMyReviewForDoctor = async (
+  doctorId: number,
+): Promise<ReviewResponse | null> => {
+  const { data } = await api.get<ApiResponse<ReviewResponse | null>>(
+    `/profile/reviews/me/doctor/${doctorId}`,
+  );
+  return data.data;
+};
+
+export const updateReview = async (
+  doctorId: number,
+  reviewData: Partial<ReviewRequest>,
+): Promise<ReviewResponse> => {
+  const { data } = await api.put<ApiResponse<ReviewResponse>>(
+    `/profile/reviews/doctor/${doctorId}`,
+    reviewData,
+  );
+  return data.data;
+};
+
 export const getDoctorStats = async (
   doctorId: number,
 ): Promise<DoctorRatingStats> => {

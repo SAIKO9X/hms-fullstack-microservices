@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { FormDialog } from "@/components/shared/FormDialog";
 import {
   FormControl,
@@ -12,7 +12,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { StarRating } from "@/components/shared/StarRating";
-import { createReview } from "@/services/profile";
+import {
+  createReview,
+  getMyReviewForDoctor,
+  updateReview,
+} from "@/services/profile";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { FormTextarea } from "@/components/ui/form-fields";
 
@@ -42,7 +46,16 @@ export const CreateReviewDialog = ({
   doctorName,
 }: CreateReviewDialogProps) => {
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const { data: existingReview, isLoading: isLoadingReview } = useQuery({
+    queryKey: ["my-review", doctorId],
+    queryFn: () => getMyReviewForDoctor(doctorId),
+    enabled: open,
+  });
+
+  const isEditing = !!existingReview;
 
   const form = useForm<ReviewFormData>({
     resolver: zodResolver(ReviewSchema),
@@ -52,34 +65,72 @@ export const CreateReviewDialog = ({
     },
   });
 
+  useEffect(() => {
+    if (existingReview) {
+      form.reset({
+        rating: existingReview.rating,
+        comment: existingReview.comment || "",
+      });
+    } else {
+      form.reset({ rating: 0, comment: "" });
+    }
+  }, [existingReview, form]);
+
   const mutation = useMutation({
-    mutationFn: createReview,
+    mutationFn: (data: ReviewFormData) => {
+      if (isEditing) {
+        return updateReview(doctorId, {
+          rating: data.rating,
+          comment: data.comment,
+        });
+      } else {
+        return createReview({
+          appointmentId,
+          doctorId,
+          rating: data.rating,
+          comment: data.comment || "",
+        });
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctor-stats", doctorId] });
       queryClient.invalidateQueries({ queryKey: ["doctor-reviews", doctorId] });
-      onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ["my-review", doctorId] });
+
       setError(null);
+      setSuccessMsg(
+        isEditing
+          ? "Avaliação atualizada com sucesso!"
+          : "Avaliação enviada com sucesso!",
+      );
+
+      setTimeout(() => {
+        onOpenChange(false);
+        setSuccessMsg(null); // reseta para a próxima vez
+      }, 2500);
     },
     onError: (err: any) => {
-      const msg = err.response?.data?.message || "Erro ao enviar avaliação.";
+      const msg = err.response?.data?.message || "Erro ao salvar avaliação.";
       setError(msg);
+      setSuccessMsg(null);
     },
   });
 
   const onSubmit = (data: ReviewFormData) => {
-    mutation.mutate({
-      appointmentId,
-      doctorId,
-      rating: data.rating,
-      comment: data.comment || "",
-    });
+    mutation.mutate(data);
   };
 
   return (
     <FormDialog
       open={open}
-      onOpenChange={onOpenChange}
-      title="Avaliar Atendimento"
+      onOpenChange={(val) => {
+        if (!val) {
+          setError(null);
+          setSuccessMsg(null);
+        }
+        onOpenChange(val);
+      }}
+      title={isEditing ? "Editar Avaliação" : "Avaliar Atendimento"}
       description={
         <>
           Como foi sua consulta com Dr(a). <strong>{doctorName}</strong>?
@@ -87,11 +138,21 @@ export const CreateReviewDialog = ({
       }
       form={form}
       onSubmit={onSubmit}
-      isSubmitting={mutation.isPending}
-      submitLabel="Enviar Avaliação"
+      isSubmitting={mutation.isPending || isLoadingReview}
+      submitLabel={isEditing ? "Salvar Alterações" : "Enviar Avaliação"}
       className="sm:max-w-[425px]"
     >
-      {error && <CustomNotification variant="error" title={error} />}
+      {error && (
+        <CustomNotification variant="error" title={error} dismissible />
+      )}
+      {successMsg && (
+        <CustomNotification
+          variant="success"
+          title={successMsg}
+          autoHide
+          autoHideDelay={2500}
+        />
+      )}
 
       <FormField
         control={form.control}

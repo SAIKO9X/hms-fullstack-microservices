@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   Card,
@@ -28,6 +29,7 @@ import {
   useAppointmentById,
   useAppointmentsWithDoctorNames,
 } from "@/services/queries/appointment-queries";
+import { getMyReviewForDoctor } from "@/services/profile";
 import { CreateReviewDialog } from "../components/CreateReviewDialog";
 
 const statusConfig = {
@@ -52,7 +54,6 @@ const statusConfig = {
 export const PatientAppointmentDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAppSelector((state) => state.auth);
-
   const appointmentId = Number(id);
 
   const { data: doctors } = useAppointmentsWithDoctorNames();
@@ -63,6 +64,12 @@ export const PatientAppointmentDetailPage = () => {
   const doctorName =
     doctors?.find((doc) => doc.doctorId === appointment?.doctorId)
       ?.doctorName || "Médico não encontrado";
+
+  const { data: existingReview } = useQuery({
+    queryKey: ["my-review", appointment?.doctorId],
+    queryFn: () => getMyReviewForDoctor(appointment!.doctorId),
+    enabled: !!appointment?.doctorId,
+  });
 
   if (isLoading) {
     return (
@@ -90,9 +97,9 @@ export const PatientAppointmentDetailPage = () => {
   return (
     <div className="container mx-auto py-8 space-y-6">
       <Button asChild variant="outline">
-        <Link to="/patient/dashboard">
+        <Link to="/patient/appointments">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar ao Dashboard
+          Voltar as Consultas
         </Link>
       </Button>
 
@@ -151,7 +158,7 @@ export const PatientAppointmentDetailPage = () => {
                 className="gap-2"
               >
                 <Star className="h-4 w-4" />
-                Avaliar Consulta
+                {existingReview ? "Editar Avaliação" : "Avaliar Consulta"}
               </Button>
             )}
           </div>
@@ -169,7 +176,6 @@ export const PatientAppointmentDetailPage = () => {
   );
 };
 
-// Componente auxiliar para exibir informações
 const InfoItem = ({
   icon: Icon,
   label,

@@ -7,7 +7,7 @@ export const QuickActions = () => {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
       <Button asChild size="lg" className="h-auto py-6">
         <Link to="/patient/appointments">
-          <div className="flex flex-col items-center justify-center text-center text-secondary">
+          <div className="flex flex-col items-center justify-center text-center">
             <CalendarPlus className="h-8 w-8 mb-2" />
             <span className="text-base font-semibold">
               Agendar Nova Consulta

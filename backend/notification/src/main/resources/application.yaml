@@ -74,6 +74,7 @@ application:
     notification-reminder: notification.reminder.queue
     notification-status: notification.status.queue
     notification-prescription: notification.prescription.queue
+    notification-review: notification.review.queue
     chat-notification: notification.chat.queue
 
 management:

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { DoctorProfile } from "@/types/doctor.types";
@@ -60,6 +60,8 @@ export const EditDoctorProfileDialog = ({
   onSave,
   isLoading = false,
 }: EditDialogProps) => {
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
   const form = useForm<DoctorProfileFormInput>({
     resolver: zodResolver(DoctorProfileSchema),
     defaultValues: emptyProfileDefaults,
@@ -122,7 +124,7 @@ export const EditDoctorProfileDialog = ({
               <FormLabel>
                 Data de Nascimento <span className="text-red-500">*</span>
               </FormLabel>
-              <Popover>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -142,7 +144,10 @@ export const EditDoctorProfileDialog = ({
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      field.onChange(date);
+                      setCalendarOpen(false);
+                    }}
                     captionLayout="dropdown"
                     startMonth={new Date(1900, 0)}
                     endMonth={new Date(new Date().getFullYear(), 11)}

@@ -7,6 +7,8 @@ public record ReviewResponse(
   Long appointmentId,
   Integer rating,
   String comment,
-  LocalDateTime createdAt
+  LocalDateTime createdAt,
+  String patientName,
+  String patientPhotoUrl
 ) {
 }

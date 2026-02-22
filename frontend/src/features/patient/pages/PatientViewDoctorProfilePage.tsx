@@ -2,37 +2,45 @@ import { useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { toast } from "sonner";
 import {
   Calendar,
   Clock,
   Award,
   Stethoscope,
   MessageSquare,
+  Star,
 } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/shared/StarRating";
+
 import {
   getDoctorById,
   getDoctorStats,
   getDoctorReviews,
+  getMyReviewForDoctor,
 } from "@/services/profile";
-import { useState } from "react";
+import {
+  useAppointmentsWithDoctorNames,
+  useCreateAppointment,
+} from "@/services/queries/appointment-queries";
 import { ChatSheet } from "@/features/chat/components/ChatSheet";
-import { CreateAppointmentDialog } from "@/features/patient/components/CreateAppointmentDialog"; 
-import { useCreateAppointment } from "@/services/queries/appointment-queries"; 
-import { toast } from "sonner"; 
+import { CreateAppointmentDialog } from "@/features/patient/components/CreateAppointmentDialog";
+import { CreateReviewDialog } from "@/features/patient/components/CreateReviewDialog";
 
 export const PatientViewDoctorProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const doctorId = Number(id);
   const API_BASE_URL = "http://localhost:9000";
-
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isAppointmentOpen, setIsAppointmentOpen] = useState(false); // <--- Estado do Modal
+  const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
 
   const { data: doctor, isLoading: isLoadingDoctor } = useQuery({
     queryKey: ["doctor", doctorId],
@@ -52,7 +60,24 @@ export const PatientViewDoctorProfilePage = () => {
     enabled: !!doctorId,
   });
 
+  const { data: myReview } = useQuery({
+    queryKey: ["my-review", doctorId],
+    queryFn: () => getMyReviewForDoctor(doctorId),
+    enabled: !!doctorId,
+  });
+
+  const { data: appointments } = useAppointmentsWithDoctorNames();
   const createAppointmentMutation = useCreateAppointment();
+  const completedAppointments = appointments?.filter(
+    (a) => a.doctorId === doctorId && a.status === "COMPLETED",
+  );
+
+  const canReview =
+    myReview || (completedAppointments && completedAppointments.length > 0);
+
+  const reviewAppointmentId =
+    myReview?.appointmentId ||
+    (completedAppointments ? completedAppointments[0]?.id : 0);
 
   const handleAppointmentSubmit = (data: any) => {
     createAppointmentMutation.mutate(data, {
@@ -128,15 +153,13 @@ export const PatientViewDoctorProfilePage = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 min-w-[200px]">
-            <div className="pt-4">
-              <Button
-                className="px-20 shadow-md text-secondary"
-                onClick={() => setIsAppointmentOpen(true)}
-              >
-                Agendar Consulta
-              </Button>
-            </div>
+          <div className="flex flex-col gap-3 min-w-[200px] pt-4">
+            <Button
+              className="px-8 shadow-md text-secondary"
+              onClick={() => setIsAppointmentOpen(true)}
+            >
+              Agendar Consulta
+            </Button>
 
             <Button
               variant="outline"
@@ -146,6 +169,17 @@ export const PatientViewDoctorProfilePage = () => {
               <MessageSquare className="w-4 h-4" />
               Enviar Mensagem
             </Button>
+
+            {canReview && (
+              <Button
+                variant="secondary"
+                className="w-full gap-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                onClick={() => setIsReviewOpen(true)}
+              >
+                <Star className="w-4 h-4" />
+                {myReview ? "Editar Avaliação" : "Avaliar Médico"}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -158,7 +192,7 @@ export const PatientViewDoctorProfilePage = () => {
                 <span className="text-primary">Sobre</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-gray-700 leading-relaxed">
+            <CardContent className="space-y-4 text-gray-600 dark:text-gray-300 leading-relaxed">
               <p>
                 {doctor.biography || "Nenhuma biografia informada pelo médico."}
               </p>
@@ -208,15 +242,26 @@ export const PatientViewDoctorProfilePage = () => {
                       className="border-b pb-6 last:border-0 last:pb-0"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback>P</AvatarFallback>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage
+                              src={
+                                review.patientPhotoUrl
+                                  ? `${API_BASE_URL}${review.patientPhotoUrl}`
+                                  : undefined
+                              }
+                            />
+                            <AvatarFallback>
+                              {review.patientName
+                                ? review.patientName.charAt(0)
+                                : "P"}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="text-sm font-semibold">
-                              Paciente Verificado
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {review.patientName || "Paciente Verificado"}
                             </p>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 mt-0.5">
                               <StarRating
                                 rating={review.rating}
                                 readOnly
@@ -225,6 +270,7 @@ export const PatientViewDoctorProfilePage = () => {
                             </div>
                           </div>
                         </div>
+
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {format(new Date(review.createdAt), "dd MMM yyyy", {
@@ -232,8 +278,14 @@ export const PatientViewDoctorProfilePage = () => {
                           })}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-2 pl-10">
-                        "{review.comment || "Avaliação sem comentário."}"
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-3 pl-12">
+                        {review.comment ? (
+                          `"${review.comment}"`
+                        ) : (
+                          <span className="italic text-gray-400">
+                            Avaliação sem comentário.
+                          </span>
+                        )}
                       </p>
                     </div>
                   ))}
@@ -244,13 +296,13 @@ export const PatientViewDoctorProfilePage = () => {
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-blue-50 border-blue-100">
+          <Card className="bg-blue-50 border-blue-100 dark:bg-blue-950/20 dark:border-blue-900">
             <CardHeader>
-              <CardTitle className="text-blue-800">
+              <CardTitle className="text-blue-800 dark:text-blue-400">
                 Por que escolher este médico?
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-blue-700 space-y-2">
+            <CardContent className="text-sm text-blue-700 dark:text-blue-300 space-y-2 font-medium">
               <p>✓ Especialista verificado</p>
               <p>✓ Alta taxa de satisfação</p>
               <p>✓ Atendimento humanizado</p>
@@ -273,6 +325,16 @@ export const PatientViewDoctorProfilePage = () => {
         isPending={createAppointmentMutation.isPending}
         defaultDoctorId={doctorId}
       />
+
+      {reviewAppointmentId > 0 && (
+        <CreateReviewDialog
+          open={isReviewOpen}
+          onOpenChange={setIsReviewOpen}
+          appointmentId={reviewAppointmentId}
+          doctorId={doctorId}
+          doctorName={doctor.name}
+        />
+      )}
     </div>
   );
 };

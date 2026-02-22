@@ -164,7 +164,7 @@ export const PatientAppointmentsPage = () => {
         </div>
         <Button
           onClick={() => setIsDialogOpen(true)}
-          className="w-full md:w-auto text-secondary cursor-pointer"
+          className="w-full md:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
           Agendar Consulta

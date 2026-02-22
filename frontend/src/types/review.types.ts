@@ -9,8 +9,10 @@ export interface ReviewResponse {
   id: number;
   appointmentId: number;
   rating: number;
-  comment: string;
+  comment?: string;
   createdAt: string;
+  patientName?: string;
+  patientPhotoUrl?: string;
 }
 
 export interface DoctorRatingStats {
