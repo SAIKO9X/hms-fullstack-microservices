@@ -85,7 +85,7 @@ export const useAllUsers = () => {
     queryKey: adminKeys.users(),
     queryFn: async () => {
       const { data } = await api.get("/users/all");
-      return data.data;
+      return data?.data?.content || data?.data || [];
     },
     staleTime: 5 * 60 * 1000,
   });

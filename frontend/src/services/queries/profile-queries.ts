@@ -56,7 +56,7 @@ export const useAllPatients = (page = 0, size = 100) => {
     queryKey: [...profileKeys.allPatients, page, size],
     queryFn: async () => {
       const response = await ProfileService.getAllPatients(page, size);
-      return response.content;
+      return response?.content || response || [];
     },
   });
 };
@@ -84,7 +84,7 @@ export const useAllDoctors = (page = 0, size = 100) => {
     queryKey: [...profileKeys.allDoctors, page, size],
     queryFn: async () => {
       const response = await ProfileService.getAllDoctors(page, size);
-      return response.content;
+      return response?.content || response || [];
     },
   });
 };

@@ -172,7 +172,14 @@ export default function AdminUsersPage() {
   };
 
   const patientsWithDetails = useMemo<PatientWithDetails[]>(() => {
-    if (!patients || !Array.isArray(patients) || !users) return [];
+    if (
+      !patients ||
+      !Array.isArray(patients) ||
+      !users ||
+      !Array.isArray(users)
+    )
+      return [];
+
     return patients.map((patient: PatientProfile) => {
       const user = users.find((u) => u.id === patient.userId);
       return {
@@ -184,7 +191,9 @@ export default function AdminUsersPage() {
   }, [patients, users]);
 
   const doctorsWithDetails = useMemo<DoctorWithDetails[]>(() => {
-    if (!doctors || !Array.isArray(doctors) || !users) return [];
+    if (!doctors || !Array.isArray(doctors) || !users || !Array.isArray(users))
+      return [];
+
     return doctors.map((doctor: DoctorProfile) => {
       const user = users.find((u) => u.id === doctor.userId);
       return {
