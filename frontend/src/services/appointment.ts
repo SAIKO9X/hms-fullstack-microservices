@@ -253,7 +253,7 @@ export const getDoctorAvailability = async (
   doctorId: number,
 ): Promise<AvailabilitySlot[]> => {
   const { data } = await api.get<ApiResponse<AvailabilitySlot[]>>(
-    `/doctor/appointments/availability/${doctorId}`,
+    `/appointments/availability/${doctorId}`,
   );
   return data.data;
 };
@@ -263,7 +263,7 @@ export const addDoctorAvailability = async (
   slot: Omit<AvailabilitySlot, "id">,
 ): Promise<AvailabilitySlot> => {
   const { data } = await api.post<ApiResponse<AvailabilitySlot>>(
-    `/doctor/appointments/availability/${doctorId}`,
+    `/appointments/availability/${doctorId}`,
     slot,
   );
   return data.data;
@@ -271,8 +271,19 @@ export const addDoctorAvailability = async (
 
 export const deleteDoctorAvailability = async (id: number): Promise<void> => {
   await api.delete<ApiResponse<void>>(
-    `/doctor/appointments/availability/${id}`,
+    `/appointments/availability/${id}`, // <-- REMOVIDO /doctor
   );
+};
+
+export const getAvailableSlots = async (
+  doctorId: number,
+  date: string,
+  duration: number,
+): Promise<string[]> => {
+  const { data } = await api.get<ApiResponse<string[]>>(
+    `/appointments/availability/available-slots?doctorId=${doctorId}&date=${date}&duration=${duration}`,
+  );
+  return data.data;
 };
 
 // === LAB ORDERS ===

@@ -1,9 +1,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
+import { useAppSelector } from "@/store/hooks";
 import {
   useAppointmentsByPatientId,
   useCreateMedicalDocument,
+  useAppointmentsWithDoctorNames,
 } from "@/services/queries/appointment-queries";
 import { uploadFile } from "@/services/media";
 import { FormDialog } from "@/components/shared/FormDialog";
@@ -54,6 +56,9 @@ export const AddDocumentDialog = ({
   initialAppointmentId,
   patientId,
 }: Props) => {
+  const { user } = useAppSelector((state) => state.auth);
+  const isPatient = user?.role === "PATIENT";
+
   const form = useForm<DocumentFormData>({
     resolver: zodResolver(DocumentSchema),
     defaultValues: {
@@ -63,13 +68,24 @@ export const AddDocumentDialog = ({
     },
   });
 
-  const { data: patientAppointments = [], isLoading } =
-    useAppointmentsByPatientId(patientId);
+  const myAppointmentsQuery = useAppointmentsWithDoctorNames(0, 100);
+  const patientAppointmentsQuery = useAppointmentsByPatientId(
+    isPatient ? 0 : patientId,
+  );
+
+  const isLoading = isPatient
+    ? myAppointmentsQuery.isLoading
+    : patientAppointmentsQuery.isLoading;
+
+  const appointmentsList = isPatient
+    ? myAppointmentsQuery.data || []
+    : patientAppointmentsQuery.data || [];
 
   const createDocumentMutation = useCreateMedicalDocument();
 
   const onSubmit = async (data: DocumentFormData) => {
     const mediaResponse = await uploadFile(data.file);
+
     await createDocumentMutation.mutateAsync({
       patientId: patientId,
       appointmentId: data.appointmentId,
@@ -138,8 +154,8 @@ export const AddDocumentDialog = ({
             <FormLabel>Associar à Consulta</FormLabel>
             <Select
               onValueChange={(value) => field.onChange(Number(value))}
-              defaultValue={field.value ? String(field.value) : undefined}
-              disabled={isLoading || patientAppointments.length === 0}
+              value={field.value ? String(field.value) : undefined}
+              disabled={isLoading || appointmentsList.length === 0}
             >
               <FormControl>
                 <SelectTrigger>
@@ -147,22 +163,34 @@ export const AddDocumentDialog = ({
                     placeholder={
                       isLoading
                         ? "Carregando consultas..."
-                        : "Selecione uma consulta"
+                        : appointmentsList.length === 0
+                          ? "Nenhuma consulta encontrada"
+                          : "Selecione uma consulta"
                     }
                   />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {patientAppointments.length > 0 ? (
-                  patientAppointments.map((app) => (
-                    <SelectItem key={app.id} value={String(app.id)}>
-                      Consulta de{" "}
-                      {format(new Date(app.appointmentDateTime), "dd/MM/yyyy")}
-                    </SelectItem>
-                  ))
+                {appointmentsList.length > 0 ? (
+                  appointmentsList.map((app) => {
+                    const dateStr = format(
+                      new Date(app.appointmentDateTime),
+                      "dd/MM/yyyy 'às' HH:mm",
+                    );
+                    const docName = (app as any).doctorName
+                      ? ` com ${(app as any).doctorName}`
+                      : "";
+                    const reason = app.reason ? ` - ${app.reason}` : "";
+
+                    return (
+                      <SelectItem key={app.id} value={String(app.id)}>
+                        {`${dateStr}${docName}${reason}`}
+                      </SelectItem>
+                    );
+                  })
                 ) : (
                   <SelectItem value="none" disabled>
-                    Nenhuma consulta encontrada para este paciente.
+                    Nenhuma consulta encontrada.
                   </SelectItem>
                 )}
               </SelectContent>

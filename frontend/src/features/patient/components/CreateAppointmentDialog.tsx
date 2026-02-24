@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { parseISO, addMinutes } from "date-fns";
-import { useMemo, useEffect } from "react";
+import { format } from "date-fns";
+import { useEffect } from "react";
 import {
   AppointmentFormInputSchema,
   AppointmentFormSchema,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/schemas/appointment.schema";
 import {
   useDoctorsDropdown,
-  useGetDoctorUnavailability,
+  useAvailableSlots,
   useGetDoctorAvailability,
 } from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
@@ -30,25 +30,6 @@ interface CreateAppointmentDialogProps {
   isPending: boolean;
   defaultDoctorId?: number;
 }
-
-const TIME_SLOTS = [
-  "08:00",
-  "08:30",
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-];
 
 const DURATION_OPTIONS = [
   { value: "15", label: "15 min (Rápida)" },
@@ -77,7 +58,7 @@ export const CreateAppointmentDialog = ({
       reason: "",
       doctorId: defaultDoctorId ? String(defaultDoctorId) : "",
       appointmentTime: "",
-      duration: "60",
+      duration: "30",
       type: "IN_PERSON",
     },
   });
@@ -100,92 +81,34 @@ export const CreateAppointmentDialog = ({
     (d) => String(d.id) === selectedDoctorId,
   );
 
-  const { data: unavailabilityList } = useGetDoctorUnavailability(
-    Number(selectedDoctorId),
-  );
+  const formattedDate = selectedDate
+    ? format(new Date(selectedDate), "yyyy-MM-dd")
+    : undefined;
 
-  const { data: availabilityList } = useGetDoctorAvailability(
-    Number(selectedDoctorId),
-  );
-
-  const availableTimeSlots = useMemo(() => {
-    if (!selectedDate) {
-      return TIME_SLOTS;
-    }
-
-    const durationMinutes = parseInt(selectedDuration || "60", 10);
-    const dateObj = new Date(selectedDate);
-    const jsDay = dateObj.getDay();
-    const JAVA_DAYS_OF_WEEK = [
-      "SUNDAY",
-      "MONDAY",
-      "TUESDAY",
-      "WEDNESDAY",
-      "THURSDAY",
-      "FRIDAY",
-      "SATURDAY",
-    ];
-    const javaDayOfWeekString = JAVA_DAYS_OF_WEEK[jsDay];
-
-    const dayAvailabilities = availabilityList?.filter(
-      (a) => a.dayOfWeek === javaDayOfWeekString,
+  const { data: availableSlots = [], isLoading: isLoadingSlots } =
+    useAvailableSlots(
+      selectedDoctorId ? Number(selectedDoctorId) : undefined,
+      formattedDate,
+      Number(selectedDuration),
     );
 
-    if (
-      availabilityList &&
-      availabilityList.length > 0 &&
-      (!dayAvailabilities || dayAvailabilities.length === 0)
-    ) {
-      return [];
-    }
-
-    return TIME_SLOTS.filter((time) => {
-      const [hours, minutes] = time.split(":").map(Number);
-      const slotStart = new Date(selectedDate);
-      slotStart.setHours(hours, minutes, 0, 0);
-      const slotEnd = addMinutes(slotStart, durationMinutes);
-
-      const slotTimeStartStr = `${hours.toString().padStart(2, "0")}:${minutes
-        .toString()
-        .padStart(2, "0")}:00`;
-
-      const endHours = slotEnd.getHours();
-      const endMinutes = slotEnd.getMinutes();
-      const slotTimeEndStr = `${endHours
-        .toString()
-        .padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}:00`;
-
-      if (dayAvailabilities && dayAvailabilities.length > 0) {
-        const isWithinWorkingHours = dayAvailabilities.some((avail) => {
-          return (
-            slotTimeStartStr >= avail.startTime &&
-            slotTimeEndStr <= avail.endTime
-          );
-        });
-        if (!isWithinWorkingHours) return false;
-      }
-
-      if (unavailabilityList && unavailabilityList.length > 0) {
-        const isBlocked = unavailabilityList.some((block) => {
-          const blockStart = parseISO(block.startDateTime);
-          const blockEnd = parseISO(block.endDateTime);
-          return slotStart < blockEnd && slotEnd > blockStart;
-        });
-
-        if (isBlocked) return false;
-      }
-
-      return true;
-    });
-  }, [selectedDate, unavailabilityList, availabilityList, selectedDuration]);
+  const { data: availabilityList } = useGetDoctorAvailability(
+    selectedDoctorId ? Number(selectedDoctorId) : 0,
+  );
 
   const handleFormSubmit = (data: AppointmentFormInput) => {
-    if (!availableTimeSlots.includes(data.appointmentTime)) {
+    const timeValue = data.appointmentTime.substring(0, 5);
+    const isValidSlot = availableSlots.some(
+      (slot) => slot.substring(0, 5) === timeValue,
+    );
+
+    if (!isValidSlot) {
       form.setError("appointmentTime", {
-        message: "Horário indisponível para esta duração.",
+        message: "O horário selecionado não está mais disponível.",
       });
       return;
     }
+
     const transformedData = AppointmentFormSchema.parse(data);
     onSubmit(transformedData);
   };
@@ -197,6 +120,32 @@ export const CreateAppointmentDialog = ({
     onOpenChange(newOpen);
   };
 
+  const isDateDisabled = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) return true;
+
+    if (selectedDoctorId && availabilityList) {
+      if (availabilityList.length === 0) return true;
+      const JAVA_DAYS_OF_WEEK = [
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+        "SATURDAY",
+      ];
+      const dayStr = JAVA_DAYS_OF_WEEK[date.getDay()];
+
+      const worksOnThisDay = availabilityList.some(
+        (a) => a.dayOfWeek === dayStr,
+      );
+      return !worksOnThisDay;
+    }
+    return false;
+  };
+
   const hasDoctors = doctors && doctors.length > 0;
 
   const doctorOptions =
@@ -205,10 +154,13 @@ export const CreateAppointmentDialog = ({
       value: String(doc.id),
     })) || [];
 
-  const timeSlotOptions = availableTimeSlots.map((time) => ({
-    label: time,
-    value: time,
-  }));
+  const timeSlotOptions = availableSlots.map((time) => {
+    const formattedTime = time.substring(0, 5);
+    return {
+      label: formattedTime,
+      value: formattedTime,
+    };
+  });
 
   return (
     <FormDialog
@@ -250,9 +202,7 @@ export const CreateAppointmentDialog = ({
           label="Data"
           placeholder="Selecione"
           disabled={isPending || !selectedDoctorId}
-          disabledDate={(date) =>
-            date < new Date(new Date().setHours(0, 0, 0, 0))
-          }
+          disabledDate={isDateDisabled}
         />
 
         <FormSelect
@@ -272,15 +222,22 @@ export const CreateAppointmentDialog = ({
         placeholder={
           !selectedDate
             ? "Selecione a data primeiro"
-            : timeSlotOptions.length === 0
-              ? "Nenhum horário livre"
-              : "Selecione o horário"
+            : isLoadingSlots
+              ? "Carregando..."
+              : timeSlotOptions.length === 0
+                ? "Nenhum horário livre"
+                : "Selecione o horário"
         }
         options={timeSlotOptions}
-        disabled={isPending || !selectedDate || timeSlotOptions.length === 0}
+        disabled={
+          isPending ||
+          !selectedDate ||
+          isLoadingSlots ||
+          timeSlotOptions.length === 0
+        }
         description={
-          selectedDate && timeSlotOptions.length > 0
-            ? `Mostrando horários livres para duração de ${selectedDuration} min.`
+          selectedDate && !isLoadingSlots && timeSlotOptions.length === 0
+            ? "O médico não possui vagas para o dia selecionado."
             : undefined
         }
       />

@@ -2,6 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useDoctorDashboardStats,
   useUniquePatientsCount,
+  useGetDoctorAvailability,
 } from "@/services/queries/appointment-queries";
 import { useGetDoctorProfile } from "@/services/queries/doctor-queries";
 import {
@@ -24,26 +25,37 @@ import { useNavigate } from "react-router";
 
 export const DoctorDashboardPage = () => {
   const navigate = useNavigate();
-
   const {
     data: stats,
     isLoading: isLoadingStats,
     isError,
   } = useDoctorDashboardStats();
-
   const { data: uniquePatients, isLoading: isLoadingPatients } =
     useUniquePatientsCount();
-
   const { data: doctorProfile, isLoading: isLoadingProfile } =
     useGetDoctorProfile();
-
+  const { data: availability, isLoading: isLoadingAvailability } =
+    useGetDoctorAvailability(doctorProfile?.id ? Number(doctorProfile.id) : 0);
   const isLoading = isLoadingStats || isLoadingPatients;
-
+  const isCheckingProfile = isLoadingProfile || isLoadingAvailability;
+  const missingFee = !doctorProfile?.consultationFee;
+  const missingSpecialization = !doctorProfile?.specialization;
+  const missingBiography = !doctorProfile?.biography;
+  const missingAvailability = !availability || availability.length === 0;
   const isProfileIncomplete =
     doctorProfile &&
-    (!doctorProfile.consultationFee ||
-      !doctorProfile.biography ||
-      !doctorProfile.specialization);
+    (missingFee ||
+      missingSpecialization ||
+      missingBiography ||
+      missingAvailability);
+
+  const handleFixProfile = () => {
+    if (missingFee || missingSpecialization || missingBiography) {
+      navigate("/doctor/profile");
+    } else {
+      navigate("/doctor/availability");
+    }
+  };
 
   if (isError) {
     return (
@@ -63,12 +75,11 @@ export const DoctorDashboardPage = () => {
         </p>
       </div>
 
-      {/* exibe o alerta se o perfil estiver incompleto */}
-      {!isLoadingProfile && isProfileIncomplete && (
+      {!isCheckingProfile && isProfileIncomplete && (
         <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200">
           <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           <AlertTitle className="text-lg font-semibold text-amber-800 dark:text-amber-300 ml-2">
-            Seu perfil está incompleto
+            Atenção: Ação Necessária!
           </AlertTitle>
           <AlertDescription className="mt-2 ml-2">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -78,11 +89,12 @@ export const DoctorDashboardPage = () => {
                   você precisa preencher:
                 </p>
                 <ul className="list-disc list-inside mt-1 font-medium">
-                  {!doctorProfile?.consultationFee && (
-                    <li>Preço da Consulta</li>
+                  {missingFee && <li>Preço da Consulta</li>}
+                  {missingSpecialization && <li>Especialização</li>}
+                  {missingBiography && <li>Biografia/Sobre mim</li>}
+                  {missingAvailability && (
+                    <li>Horários de Atendimento (Jornada de Trabalho)</li>
                   )}
-                  {!doctorProfile?.specialization && <li>Especialização</li>}
-                  {!doctorProfile?.biography && <li>Biografia/Sobre mim</li>}
                 </ul>
                 <p className="mt-2 text-amber-800/80 dark:text-amber-300/80 italic">
                   Enquanto isso não for feito, você está{" "}
@@ -90,11 +102,11 @@ export const DoctorDashboardPage = () => {
                 </p>
               </div>
               <Button
-                onClick={() => navigate("/doctor/profile")}
+                onClick={handleFixProfile}
                 variant="outline"
                 className="whitespace-nowrap border-amber-600 text-amber-700 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-500 dark:text-amber-400 dark:hover:bg-amber-900/50"
               >
-                Completar Perfil Agora
+                Resolver Agora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -107,29 +119,29 @@ export const DoctorDashboardPage = () => {
           title="Consultas Hoje"
           value={stats?.appointmentsTodayCount || 0}
           icon={Clock}
-          color="blue"
-          isLoading={isLoading}
+          variant="blue"
+          loading={isLoading}
         />
         <StatCard
           title="Concluídas (Semana)"
           value={stats?.completedThisWeekCount || 0}
           icon={Check}
-          color="green"
-          isLoading={isLoading}
+          variant="green"
+          loading={isLoading}
         />
         <StatCard
           title="Pacientes Atendidos"
           value={uniquePatients || 0}
           icon={Users}
-          color="purple"
-          isLoading={isLoading}
+          variant="purple"
+          loading={isLoading}
         />
         <StatCard
           title="Canceladas (Total)"
           value={stats?.statusDistribution.CANCELED || 0}
           icon={X}
-          color="red"
-          isLoading={isLoading}
+          variant="red"
+          loading={isLoading}
         />
       </div>
 

@@ -396,6 +396,8 @@ export function FormDatePicker<T extends FieldValues>({
   disabledDate,
   disabled,
 }: FormDatePickerProps<T>) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <FormField
       control={control}
@@ -403,7 +405,7 @@ export function FormDatePicker<T extends FieldValues>({
       render={({ field }) => (
         <FormItem className={cn("flex flex-col", className)}>
           {label && <FormLabel>{label}</FormLabel>}
-          <Popover>
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
@@ -427,7 +429,10 @@ export function FormDatePicker<T extends FieldValues>({
               <Calendar
                 mode="single"
                 selected={field.value}
-                onSelect={field.onChange}
+                onSelect={(date) => {
+                  field.onChange(date);
+                  setIsOpen(false);
+                }}
                 disabled={disabledDate}
                 locale={ptBR}
                 autoFocus

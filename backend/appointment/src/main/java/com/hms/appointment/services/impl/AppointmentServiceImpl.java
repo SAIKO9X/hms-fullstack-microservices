@@ -490,6 +490,63 @@ public class AppointmentServiceImpl implements AppointmentService {
       .stream().map(Appointment::getDoctorId).distinct().toList();
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public List<String> getAvailableTimeSlots(Long doctorId, LocalDate date, Integer duration) {
+    DayOfWeek dayOfWeek = date.getDayOfWeek();
+
+    List<DoctorAvailability> availabilities = availabilityRepository.findByDoctorId(doctorId).stream()
+      .filter(a -> a.getDayOfWeek() == dayOfWeek)
+      .toList();
+
+    if (availabilities.isEmpty()) {
+      return List.of();
+    }
+
+    int slotDurationMinutes = (duration != null && duration > 0) ? duration : 30;
+    List<LocalTime> potentialSlots = new ArrayList<>();
+
+    for (DoctorAvailability availability : availabilities) {
+      LocalTime currentSlot = availability.getStartTime();
+      while (!currentSlot.plusMinutes(slotDurationMinutes).isAfter(availability.getEndTime())) {
+        potentialSlots.add(currentSlot);
+        currentSlot = currentSlot.plusMinutes(slotDurationMinutes);
+      }
+    }
+
+    List<Appointment> dailyAppointments = appointmentRepository.findByDoctorIdAndAppointmentDateTimeBetween(
+      doctorId,
+      date.atStartOfDay(),
+      date.atTime(LocalTime.MAX)
+    ).stream().filter(a -> a.getStatus() != AppointmentStatus.CANCELED).toList();
+
+    List<String> availableSlots = new ArrayList<>();
+    LocalDateTime now = LocalDateTime.now();
+
+    for (LocalTime slot : potentialSlots) {
+      LocalDateTime slotStart = LocalDateTime.of(date, slot);
+      LocalDateTime slotEnd = slotStart.plusMinutes(slotDurationMinutes);
+
+      if (slotStart.isBefore(now)) {
+        continue;
+      }
+
+      boolean isBlocked = unavailabilityRepository.hasUnavailability(doctorId, slotStart, slotEnd);
+
+      boolean hasAppointment = dailyAppointments.stream().anyMatch(a -> {
+        LocalDateTime appStart = a.getAppointmentDateTime();
+        LocalDateTime appEnd = a.getAppointmentEndTime();
+        return slotStart.isBefore(appEnd) && slotEnd.isAfter(appStart);
+      });
+
+      if (!isBlocked && !hasAppointment) {
+        availableSlots.add(slot.toString());
+      }
+    }
+
+    return availableSlots;
+  }
+
   private void validateNewAppointment(Long patientId, Long doctorId, LocalDateTime start, LocalDateTime end) {
     validateBusinessHours(start);
 

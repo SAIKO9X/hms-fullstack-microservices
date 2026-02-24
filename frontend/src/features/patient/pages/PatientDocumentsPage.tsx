@@ -32,7 +32,6 @@ import { CustomNotification } from "../../../components/notifications/CustomNoti
 import { DocumentsCard } from "../components/DocumentsCard";
 import { AddDocumentDialog } from "../components/AddDocumentDialog";
 
-// Mapeamento de tipos de documento para labels e cores
 const documentTypeConfig: Record<
   string,
   { label: string; color: string; icon: React.ElementType }
@@ -92,18 +91,15 @@ export const PatientDocumentsPage = () => {
     variant: "success" | "error";
   } | null>(null);
 
-  // Filtra e ordena documentos (apenas da página atual)
   const filteredDocuments = useMemo(() => {
     if (!documents) return [];
 
     let filtered = documents;
 
-    // Filtro por tipo
     if (filterType !== "ALL") {
       filtered = filtered.filter((doc) => doc.documentType === filterType);
     }
 
-    // Filtro por busca
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter((doc) =>
@@ -111,14 +107,12 @@ export const PatientDocumentsPage = () => {
       );
     }
 
-    // Ordenar por data mais recente primeiro
     return filtered.sort(
       (a, b) =>
         new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
     );
   }, [documents, searchTerm, filterType]);
 
-  // Obter tipos únicos de documentos para o filtro
   const documentTypes = useMemo(() => {
     if (!documents) return [];
     const types = new Set(documents.map((doc) => doc.documentType));
@@ -168,7 +162,6 @@ export const PatientDocumentsPage = () => {
         />
       )}
 
-      {/* Header */}
       <div className="space-y-4">
         <Button asChild variant="ghost" size="sm" className="gap-2">
           <Link to="/patient/dashboard">
@@ -199,7 +192,6 @@ export const PatientDocumentsPage = () => {
         </div>
       </div>
 
-      {/* Estatísticas */}
       {!isLoading && documents && documents.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -250,7 +242,6 @@ export const PatientDocumentsPage = () => {
         </div>
       )}
 
-      {/* Filtros e Busca */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -283,7 +274,6 @@ export const PatientDocumentsPage = () => {
         </CardHeader>
       </Card>
 
-      {/* Lista de Documentos */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -301,71 +291,76 @@ export const PatientDocumentsPage = () => {
                 <Skeleton key={i} className="h-20 w-full" />
               ))}
             </div>
-          ) : !documents || documents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 bg-muted rounded-full mb-4">
-                <AlertCircle className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">
-                Nenhum documento encontrado
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Seus documentos médicos, exames e relatórios aparecerão aqui
-                após serem enviados pelos seus médicos.
-              </p>
-            </div>
-          ) : filteredDocuments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 bg-muted rounded-full mb-4">
-                <Search className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">
-                Nenhum resultado encontrado
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Tente ajustar os filtros ou o termo de busca.
-              </p>
-            </div>
           ) : (
-            <div className="space-y-4">
-              <DocumentsCard
-                documents={filteredDocuments}
-                isLoading={isLoading}
-              />
-              <div className="flex items-center justify-end space-x-2 py-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((old) => Math.max(0, old - 1))}
-                  disabled={page === 0 || isLoading}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Anterior
-                </Button>
-                <div className="text-sm text-muted-foreground">
-                  Página {page + 1} de {documentsPage?.totalPages || 1}
+            <>
+              {!documents || documents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="p-4 bg-muted rounded-full mb-4">
+                    <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Nenhum documento encontrado
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Seus documentos médicos, exames e relatórios aparecerão aqui
+                    após serem enviados pelos seus médicos.
+                  </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setPage((old) =>
-                      !documentsPage || old >= documentsPage.totalPages - 1
-                        ? old
-                        : old + 1,
-                    )
-                  }
-                  disabled={
-                    !documentsPage ||
-                    page >= documentsPage.totalPages - 1 ||
-                    isLoading
-                  }
-                >
-                  Próxima
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+              ) : filteredDocuments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="p-4 bg-muted rounded-full mb-4">
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    Nenhum resultado encontrado
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Tente ajustar os filtros ou o termo de busca.
+                  </p>
+                </div>
+              ) : (
+                <DocumentsCard
+                  documents={filteredDocuments}
+                  isLoading={isLoading}
+                />
+              )}
+
+              {documentsPage && (documentsPage.totalPages > 1 || page > 0) && (
+                <div className="flex items-center justify-end space-x-2 pt-6 pb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((old) => Math.max(0, old - 1))}
+                    disabled={page === 0 || isLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Página {page + 1} de {Math.max(1, documentsPage.totalPages)}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setPage((old) =>
+                        !documentsPage || old >= documentsPage.totalPages - 1
+                          ? old
+                          : old + 1,
+                      )
+                    }
+                    disabled={
+                      !documentsPage ||
+                      page >= Math.max(0, documentsPage.totalPages - 1) ||
+                      isLoading
+                    }
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

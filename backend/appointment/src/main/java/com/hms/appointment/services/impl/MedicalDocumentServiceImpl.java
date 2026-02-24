@@ -106,9 +106,9 @@ public class MedicalDocumentServiceImpl implements MedicalDocumentService {
       throw new InvalidOperationException("A URL do documento não pode ser vazia.");
     }
 
-    if (!mediaUrl.startsWith("http://") && !mediaUrl.startsWith("https://")) {
+    if (!mediaUrl.startsWith("http://") && !mediaUrl.startsWith("https://") && !mediaUrl.startsWith("/")) {
       log.warn("Tentativa de upload com protocolo inválido: {}", mediaUrl);
-      throw new InvalidOperationException("Formato de URL inválido. Apenas links HTTP/HTTPS são permitidos.");
+      throw new InvalidOperationException("Formato de URL inválido. Apenas links HTTP/HTTPS ou caminhos relativos são permitidos.");
     }
 
     String lowerUrl = mediaUrl.toLowerCase();

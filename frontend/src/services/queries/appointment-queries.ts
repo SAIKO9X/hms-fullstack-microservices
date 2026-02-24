@@ -23,6 +23,7 @@ import type { HealthMetricFormData } from "@/lib/schemas/healthMetric.schema";
 import type { LabOrderFormData } from "@/lib/schemas/labOrder.schema";
 import type { Page } from "@/types/pagination.types";
 import type { PatientSummary } from "@/types/doctor.types";
+import { getAvailableSlots } from "../appointment";
 
 export interface AppointmentWithDoctor extends Appointment {
   doctorName?: string;
@@ -68,6 +69,14 @@ export const appointmentKeys = {
   doctorPatients: ["doctor-patients"] as const,
   history: (patientId: number) =>
     [...appointmentKeys.all, "history", patientId] as const,
+  availableSlots: (doctorId: number, date: string, duration: number) =>
+    [
+      ...appointmentKeys.all,
+      "available-slots",
+      doctorId,
+      date,
+      duration,
+    ] as const,
 };
 
 // === APPOINTMENTS QUERIES ===
@@ -431,6 +440,19 @@ export const useGetDoctorAvailability = (doctorId: number) => {
     queryKey: [...appointmentKeys.all, "availability", doctorId],
     queryFn: () => AppointmentService.getDoctorAvailability(doctorId),
     enabled: !!doctorId,
+  });
+};
+
+export const useAvailableSlots = (
+  doctorId?: number,
+  date?: string,
+  duration?: number,
+) => {
+  return useQuery({
+    queryKey: appointmentKeys.availableSlots(doctorId!, date!, duration!),
+    queryFn: () => getAvailableSlots(doctorId!, date!, duration!),
+    enabled: !!doctorId && !!date && !!duration,
+    staleTime: 1 * 60 * 1000,
   });
 };
 
