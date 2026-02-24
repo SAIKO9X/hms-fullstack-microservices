@@ -1,5 +1,6 @@
 package com.hms.pharmacy.services.impl;
 
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.pharmacy.dto.event.StockLowEvent;
@@ -138,8 +139,15 @@ public class MedicineInventoryServiceImpl implements MedicineInventoryService {
     if (remainingStock <= LOW_STOCK_THRESHOLD) {
       try {
         StockLowEvent event = new StockLowEvent(medicineId, medicineName, remainingStock, LOW_STOCK_THRESHOLD);
-        rabbitTemplate.convertAndSend(exchange, "pharmacy.stock.low", event);
-        log.info("Alerta de stock baixo: {}", medicineName);
+
+        EventEnvelope<StockLowEvent> envelope = EventEnvelope.create(
+          "STOCK_LOW_EVENT",
+          String.valueOf(medicineId),
+          event
+        );
+
+        rabbitTemplate.convertAndSend(exchange, "pharmacy.stock.low", envelope);
+        log.info("Alerta de stock baixo (via envelope): {}", medicineName);
       } catch (Exception e) {
         log.error("Erro ao enviar alerta de stock baixo", e);
       }

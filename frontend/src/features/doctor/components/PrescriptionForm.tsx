@@ -19,7 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { AlertCircle, PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { Prescription } from "@/types/record.types";
 import { useEffect } from "react";
@@ -122,36 +122,56 @@ export const PrescriptionForm = ({
               <FormField
                 control={form.control}
                 name={`medicines.${index}.name`}
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Nome do Medicamento</FormLabel>
-                    <Combobox
-                      options={medicineOptions}
-                      value={field.value}
-                      onValueChange={(selectedValue) => {
-                        if (selectedValue) {
-                          const parts = selectedValue.split(" | ");
-                          const name = parts[0];
-                          const dosage = parts[1];
+                render={({ field }) => {
+                  const selectedMedicineName = field.value;
+                  const isMedicineInSystem = selectedMedicineName
+                    ? medicineOptions.some((opt) =>
+                        opt.value.startsWith(selectedMedicineName),
+                      )
+                    : true;
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Nome do Medicamento</FormLabel>
+                      <Combobox
+                        options={medicineOptions}
+                        value={field.value}
+                        onValueChange={(selectedValue) => {
+                          if (selectedValue) {
+                            const parts = selectedValue.split(" | ");
+                            const name = parts[0];
+                            const dosage = parts[1];
 
-                          form.setValue(
-                            `medicines.${index}.name`,
-                            name || selectedValue,
-                          );
-                          if (dosage) {
-                            form.setValue(`medicines.${index}.dosage`, dosage);
+                            form.setValue(
+                              `medicines.${index}.name`,
+                              name || selectedValue,
+                            );
+                            if (dosage) {
+                              form.setValue(
+                                `medicines.${index}.dosage`,
+                                dosage,
+                              );
+                            }
+                          } else {
+                            form.setValue(`medicines.${index}.name`, "");
                           }
-                        } else {
-                          form.setValue(`medicines.${index}.name`, "");
-                        }
-                      }}
-                      placeholder="Selecione ou digite um medicamento"
-                      searchPlaceholder="Buscar medicamento..."
-                      emptyMessage="Nenhum medicamento encontrado."
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
+                        }}
+                        placeholder="Selecione ou digite um medicamento"
+                        searchPlaceholder="Buscar medicamento..."
+                        emptyMessage="Nenhum medicamento encontrado."
+                      />
+
+                      {selectedMedicineName && !isMedicineInSystem && (
+                        <span className="text-xs text-amber-600 flex items-center mt-1">
+                          <AlertCircle className="min-w-3 min-h-3 w-3 h-3 mr-1" />
+                          Medicamento não cadastrado no hospital. A farmácia
+                          será notificada.
+                        </span>
+                      )}
+
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormInput
