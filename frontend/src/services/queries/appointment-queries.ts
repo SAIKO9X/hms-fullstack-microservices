@@ -426,6 +426,14 @@ export const useDeleteDoctorUnavailability = () => {
   });
 };
 
+export const useGetDoctorAvailability = (doctorId: number) => {
+  return useQuery({
+    queryKey: [...appointmentKeys.all, "availability", doctorId],
+    queryFn: () => AppointmentService.getDoctorAvailability(doctorId),
+    enabled: !!doctorId,
+  });
+};
+
 // === DOCTOR DASHBOARD ===
 export const useDoctorDashboardStats = () => {
   return useQuery({

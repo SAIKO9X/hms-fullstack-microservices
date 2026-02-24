@@ -55,18 +55,23 @@ export default function AuditLogsPage() {
                   Anterior
                 </Button>
                 <div className="text-sm font-medium">
-                  Página {data?.number !== undefined ? data.number + 1 : 1} de{" "}
-                  {data?.totalPages || 1}
+                  Página{" "}
+                  {data?.pagination?.currentPage !== undefined
+                    ? data.pagination.currentPage + 1
+                    : 1}{" "}
+                  de {data?.pagination?.totalPages || 1}
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (!isPlaceholderData && data && !data.last) {
+                    if (!isPlaceholderData && data && !data.pagination?.last) {
                       setPage((old) => old + 1);
                     }
                   }}
-                  disabled={data?.last || isLoading || isPlaceholderData}
+                  disabled={
+                    data?.pagination?.last || isLoading || isPlaceholderData
+                  }
                 >
                   Próximo
                 </Button>

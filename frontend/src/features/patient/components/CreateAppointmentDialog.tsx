@@ -11,6 +11,7 @@ import {
 import {
   useDoctorsDropdown,
   useGetDoctorUnavailability,
+  useGetDoctorAvailability,
 } from "@/services/queries/appointment-queries";
 import { appointmentReasons } from "@/data/appointmentReasons";
 import { FormDialog } from "@/components/shared/FormDialog";
@@ -19,7 +20,7 @@ import {
   FormSelect,
   FormDatePicker,
   FormRadioGroup,
-  FormCombobox, // Novo componente importado
+  FormCombobox,
 } from "@/components/ui/form-fields";
 
 interface CreateAppointmentDialogProps {
@@ -93,26 +94,50 @@ export const CreateAppointmentDialog = ({
 
   useEffect(() => {
     form.setValue("appointmentTime", "");
-  }, [selectedDuration, form]);
+  }, [selectedDuration, selectedDate, form]);
 
   const selectedDoctor = doctors?.find(
-    (d) => String(d.userId) === selectedDoctorId,
+    (d) => String(d.id) === selectedDoctorId,
   );
 
   const { data: unavailabilityList } = useGetDoctorUnavailability(
     Number(selectedDoctorId),
   );
 
+  const { data: availabilityList } = useGetDoctorAvailability(
+    Number(selectedDoctorId),
+  );
+
   const availableTimeSlots = useMemo(() => {
-    if (
-      !selectedDate ||
-      !unavailabilityList ||
-      unavailabilityList.length === 0
-    ) {
+    if (!selectedDate) {
       return TIME_SLOTS;
     }
 
     const durationMinutes = parseInt(selectedDuration || "60", 10);
+    const dateObj = new Date(selectedDate);
+    const jsDay = dateObj.getDay();
+    const JAVA_DAYS_OF_WEEK = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
+    const javaDayOfWeekString = JAVA_DAYS_OF_WEEK[jsDay];
+
+    const dayAvailabilities = availabilityList?.filter(
+      (a) => a.dayOfWeek === javaDayOfWeekString,
+    );
+
+    if (
+      availabilityList &&
+      availabilityList.length > 0 &&
+      (!dayAvailabilities || dayAvailabilities.length === 0)
+    ) {
+      return [];
+    }
 
     return TIME_SLOTS.filter((time) => {
       const [hours, minutes] = time.split(":").map(Number);
@@ -120,15 +145,39 @@ export const CreateAppointmentDialog = ({
       slotStart.setHours(hours, minutes, 0, 0);
       const slotEnd = addMinutes(slotStart, durationMinutes);
 
-      const isBlocked = unavailabilityList.some((block) => {
-        const blockStart = parseISO(block.startDateTime);
-        const blockEnd = parseISO(block.endDateTime);
-        return slotStart < blockEnd && slotEnd > blockStart;
-      });
+      const slotTimeStartStr = `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:00`;
 
-      return !isBlocked;
+      const endHours = slotEnd.getHours();
+      const endMinutes = slotEnd.getMinutes();
+      const slotTimeEndStr = `${endHours
+        .toString()
+        .padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}:00`;
+
+      if (dayAvailabilities && dayAvailabilities.length > 0) {
+        const isWithinWorkingHours = dayAvailabilities.some((avail) => {
+          return (
+            slotTimeStartStr >= avail.startTime &&
+            slotTimeEndStr <= avail.endTime
+          );
+        });
+        if (!isWithinWorkingHours) return false;
+      }
+
+      if (unavailabilityList && unavailabilityList.length > 0) {
+        const isBlocked = unavailabilityList.some((block) => {
+          const blockStart = parseISO(block.startDateTime);
+          const blockEnd = parseISO(block.endDateTime);
+          return slotStart < blockEnd && slotEnd > blockStart;
+        });
+
+        if (isBlocked) return false;
+      }
+
+      return true;
     });
-  }, [selectedDate, unavailabilityList, selectedDuration]);
+  }, [selectedDate, unavailabilityList, availabilityList, selectedDuration]);
 
   const handleFormSubmit = (data: AppointmentFormInput) => {
     if (!availableTimeSlots.includes(data.appointmentTime)) {
@@ -153,7 +202,7 @@ export const CreateAppointmentDialog = ({
   const doctorOptions =
     doctors?.map((doc) => ({
       label: doc.name,
-      value: String(doc.userId),
+      value: String(doc.id),
     })) || [];
 
   const timeSlotOptions = availableTimeSlots.map((time) => ({
@@ -221,11 +270,19 @@ export const CreateAppointmentDialog = ({
         name="appointmentTime"
         label="Horário de Início"
         placeholder={
-          selectedDate ? "Selecione o horário" : "Selecione a data primeiro"
+          !selectedDate
+            ? "Selecione a data primeiro"
+            : timeSlotOptions.length === 0
+              ? "Nenhum horário livre"
+              : "Selecione o horário"
         }
         options={timeSlotOptions}
-        disabled={isPending || !selectedDate}
-        description={`Mostrando horários livres para duração de ${selectedDuration} min.`}
+        disabled={isPending || !selectedDate || timeSlotOptions.length === 0}
+        description={
+          selectedDate && timeSlotOptions.length > 0
+            ? `Mostrando horários livres para duração de ${selectedDuration} min.`
+            : undefined
+        }
       />
 
       <FormCombobox

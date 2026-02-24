@@ -19,13 +19,16 @@ export const AppointmentFormInputSchema = z.object({
 
 export const AppointmentFormSchema = AppointmentFormInputSchema.transform(
   (data) => {
-    const dateTime = new Date(data.appointmentDate);
-    const [hours, minutes] = data.appointmentTime.split(":").map(Number);
-    dateTime.setHours(hours, minutes, 0, 0);
+    const d = new Date(data.appointmentDate);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const time = data.appointmentTime;
+    const localDateTimeStr = `${year}-${month}-${day}T${time}:00`;
 
     return {
       doctorId: parseInt(data.doctorId, 10),
-      appointmentDateTime: dateTime.toISOString(),
+      appointmentDateTime: localDateTimeStr,
       duration: parseInt(data.duration, 10),
       reason: data.reason,
       type: data.type,

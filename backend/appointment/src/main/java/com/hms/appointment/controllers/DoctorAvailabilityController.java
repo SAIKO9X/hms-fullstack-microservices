@@ -19,7 +19,7 @@ public class DoctorAvailabilityController {
   private final AppointmentService appointmentService;
 
   @GetMapping("/{doctorId}")
-  @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+  @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN', 'PATIENT')")
   public ResponseEntity<ApiResponse<List<AvailabilityResponse>>> getAvailability(@PathVariable Long doctorId) {
     return ResponseEntity.ok(ApiResponse.success(appointmentService.getDoctorAvailability(doctorId)));
   }

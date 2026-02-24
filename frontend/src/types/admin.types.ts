@@ -1,3 +1,5 @@
+import type { PagedResponse } from "./pagination.types";
+
 export interface AdminDashboardStats {
   totalPatients: number;
   totalDoctors: number;
@@ -29,13 +31,4 @@ export interface AuditLog {
   timestamp: string;
 }
 
-export interface AuditLogResponse {
-  content: AuditLog[];
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-  last: boolean;
-  first: boolean;
-  empty: boolean;
-}
+export type AuditLogResponse = PagedResponse<AuditLog>;
