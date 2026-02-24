@@ -354,10 +354,23 @@ public class AppointmentServiceImpl implements AppointmentService {
   @Override
   public List<DailyActivityDto> getDailyActivityStats() {
     LocalDateTime start = LocalDateTime.now().minusDays(30);
+
+    // Mapeamento correto para consultas
     Map<LocalDate, Long> appointments = mapQueryResults(
       appointmentRepository.countAppointmentsFromDateGroupedByDay(start));
-    Map<LocalDate, Long> newPatients = mapQueryResults(
-      appointmentRepository.findFirstAppointmentDateForPatients(start));
+
+    // Mapeamento corrigido para pacientes (agrupando e contando)
+    Map<LocalDate, Long> newPatients = appointmentRepository.findFirstAppointmentDateForPatients(start)
+      .stream()
+      .collect(Collectors.groupingBy(
+        r -> {
+          Object dateObj = r[1]; // A data está no r[1]
+          if (dateObj instanceof java.sql.Date d) return d.toLocalDate();
+          if (dateObj instanceof LocalDate d) return d;
+          return LocalDate.parse(dateObj.toString());
+        },
+        Collectors.counting()
+      ));
 
     return IntStream.range(0, 30)
       .mapToObj(i -> LocalDate.now().minusDays(i))
@@ -520,7 +533,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       throw new InvalidOperationException("Horário inválido. O sistema opera entre 06:00 e 22:00.");
   }
 
-  // Verifica se o requester é o paciente ou o médico envolvido na consulta
+  // verifica se o requester é o paciente ou o médico envolvido na consulta
   private void validateAccess(Appointment app, Long requesterUserId) {
     boolean isPatientOwner = patientReadModelRepository.findByUserId(requesterUserId)
       .map(patient -> patient.getPatientId().equals(app.getPatientId()))
@@ -567,8 +580,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   private Map<LocalDate, Long> mapQueryResults(List<Object[]> results) {
     return results.stream().collect(Collectors.toMap(
-      r -> ((java.sql.Date) r[0]).toLocalDate(),
-      r -> (Long) r[1]
+      r -> {
+        Object dateObj = r[0];
+        if (dateObj instanceof java.sql.Date d) return d.toLocalDate();
+        if (dateObj instanceof LocalDate d) return d;
+        return LocalDate.parse(dateObj.toString());
+      },
+      r -> ((Number) r[1]).longValue()
     ));
   }
 

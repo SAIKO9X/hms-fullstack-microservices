@@ -40,7 +40,7 @@ export const useAdminProfileCounts = () => {
     queryKey: adminKeys.stats(),
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/counts");
-      return data;
+      return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -51,7 +51,7 @@ export const useAppointmentsTodayCount = () => {
     queryKey: adminKeys.appointmentsToday(),
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/appointments-today");
-      return data;
+      return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -62,7 +62,7 @@ export const useDailyActivity = () => {
     queryKey: adminKeys.dailyActivity(),
     queryFn: async () => {
       const { data } = await api.get("/admin/stats/daily-activity");
-      return data;
+      return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -73,7 +73,7 @@ export const useDoctorsStatus = () => {
     queryKey: adminKeys.doctorsStatus(),
     queryFn: async () => {
       const { data } = await api.get("/profile/admin/stats/doctors-status");
-      return data;
+      return data?.data || data;
     },
     staleTime: 1 * 60 * 1000,
     refetchInterval: 60 * 1000,
@@ -85,7 +85,7 @@ export const useAllUsers = () => {
     queryKey: adminKeys.users(),
     queryFn: async () => {
       const { data } = await api.get("/users/all");
-      return data;
+      return data.data;
     },
     staleTime: 5 * 60 * 1000,
   });

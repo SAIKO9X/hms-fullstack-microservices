@@ -88,7 +88,7 @@ export const PatientMessagesPage = () => {
         </ScrollArea>
       </Card>
 
-      <Card className="flex-1 h-full overflow-hidden flex flex-col">
+      <div className="flex-1 h-full overflow-hidden flex flex-col rounded-xl border shadow-sm bg-card text-card-foreground">
         {selectedDoctor ? (
           <ChatWindow
             recipientId={selectedDoctor.id}
@@ -102,7 +102,7 @@ export const PatientMessagesPage = () => {
             <h3 className="text-lg font-semibold">Selecione uma conversa</h3>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 };

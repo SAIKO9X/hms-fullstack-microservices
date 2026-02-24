@@ -330,8 +330,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           "px-4 py-2 shadow-sm transition-all",
                           "relative group",
                           isMe
-                            ? "bg-primary text-foreground"
-                            : "bg-muted text-primary-foreground border border-border/40",
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground border border-border/40",
                           isMe
                             ? cn(
                                 "rounded-2xl",

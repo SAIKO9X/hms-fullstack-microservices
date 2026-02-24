@@ -107,14 +107,14 @@ export const PatientDocumentsPage = () => {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter((doc) =>
-        doc.documentName.toLowerCase().includes(search)
+        doc.documentName.toLowerCase().includes(search),
       );
     }
 
     // Ordenar por data mais recente primeiro
     return filtered.sort(
       (a, b) =>
-        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
     );
   }, [documents, searchTerm, filterType]);
 
@@ -131,7 +131,7 @@ export const PatientDocumentsPage = () => {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisMonth = documents.filter(
-      (doc) => new Date(doc.uploadedAt) >= thisMonthStart
+      (doc) => new Date(doc.uploadedAt) >= thisMonthStart,
     ).length;
 
     return {
@@ -142,7 +142,7 @@ export const PatientDocumentsPage = () => {
           ? documents.reduce((latest, doc) =>
               new Date(doc.uploadedAt) > new Date(latest.uploadedAt)
                 ? doc
-                : latest
+                : latest,
             ).uploadedAt
           : null,
     };
@@ -352,7 +352,7 @@ export const PatientDocumentsPage = () => {
                     setPage((old) =>
                       !documentsPage || old >= documentsPage.totalPages - 1
                         ? old
-                        : old + 1
+                        : old + 1,
                     )
                   }
                   disabled={

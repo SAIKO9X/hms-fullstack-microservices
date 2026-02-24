@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAppSelector } from "@/store/hooks";
 import { useProfile } from "@/services/queries/profile-queries";
-import { ChevronDown, LogOut, Settings, User, SunMoon } from "lucide-react";
+import { ChevronDown, LogOut, User, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useNavigate } from "react-router";
 
 export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   const { setTheme } = useTheme();
   const { user } = useAppSelector((state) => state.auth);
   const { profile } = useProfile();
+  const navigate = useNavigate();
 
   const roleDisplayMap = {
     DOCTOR: "Doutor",
@@ -28,7 +30,24 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const userRoleDisplay = user ? roleDisplayMap[user.role] : "Usuário";
-  const API_BASE_URL = "http://localhost:9000"; // URL do Gateway
+  const API_BASE_URL = "http://localhost:9000";
+
+  const handleProfileClick = () => {
+    if (!user) return;
+    switch (user.role) {
+      case "DOCTOR":
+        navigate("/doctor/profile");
+        break;
+      case "PATIENT":
+        navigate("/patient/profile");
+        break;
+      case "ADMIN":
+        navigate("/admin");
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -62,13 +81,12 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
         <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={handleProfileClick}
+          >
             <User className="mr-3 h-4 w-4" />
             <span>Perfil</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
-            <Settings className="mr-3 h-4 w-4" />
-            <span>Configurações</span>
           </DropdownMenuItem>
 
           <DropdownMenuSub>

@@ -1,9 +1,9 @@
 package com.hms.user;
 
+import com.hms.common.config.CommonLibAutoConfiguration;
 import com.hms.user.entities.User;
 import com.hms.user.enums.UserRole;
 import com.hms.user.repositories.UserRepository;
-import com.hms.common.config.CommonLibAutoConfiguration;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -29,16 +29,27 @@ public class UserApplication {
   public CommandLineRunner createAdminUser(UserRepository userRepository, PasswordEncoder passwordEncoder) {
     return args -> {
       String adminEmail = "admin@hms.com";
-      if (userRepository.findByEmail(adminEmail).isEmpty()) {
-        User admin = new User();
-        admin.setName("Admin User");
-        admin.setEmail(adminEmail);
-        admin.setPassword(passwordEncoder.encode("admin123"));
-        admin.setRole(UserRole.ADMIN);
-        admin.setActive(true); // admin já vem ativo
-        userRepository.save(admin);
-        System.out.println(">>> Usuário Admin padrão criado com sucesso! <<<");
-      }
+
+      userRepository.findByEmail(adminEmail).ifPresentOrElse(
+        admin -> {
+          if (!admin.isActive()) {
+            admin.setActive(true);
+            userRepository.save(admin);
+            System.out.println(">>> Usuário Admin já existia, mas estava inativo. Atualizado para ATIVO! <<<");
+          }
+        },
+        () -> {
+          // se não existir cria do zero
+          User admin = new User();
+          admin.setName("Admin User");
+          admin.setEmail(adminEmail);
+          admin.setPassword(passwordEncoder.encode("admin123"));
+          admin.setRole(UserRole.ADMIN);
+          admin.setActive(true); // admin já vem ativo
+          userRepository.save(admin);
+          System.out.println(">>> Usuário Admin padrão criado com sucesso e ATIVO! <<<");
+        }
+      );
     };
   }
 }

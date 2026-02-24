@@ -54,7 +54,7 @@ export const getAuditLogs = async (
   page = 0,
   size = 20,
 ): Promise<AuditLogResponse> => {
-  const { data } = await api.get<ApiResponse<AuditLogResponse>>("/audit/logs", {
+  const { data } = await api.get<ApiResponse<AuditLogResponse>>("/audit-logs", {
     params: { page, size, sort: "timestamp,desc" },
   });
   return data.data;

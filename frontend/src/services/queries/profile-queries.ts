@@ -51,10 +51,13 @@ export const usePatientsDropdown = () => {
   });
 };
 
-export const useAllPatients = (page = 0, size = 10) => {
+export const useAllPatients = (page = 0, size = 100) => {
   return useQuery({
     queryKey: [...profileKeys.allPatients, page, size],
-    queryFn: () => ProfileService.getAllPatients(page, size),
+    queryFn: async () => {
+      const response = await ProfileService.getAllPatients(page, size);
+      return response.content;
+    },
   });
 };
 
@@ -76,10 +79,13 @@ export const useMedicalHistory = (patientId: number | undefined) => {
 };
 
 // === DOCTORS QUERIES ===
-export const useAllDoctors = (page = 0, size = 10) => {
+export const useAllDoctors = (page = 0, size = 100) => {
   return useQuery({
     queryKey: [...profileKeys.allDoctors, page, size],
-    queryFn: () => ProfileService.getAllDoctors(page, size),
+    queryFn: async () => {
+      const response = await ProfileService.getAllDoctors(page, size);
+      return response.content;
+    },
   });
 };
 
