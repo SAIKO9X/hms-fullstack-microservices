@@ -41,19 +41,21 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   medicine: Medicine | null;
+  prefillName?: string;
 }
 
 export const AddEditMedicineDialog = ({
   open,
   onOpenChange,
   medicine,
+  prefillName,
 }: Props) => {
   const isEditing = !!medicine;
 
   const form = useForm<MedicineFormData>({
     resolver: zodResolver(MedicineFormSchema),
     defaultValues: {
-      name: "",
+      name: prefillName || "",
       dosage: "",
       category: undefined,
       type: undefined,
@@ -71,7 +73,7 @@ export const AddEditMedicineDialog = ({
         form.reset(medicine);
       } else {
         form.reset({
-          name: "",
+          name: prefillName || "",
           dosage: "",
           category: undefined,
           type: undefined,
@@ -80,7 +82,7 @@ export const AddEditMedicineDialog = ({
         });
       }
     }
-  }, [medicine, open, form, isEditing]);
+  }, [medicine, open, form, isEditing, prefillName]);
 
   const onSubmit = async (data: MedicineFormData) => {
     try {

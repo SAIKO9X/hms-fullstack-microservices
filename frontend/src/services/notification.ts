@@ -4,7 +4,7 @@ import type { Notification } from "@/types/notification.types";
 
 // NOTIFICATIONS
 export const getUserNotifications = async (
-  userId: number,
+  userId: string | number,
 ): Promise<Notification[]> => {
   const { data } = await api.get<ApiResponse<Notification[]>>(
     `/notifications/user/${userId}`,
@@ -16,6 +16,6 @@ export const markAsRead = async (notificationId: number): Promise<void> => {
   await api.patch<ApiResponse<void>>(`/notifications/${notificationId}/read`);
 };
 
-export const markAllAsRead = async (userId: number): Promise<void> => {
+export const markAllAsRead = async (userId: string | number): Promise<void> => {
   await api.patch<ApiResponse<void>>(`/notifications/user/${userId}/read-all`);
 };

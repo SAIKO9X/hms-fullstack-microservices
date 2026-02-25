@@ -186,7 +186,7 @@ export const AdminInventoryPage = () => {
               estoque.
             </p>
           </div>
-          <Button className="text-secondary" onClick={handleAddNew} size="lg">
+          <Button onClick={handleAddNew} size="lg">
             <Plus className="mr-2 h-4 w-4" />
             Adicionar ao Estoque
           </Button>

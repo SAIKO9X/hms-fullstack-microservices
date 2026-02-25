@@ -49,6 +49,8 @@ export const NotificationType = {
   PRESCRIPTION: "PRESCRIPTION",
   NEW_MESSAGE: "NEW_MESSAGE",
   SYSTEM_ALERT: "SYSTEM_ALERT",
+  LOW_STOCK: "LOW_STOCK",
+  NEW_REVIEW: "NEW_REVIEW",
 } as const;
 
 export type NotificationType =

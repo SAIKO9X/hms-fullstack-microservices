@@ -19,9 +19,10 @@ export const NotificationsPopover = () => {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
-  const { data: notifications = [], isLoading } = useUserNotifications(
-    user?.id,
-  );
+  const recipientId = user?.role === "ADMIN" ? "ADMIN" : user?.id;
+
+  const { data: notifications = [], isLoading } =
+    useUserNotifications(recipientId);
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
 
@@ -32,8 +33,8 @@ export const NotificationsPopover = () => {
   };
 
   const handleMarkAllAsRead = () => {
-    if (user?.id) {
-      markAllAsRead.mutate(user.id);
+    if (recipientId) {
+      markAllAsRead.mutate(recipientId);
     }
   };
 

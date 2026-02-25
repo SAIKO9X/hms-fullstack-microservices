@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -36,44 +36,58 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/utils/utils";
+import { useLocation, useNavigate } from "react-router";
 
 type StockFilter = "all" | "lowStock";
 
 export const AdminMedicinesPage = () => {
   const [page, setPage] = useState(0);
   const [pageSize] = useState(10);
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(
-    null
+    null,
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
-
+  const [prefillName, setPrefillName] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     data: medicinesPage,
     isLoading,
     error,
   } = useMedicines(page, pageSize);
-
   const medicinesList = medicinesPage?.content || [];
+
+  useEffect(() => {
+    const state = location.state as { prefillMedicine?: string };
+
+    if (state?.prefillMedicine) {
+      setSearchTerm(state.prefillMedicine);
+      setPrefillName(state.prefillMedicine);
+      setSelectedMedicine(null);
+      setIsDialogOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const handleEdit = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
+    setPrefillName("");
     setIsDialogOpen(true);
   };
 
   const handleAddNew = () => {
     setSelectedMedicine(null);
+    setPrefillName("");
     setIsDialogOpen(true);
   };
 
-  // Filtro medicines baseado em searchTerm e stockFilter
   const filteredMedicines = useMemo(() => {
     if (!medicinesList) return [];
 
     return medicinesList.filter((medicine) => {
-      // Filtro de busca por texto
+      // filtro de busca por texto
       const searchMatch =
         medicine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         medicine.manufacturer
@@ -83,7 +97,7 @@ export const AdminMedicinesPage = () => {
 
       if (!searchMatch) return false;
 
-      // Filtro de estoque
+      // filtro de estoque
       if (stockFilter === "lowStock") {
         return (medicine.totalStock || 0) < 10;
       }
@@ -118,7 +132,6 @@ export const AdminMedicinesPage = () => {
 
   return (
     <div className="container mx-auto py-8 space-y-8">
-      {/* Header Section */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
@@ -132,7 +145,7 @@ export const AdminMedicinesPage = () => {
           </div>
           <Button
             onClick={handleAddNew}
-            className="bg-primary hover:bg-primary/90 shadow-sm text-secondary"
+            className="bg-primary hover:bg-primary/90 shadow-sm"
             size="lg"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -140,7 +153,6 @@ export const AdminMedicinesPage = () => {
           </Button>
         </div>
 
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="relative overflow-hidden">
             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
@@ -212,7 +224,6 @@ export const AdminMedicinesPage = () => {
         </div>
       </div>
 
-      {/* Search and Filters */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -258,7 +269,7 @@ export const AdminMedicinesPage = () => {
                                 "mr-2 h-4 w-4",
                                 stockFilter === option.value
                                   ? "opacity-100"
-                                  : "opacity-0"
+                                  : "opacity-0",
                               )}
                             />
                             {option.label}
@@ -342,7 +353,7 @@ export const AdminMedicinesPage = () => {
                     setPage((old) =>
                       !medicinesPage || old >= medicinesPage.totalPages - 1
                         ? old
-                        : old + 1
+                        : old + 1,
                     )
                   }
                   disabled={
@@ -364,6 +375,7 @@ export const AdminMedicinesPage = () => {
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         medicine={selectedMedicine}
+        prefillName={prefillName}
       />
     </div>
   );

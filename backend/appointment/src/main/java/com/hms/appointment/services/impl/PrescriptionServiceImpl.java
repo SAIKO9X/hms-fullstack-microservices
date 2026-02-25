@@ -131,7 +131,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     prescription.setMedicines(mapToMedicineEntities(request.medicines()));
     prescription.setNotes(request.notes());
 
-    return PrescriptionResponse.fromEntity(prescriptionRepository.save(prescription));
+    Prescription savedPrescription = prescriptionRepository.save(prescription);
+
+    publishPrescriptionEvent(savedPrescription);
+
+    return PrescriptionResponse.fromEntity(savedPrescription);
   }
 
   @Override
