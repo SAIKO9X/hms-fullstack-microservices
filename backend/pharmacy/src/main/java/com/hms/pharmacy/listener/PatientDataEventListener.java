@@ -1,5 +1,7 @@
 package com.hms.pharmacy.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.common.dto.event.EventEnvelope;
 import com.hms.pharmacy.config.RabbitMQConfig;
 import com.hms.pharmacy.dto.event.PatientEvent;
 import com.hms.pharmacy.dto.event.UserCreatedEvent;
@@ -8,6 +10,7 @@ import com.hms.pharmacy.repositories.PatientReadModelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,12 +19,18 @@ import org.springframework.stereotype.Component;
 public class PatientDataEventListener {
 
   private final PatientReadModelRepository repository;
+  private final ObjectMapper objectMapper;
 
-  // Garante que temos o email e id (User Service)
   @RabbitListener(queues = RabbitMQConfig.USER_SYNC_QUEUE)
-  public void handleUserCreated(UserCreatedEvent event) {
-    log.info("Sincronizando usuário ID: {}", event.userId());
+  public void handleUserCreated(@Payload EventEnvelope<?> envelope) {
+    UserCreatedEvent event = objectMapper.convertValue(envelope.getPayload(), UserCreatedEvent.class);
 
+    if (event == null || event.userId() == null) {
+      log.warn("Mensagem malformada ignorada na fila de User: {}", envelope);
+      return;
+    }
+
+    log.info("Sincronizando usuário ID: {}", event.userId());
     PatientReadModel patient = repository.findById(event.userId())
       .orElse(new PatientReadModel());
 
@@ -32,11 +41,16 @@ public class PatientDataEventListener {
     repository.save(patient);
   }
 
-  // Atualiza campos se não forem nulos (Profile Service)
   @RabbitListener(queues = RabbitMQConfig.PATIENT_SYNC_QUEUE)
-  public void handlePatientEvent(PatientEvent event) {
-    log.info("Sincronizando dados do paciente via evento Profile: {}", event.userId());
+  public void handlePatientEvent(@Payload EventEnvelope<?> envelope) {
+    PatientEvent event = objectMapper.convertValue(envelope.getPayload(), PatientEvent.class);
 
+    if (event == null || event.userId() == null) {
+      log.warn("Mensagem malformada ignorada na fila de Patient: {}", envelope);
+      return;
+    }
+
+    log.info("Sincronizando dados do paciente via evento Profile: {}", event.userId());
     PatientReadModel patient = repository.findById(event.userId())
       .orElse(new PatientReadModel());
 

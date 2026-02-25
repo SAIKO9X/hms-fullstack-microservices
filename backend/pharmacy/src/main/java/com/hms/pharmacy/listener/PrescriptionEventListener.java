@@ -33,7 +33,14 @@ public class PrescriptionEventListener {
   private String exchange;
 
   @RabbitListener(queues = RabbitMQConfig.PRESCRIPTION_QUEUE)
-  public void handlePrescriptionEvent(PrescriptionIssuedEvent event) {
+  public void handlePrescriptionEvent(EventEnvelope<?> envelope) {
+    PrescriptionIssuedEvent event = objectMapper.convertValue(envelope.getPayload(), PrescriptionIssuedEvent.class);
+
+    if (event == null || event.prescriptionId() == null) {
+      log.warn("Receita ignorada por falta de dados no envelope: {}", envelope);
+      return;
+    }
+
     log.info("Recebida nova receita: ID {}", event.prescriptionId());
 
     try {

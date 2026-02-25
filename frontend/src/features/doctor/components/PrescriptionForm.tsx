@@ -56,7 +56,7 @@ export const PrescriptionForm = ({
   const form = useForm<FormData>({
     resolver: zodResolver(
       isEditing ? PrescriptionUpdateSchema : PrescriptionSchema,
-    ),
+    ) as any,
     defaultValues: isEditing
       ? {
           notes: existingPrescription?.notes || "",

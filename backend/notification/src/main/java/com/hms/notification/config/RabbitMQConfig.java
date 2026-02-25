@@ -97,7 +97,7 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding notificationStatusBinding() {
-    return BindingBuilder.bind(notificationStatusQueue()).to(exchange()).with("notification.status.#");
+    return BindingBuilder.bind(notificationStatusQueue()).to(exchange()).with("appointment.status.changed");
   }
 
   @Bean
@@ -107,7 +107,7 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding waitlistBinding() {
-    return BindingBuilder.bind(waitlistQueue()).to(exchange()).with("notification.waitlist.available");
+    return BindingBuilder.bind(waitlistQueue()).to(exchange()).with("appointment.waitlist.available");
   }
 
   @Bean
@@ -122,7 +122,7 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding prescriptionBinding() {
-    return BindingBuilder.bind(prescriptionQueue()).to(exchange()).with("notification.prescription.#");
+    return BindingBuilder.bind(prescriptionQueue()).to(exchange()).with("prescription.issued");
   }
 
   @Bean
@@ -132,7 +132,7 @@ public class RabbitMQConfig {
 
   @Bean
   public Binding delayedReminderBinding() {
-    return BindingBuilder.bind(reminderQueue()).to(delayedExchange()).with("notification.appointment.reminder").noargs();
+    return BindingBuilder.bind(reminderQueue()).to(delayedExchange()).with("appointment.reminder").noargs();
   }
 
   @Bean
