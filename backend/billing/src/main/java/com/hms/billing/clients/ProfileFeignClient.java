@@ -18,7 +18,4 @@ public interface ProfileFeignClient {
 
   @GetMapping("/profile/patients/user/{userId}")
   ApiResponse<PatientDTO> getPatientByUserId(@PathVariable("userId") Long userId);
-
-  @GetMapping("/profile/doctors/user/{userId}")
-  ApiResponse<DoctorDTO> getDoctorByUserId(@PathVariable("userId") Long userId);
 }

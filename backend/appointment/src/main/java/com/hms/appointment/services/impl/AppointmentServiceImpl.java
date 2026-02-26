@@ -26,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -183,6 +185,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "appointments", key = "#userId")
   public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long userId, String dateFilter) {
     DoctorReadModel doctor = getOrSyncDoctor(userId);
 
@@ -256,6 +259,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
+  @CacheEvict(value = "appointments", key = "#requesterUserId")
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
 

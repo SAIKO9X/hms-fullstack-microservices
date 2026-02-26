@@ -8,7 +8,11 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "profile-service", configuration = FeignClientInterceptor.class)
+@FeignClient(
+  name = "profile-service",
+  url = "${feign.profile-service.url:}",
+  configuration = FeignClientInterceptor.class
+)
 public interface ProfileFeignClient {
 
   @GetMapping("/profile/doctors/by-user/{userId}")
