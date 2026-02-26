@@ -1,6 +1,7 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.config.RabbitMQConfig;
 import com.hms.appointment.dto.event.AppointmentEvent;
 import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
@@ -49,6 +50,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final WaitlistRepository waitlistRepository;
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
+  private final UserFeignClient userFeignClient;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -149,7 +151,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     Appointment saved = appointmentRepository.save(appointment);
-    publishStatusEvent(saved, "SCHEDULED", null);
+    publishStatusEvent(saved, "SCHEDULED", null, patientUserId);
     scheduleReminder(saved);
 
     return AppointmentResponse.fromEntity(saved);
@@ -226,7 +228,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     app.setReminder1hSent(false);
 
     Appointment saved = appointmentRepository.save(app);
-    publishStatusEvent(saved, "RESCHEDULED", "De: " + oldDate);
+    publishStatusEvent(saved, "RESCHEDULED", "De: " + oldDate, requesterUserId);
     checkAndNotifyWaitlist(saved.getDoctorId(), oldDate);
     scheduleReminder(saved);
 
@@ -246,7 +248,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     app.setStatus(AppointmentStatus.CANCELED);
 
     Appointment saved = appointmentRepository.save(app);
-    publishStatusEvent(saved, "CANCELED", "Solicitado pelo usuário");
+    publishStatusEvent(saved, "CANCELED", "Solicitado pelo usuário", requesterUserId);
     checkAndNotifyWaitlist(app.getDoctorId(), app.getAppointmentDateTime());
 
     return AppointmentResponse.fromEntity(saved);
@@ -269,7 +271,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     app.setNotes(notes);
 
     Appointment saved = appointmentRepository.save(app);
-    publishStatusEvent(saved, "COMPLETED", notes);
+    publishStatusEvent(saved, "COMPLETED", notes, requesterUserId);
 
     return AppointmentResponse.fromEntity(saved);
   }
@@ -648,7 +650,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   }
 
 
-  private void publishStatusEvent(Appointment app, String status, String notes) {
+  private void publishStatusEvent(Appointment app, String status, String notes, Long requesterUserId) {
     try {
       PatientReadModel patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
       DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
@@ -659,7 +661,6 @@ public class AppointmentServiceImpl implements AppointmentService {
           log.warn("Paciente {} não encontrado. Evento não publicado.", app.getPatientId());
           return;
         }
-        // sincroniza localmente
         PatientReadModel newModel = new PatientReadModel();
         newModel.setPatientId(profile.id());
         newModel.setUserId(profile.userId());
@@ -674,16 +675,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         return;
       }
 
+      boolean triggeredByPatient = patient.getUserId() != null && patient.getUserId().equals(requesterUserId);
+
       AppointmentStatusChangedEvent event = new AppointmentStatusChangedEvent(
         app.getId(),
         app.getPatientId(),
+        patient.getUserId(),
         doctor.getDoctorId(),
+        doctor.getUserId(),
         patient.getEmail(),
         patient.getFullName(),
         doctor.getFullName(),
         app.getAppointmentDateTime(),
         status,
-        notes
+        notes,
+        triggeredByPatient
       );
 
       EventEnvelope<AppointmentStatusChangedEvent> envelope = EventEnvelope.create(
@@ -698,7 +704,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
   }
 
-
   private void scheduleReminder(Appointment app) {
     try {
       long delay = Duration.between(
@@ -706,10 +711,37 @@ public class AppointmentServiceImpl implements AppointmentService {
 
       if (delay <= 0) return;
 
+      PatientReadModel patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
+      DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
+
+      String patientName = patient != null ? patient.getFullName() : "Paciente";
+
+      String patientEmail = null;
+      if (patient != null && patient.getUserId() != null) {
+        try {
+          var user = userFeignClient.getUserById(patient.getUserId());
+          if (user != null) {
+            patientEmail = user.email();
+          }
+        } catch (Exception e) {
+          log.warn("Falha ao buscar e-mail via Feign para usuário {}: {}. Usando fallback.", patient.getUserId(), e.getMessage());
+          patientEmail = patient.getEmail();
+        }
+      } else if (patient != null) {
+        patientEmail = patient.getEmail();
+      }
+
+      String doctorName = doctor != null ? doctor.getFullName() : "Médico";
+
       var event = new AppointmentEvent(
-        app.getId(), app.getPatientId(),
-        "email-placeholder", "dr-placeholder",
-        app.getAppointmentDateTime(), app.getMeetingUrl()
+        app.getId(),
+        app.getPatientId(),
+        patient != null ? patient.getUserId() : null,
+        patientName,
+        patientEmail,
+        doctorName,
+        app.getAppointmentDateTime(),
+        app.getMeetingUrl()
       );
 
       EventEnvelope<AppointmentEvent> envelope = EventEnvelope.create(
@@ -732,8 +764,20 @@ public class AppointmentServiceImpl implements AppointmentService {
     try {
       waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate())
         .ifPresent(entry -> {
+
+          DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId).orElse(null);
+          String doctorName = doctor != null ? doctor.getFullName() : "Médico";
+
+          PatientReadModel patient = patientReadModelRepository.findById(entry.getPatientId()).orElse(null);
+          Long userId = patient != null ? patient.getUserId() : null;
+
           WaitlistNotificationEvent event = new WaitlistNotificationEvent(
-            entry.getPatientEmail(), entry.getPatientName(), "Dr. Disponível", date);
+            userId,
+            entry.getPatientEmail(),
+            entry.getPatientName(),
+            doctorName,
+            date
+          );
 
           EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
             "WAITLIST_NOTIFICATION", String.valueOf(entry.getId()), event);

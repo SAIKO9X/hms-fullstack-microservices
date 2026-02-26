@@ -1,9 +1,11 @@
 package com.hms.appointment.services.impl;
 
 import com.hms.appointment.clients.ProfileFeignClient;
+import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.dto.event.PrescriptionIssuedEvent;
 import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
+import com.hms.appointment.dto.external.UserResponse;
 import com.hms.appointment.dto.request.MedicineRequest;
 import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
@@ -49,6 +51,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
   private final RabbitTemplate rabbitTemplate;
   private final PatientReadModelRepository patientReadModelRepository;
   private final DoctorReadModelRepository doctorReadModelRepository;
+  private final UserFeignClient userFeignClient;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -148,7 +151,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     if (isSelf) {
       patientProfileId = resolvePatientId(requesterUserId);
     } else {
-      patientProfileId = userIdOrPatientId; // assume que o médico selecionou um patient_id específico
+      patientProfileId = userIdOrPatientId;
       Long doctorProfileId = resolveDoctorId(requesterUserId);
 
       boolean hasRelationship = appointmentRepository.existsByDoctorIdAndPatientId(doctorProfileId, patientProfileId);
@@ -295,10 +298,51 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         ? prescription.getCreatedAt().toLocalDate().plusDays(30)
         : LocalDate.now().plusDays(30);
 
+      String doctorName = "Médico";
+      try {
+        DoctorReadModel doctor = doctorReadModelRepository.findById(prescription.getAppointment().getDoctorId()).orElse(null);
+        if (doctor != null) {
+          doctorName = doctor.getFullName();
+        }
+      } catch (Exception e) {
+        log.warn("Erro ao buscar nome do médico: {}", e.getMessage());
+      }
+
+      String patientName = "Paciente";
+      String patientEmail = null;
+      Long patientUserId = null;
+
+      try {
+        PatientReadModel patient = patientReadModelRepository.findById(prescription.getAppointment().getPatientId()).orElse(null);
+
+        if (patient != null) {
+          patientName = patient.getFullName();
+          patientUserId = patient.getUserId();
+
+          if (patient.getUserId() != null) {
+            try {
+              UserResponse user = userFeignClient.getUserById(patient.getUserId());
+              patientEmail = user != null ? user.email() : patient.getEmail();
+            } catch (Exception ex) {
+              log.warn("Falha ao buscar email no User Service, usando fallback local. Erro: {}", ex.getMessage());
+              patientEmail = patient.getEmail();
+            }
+          } else {
+            patientEmail = patient.getEmail();
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Erro ao buscar dados do paciente/email para o evento: {}", e.getMessage());
+      }
+
       PrescriptionIssuedEvent event = new PrescriptionIssuedEvent(
         prescription.getId(),
         prescription.getAppointment().getPatientId(),
+        patientUserId,
         prescription.getAppointment().getDoctorId(),
+        patientName,
+        patientEmail,
+        doctorName,
         validUntil,
         prescription.getNotes(),
         itemEvents

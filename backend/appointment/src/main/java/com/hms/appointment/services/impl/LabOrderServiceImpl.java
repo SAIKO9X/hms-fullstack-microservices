@@ -115,6 +115,7 @@ public class LabOrderServiceImpl implements LabOrderService {
     String doctorName = "Doutor(a)";
     String patientName = "Paciente";
     Long doctorUserId = null;
+    Long patientUserId = null;
 
     try {
       ApiResponse<DoctorProfile> response = profileClient.getDoctor(order.getAppointment().getDoctorId());
@@ -135,6 +136,7 @@ public class LabOrderServiceImpl implements LabOrderService {
       PatientProfile patientProfile = profileClient.getPatient(order.getPatientId());
       if (patientProfile != null) {
         patientName = patientProfile.name();
+        patientUserId = patientProfile.userId();
       }
 
     } catch (Exception e) {
@@ -151,6 +153,7 @@ public class LabOrderServiceImpl implements LabOrderService {
       patientName,
       order.getAppointment().getDoctorId(),
       doctorUserId,
+      patientUserId,
       doctorName,
       doctorEmail,
       LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),

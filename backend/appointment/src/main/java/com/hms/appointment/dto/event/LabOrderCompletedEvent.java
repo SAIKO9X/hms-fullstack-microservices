@@ -8,6 +8,7 @@ public record LabOrderCompletedEvent(
   String patientName,
   Long doctorId,
   Long doctorUserId,
+  Long patientUserId,
   String doctorName,
   String doctorEmail,
   String completionDate,

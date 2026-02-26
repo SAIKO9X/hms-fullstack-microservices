@@ -51,7 +51,15 @@ public class NotificationConsumer {
     String body = String.format("Olá %s, lembrete da consulta com Dr(a). %s em %s.",
       event.patientName(), event.doctorName(), formattedDate);
 
-    emailService.sendEmail(event.patientEmail(), subject, body);
+    if (event.patientEmail() != null && !event.patientEmail().isBlank()) {
+      try {
+        emailService.sendEmail(event.patientEmail(), subject, body);
+      } catch (Exception e) {
+        log.error("Erro ao enviar email de lembrete para {}", event.patientEmail(), e);
+      }
+    } else {
+      log.warn("E-mail não fornecido para o paciente {}. Pulando envio de e-mail de lembrete.", event.patientId());
+    }
 
     saveInAppNotification(
       event.patientId(),
@@ -93,17 +101,26 @@ public class NotificationConsumer {
   @RabbitListener(queues = "${application.rabbitmq.queues.notification-prescription:notification.prescription.queue}")
   public void handlePrescriptionIssued(EventEnvelope<PrescriptionIssuedEvent> envelope) {
     PrescriptionIssuedEvent event = envelope.getPayload();
-    log.info("Nova receita [Correlation: {}] para paciente ID: {}", envelope.getCorrelationId(), event.patientId());
+    log.info("Nova receita [Correlation: {}] para paciente ID: {} (UserID: {})",
+      envelope.getCorrelationId(), event.patientId(), event.patientUserId());
 
-    // email
-    String subject = "Nova Receita Médica";
-    String body = String.format("<p>Olá %s, o Dr(a). %s emitiu uma nova receita digital.</p>",
-      event.patientName(), event.doctorName());
-    emailService.sendEmail(event.patientEmail(), subject, body);
+    if (event.patientEmail() != null && !event.patientEmail().isBlank()) {
+      try {
+        String subject = "Nova Receita Médica";
+        String body = String.format("<p>Olá %s, o Dr(a). %s emitiu uma nova receita digital.</p>",
+          event.patientName(), event.doctorName());
+        emailService.sendEmail(event.patientEmail(), subject, body);
+      } catch (Exception e) {
+        log.error("Erro ao enviar email de nova receita para o paciente {}", event.patientEmail(), e);
+      }
+    } else {
+      log.warn("E-mail não fornecido para o paciente {}. Pulando envio de e-mail.", event.patientId());
+    }
 
-    // in-App
+    Long recipientId = event.patientUserId() != null ? event.patientUserId() : event.patientId();
+
     saveInAppNotification(
-      event.patientId(),
+      recipientId,
       "Nova Receita",
       "Dr(a). " + event.doctorName() + " emitiu uma receita. Acesse 'Meus Medicamentos'.",
       NotificationType.PRESCRIPTION
@@ -118,7 +135,11 @@ public class NotificationConsumer {
     // notificar Médico
     if (event.doctorEmail() != null) {
       sendLabResultEmailToDoctor(event);
-      saveInAppNotification(event.doctorId(),
+
+      // Usa o doctorUserId se disponível, senão fallback para doctorId
+      Long docRecipientId = event.doctorUserId() != null ? event.doctorUserId() : event.doctorId();
+
+      saveInAppNotification(docRecipientId,
         "Exame Pronto",
         "Resultado disponível do paciente: " + event.patientName(),
         NotificationType.LAB_RESULT);
@@ -126,12 +147,65 @@ public class NotificationConsumer {
 
     // notificar Paciente
     if (event.patientId() != null) {
+      // Usa o patientUserId se disponível, senão fallback para patientId
+      Long patRecipientId = event.patientUserId() != null ? event.patientUserId() : event.patientId();
+
       saveInAppNotification(
-        event.patientId(),
+        patRecipientId,
         "Exame Concluído",
         "Os resultados do pedido " + event.labOrderNumber() + " estão disponíveis.",
         NotificationType.LAB_RESULT
       );
+    }
+  }
+
+  private void processPatientStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
+    String title = "";
+    String message = "";
+
+    switch (event.newStatus()) {
+      case "CANCELED" -> {
+        title = "Consulta Cancelada";
+        message = "A consulta com Dr(a). " + event.doctorName() + " foi cancelada.";
+      }
+      case "RESCHEDULED" -> {
+        title = "Consulta Reagendada";
+        message = "Sua consulta mudou para " + formattedDate;
+      }
+      case "COMPLETED" -> {
+        title = "Consulta Finalizada";
+        message = "Consulta concluída. Toque para avaliar seu atendimento.";
+      }
+      case "SCHEDULED" -> {
+        title = "Agendamento Confirmado";
+        message = "Consulta confirmada para " + formattedDate;
+      }
+    }
+
+    if (!title.isEmpty()) {
+      Long recipientId = event.patientUserId() != null ? event.patientUserId() : event.patientId();
+      saveInAppNotification(recipientId, title, message, NotificationType.STATUS_CHANGE);
+    }
+  }
+
+  private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
+    String title = "";
+    String message = "";
+
+    switch (event.newStatus()) {
+      case "CANCELED" -> {
+        title = "Cancelamento de Paciente";
+        message = "O paciente " + event.patientName() + " cancelou a consulta de " + formattedDate;
+      }
+      case "RESCHEDULED" -> {
+        title = "Reagendamento de Paciente";
+        message = "O paciente " + event.patientName() + " solicitou reagendamento para " + formattedDate;
+      }
+    }
+
+    if (!title.isEmpty()) {
+      Long recipientId = event.doctorUserId() != null ? event.doctorUserId() : event.doctorId();
+      saveInAppNotification(recipientId, title, message, NotificationType.SYSTEM_ALERT);
     }
   }
 
@@ -189,54 +263,6 @@ public class NotificationConsumer {
       message,
       NotificationType.NEW_REVIEW
     );
-  }
-
-  private void processPatientStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
-    String title = "";
-    String message = "";
-
-    switch (event.newStatus()) {
-      case "CANCELED" -> {
-        title = "Consulta Cancelada";
-        message = "A consulta com Dr(a). " + event.doctorName() + " foi cancelada.";
-      }
-      case "RESCHEDULED" -> {
-        title = "Consulta Reagendada";
-        message = "Sua consulta mudou para " + formattedDate;
-      }
-      case "COMPLETED" -> {
-        title = "Consulta Finalizada";
-        message = "Consulta concluída. Toque para avaliar seu atendimento.";
-      }
-      case "SCHEDULED" -> {
-        title = "Agendamento Confirmado";
-        message = "Consulta confirmada para " + formattedDate;
-      }
-    }
-
-    if (!title.isEmpty()) {
-      saveInAppNotification(event.patientId(), title, message, NotificationType.STATUS_CHANGE);
-    }
-  }
-
-  private void processDoctorStatusNotification(AppointmentStatusChangedEvent event, String formattedDate) {
-    String title = "";
-    String message = "";
-
-    switch (event.newStatus()) {
-      case "CANCELED" -> {
-        title = "Cancelamento de Paciente";
-        message = "O paciente " + event.patientName() + " cancelou a consulta de " + formattedDate;
-      }
-      case "RESCHEDULED" -> {
-        title = "Reagendamento de Paciente";
-        message = "O paciente " + event.patientName() + " solicitou reagendamento para " + formattedDate;
-      }
-    }
-
-    if (!title.isEmpty()) {
-      saveInAppNotification(event.doctorId(), title, message, NotificationType.SYSTEM_ALERT);
-    }
   }
 
   private void saveInAppNotification(String recipientId, String title, String message, NotificationType type) {

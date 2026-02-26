@@ -6,12 +6,15 @@ import java.time.LocalDateTime;
 public record AppointmentStatusChangedEvent(
   Long appointmentId,
   Long patientId,
+  Long patientUserId,
   Long doctorId,
+  Long doctorUserId,
   String patientEmail,
   String patientName,
   String doctorName,
-  LocalDateTime appointmentDate,
-  String status, // SCHEDULED, CANCELED, RESCHEDULED
-  String reasonOrNotes
+  LocalDateTime appointmentDateTime,
+  String newStatus,
+  String notes,
+  boolean triggeredByPatient
 ) implements Serializable {
 }

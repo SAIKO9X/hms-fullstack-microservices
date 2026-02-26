@@ -1,6 +1,8 @@
 package com.hms.appointment.services.impl;
 
+import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.dto.event.AppointmentEvent;
+import com.hms.appointment.dto.external.UserResponse;
 import com.hms.appointment.entities.Appointment;
 import com.hms.appointment.entities.DoctorReadModel;
 import com.hms.appointment.entities.PatientReadModel;
@@ -8,6 +10,7 @@ import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.PatientReadModelRepository;
+import com.hms.common.dto.event.EventEnvelope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -27,6 +30,7 @@ public class AppointmentReminderScheduler {
   private final PatientReadModelRepository patientRepository;
   private final DoctorReadModelRepository doctorRepository;
   private final RabbitTemplate rabbitTemplate;
+  private final UserFeignClient userFeignClient;
 
   // Roda a cada 5 minutos
   @Scheduled(fixedRate = 300000)
@@ -79,19 +83,38 @@ public class AppointmentReminderScheduler {
         return;
       }
 
+      String patientEmail = null;
+      if (patient.getUserId() != null) {
+        try {
+          UserResponse user = userFeignClient.getUserById(patient.getUserId());
+          if (user != null) {
+            patientEmail = user.email();
+          }
+        } catch (Exception e) {
+          log.warn("Falha ao buscar e-mail do usuário {} para lembrete: {}", patient.getUserId(), e.getMessage());
+        }
+      }
+
       AppointmentEvent event = new AppointmentEvent(
         app.getId(),
         app.getPatientId(),
-        patient.getEmail(),
+        patient.getUserId(),
+        patient.getFullName(),
+        patientEmail,
         doctor.getFullName(),
         app.getAppointmentDateTime(),
         null
       );
 
-      // routing key diferencia: "appointment.reminder.24h" ou "appointment.reminder.1h"
       String routingKey = type.equals("24H_REMINDER") ? "appointment.reminder.24h" : "appointment.reminder.1h";
 
-      rabbitTemplate.convertAndSend("internal.exchange", routingKey, event);
+      EventEnvelope<AppointmentEvent> envelope = EventEnvelope.create(
+        type,
+        java.util.UUID.randomUUID().toString(),
+        event
+      );
+
+      rabbitTemplate.convertAndSend("internal.exchange", routingKey, envelope);
     } catch (Exception e) {
       log.error("Erro ao enviar lembrete para consulta {}", app.getId(), e);
     }
