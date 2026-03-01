@@ -22,7 +22,7 @@ import {
   Download,
 } from "lucide-react";
 import type { Invoice } from "@/types/billing.types";
-import { BillingService } from "@/services/billing";
+import { BillingService } from "@/services";
 import { toast } from "sonner";
 
 interface InvoicesListProps {

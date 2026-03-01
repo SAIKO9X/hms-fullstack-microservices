@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { BillingService } from "@/services/billing";
+import * as BillingService from "@/services/billing";
 import { InvoicesList } from "../components/InvoicesList";
 import {
   Card,

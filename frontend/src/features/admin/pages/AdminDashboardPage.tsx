@@ -38,25 +38,25 @@ export const AdminDashboardPage = () => {
           title="Total de Pacientes"
           value={profileCounts?.totalPatients || 0}
           icon={Users}
-          color="blue"
+          variant="blue"
           description="Pacientes registrados no sistema"
-          isLoading={isLoading}
+          loading={isLoading}
         />
         <StatCard
           title="Total de Médicos"
           value={profileCounts?.totalDoctors || 0}
           icon={Briefcase}
-          color="purple"
+          variant="purple"
           description="Médicos disponíveis na plataforma"
-          isLoading={isLoading}
+          loading={isLoading}
         />
         <StatCard
           title="Consultas Hoje"
           value={`+${appointmentsToday ?? 0}`}
           icon={Calendar}
-          color="green"
+          variant="green"
           description="Consultas agendadas para hoje"
-          isLoading={isLoading}
+          loading={isLoading}
         />
       </div>
 

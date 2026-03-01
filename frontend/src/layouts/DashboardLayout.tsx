@@ -1,8 +1,11 @@
 import { Navigate } from "react-router";
-import { PatientDashboard } from "../features/patient/layouts/PatientLayout";
-import { DoctorDashboard } from "../features/doctor/layouts/DoctorLayout";
 import { useAppSelector } from "@/store/hooks";
-import { AdminDashboard } from "../features/admin/layouts/AdminLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
+import {
+  adminNavGroups,
+  doctorNavGroups,
+  patientNavGroups,
+} from "@/config/navigation";
 
 export const DashboardLayout = () => {
   const { user } = useAppSelector((state) => state.auth);
@@ -13,11 +16,29 @@ export const DashboardLayout = () => {
 
   switch (user.role) {
     case "PATIENT":
-      return <PatientDashboard />;
+      return (
+        <AppLayout
+          subtitle="Portal do Paciente"
+          groups={patientNavGroups}
+          checkProfile={true}
+        />
+      );
     case "DOCTOR":
-      return <DoctorDashboard />;
+      return (
+        <AppLayout
+          subtitle="Portal do Médico"
+          groups={doctorNavGroups}
+          checkProfile={true}
+        />
+      );
     case "ADMIN":
-      return <AdminDashboard />;
+      return (
+        <AppLayout
+          subtitle="Administração"
+          groups={adminNavGroups}
+          checkProfile={false}
+        />
+      );
     default:
       return <Navigate to="/" replace />;
   }
