@@ -1,6 +1,6 @@
 package com.hms.profile.controllers;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import com.hms.profile.dto.request.ReviewCreateRequest;
 import com.hms.profile.dto.request.ReviewUpdateRequest;
@@ -24,35 +24,35 @@ public class ReviewController {
   private final ReviewService reviewService;
 
   @PostMapping
-  public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@RequestBody @Valid ReviewCreateRequest request, Authentication authentication) {
+  public ResponseEntity<ResponseWrapper<ReviewResponse>> createReview(@RequestBody @Valid ReviewCreateRequest request, Authentication authentication) {
     Long userId = SecurityUtils.getUserId(authentication);
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(reviewService.createReview(request, userId), "Avaliação enviada com sucesso."));
+      .body(ResponseWrapper.success(reviewService.createReview(request, userId), "Avaliação enviada com sucesso."));
   }
 
   @GetMapping("/doctor/{doctorId}/stats")
-  public ResponseEntity<ApiResponse<DoctorRatingDto>> getDoctorStats(@PathVariable Long doctorId) {
-    return ResponseEntity.ok(ApiResponse.success(reviewService.getDoctorStats(doctorId)));
+  public ResponseEntity<ResponseWrapper<DoctorRatingDto>> getDoctorStats(@PathVariable Long doctorId) {
+    return ResponseEntity.ok(ResponseWrapper.success(reviewService.getDoctorStats(doctorId)));
   }
 
   @GetMapping("/doctor/{doctorId}")
-  public ResponseEntity<ApiResponse<List<ReviewResponse>>> getDoctorReviews(@PathVariable Long doctorId) {
-    return ResponseEntity.ok(ApiResponse.success(reviewService.getDoctorReviews(doctorId)));
+  public ResponseEntity<ResponseWrapper<List<ReviewResponse>>> getDoctorReviews(@PathVariable Long doctorId) {
+    return ResponseEntity.ok(ResponseWrapper.success(reviewService.getDoctorReviews(doctorId)));
   }
 
   @PutMapping("/doctor/{doctorId}")
-  public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
+  public ResponseEntity<ResponseWrapper<ReviewResponse>> updateReview(
     @PathVariable Long doctorId,
     @RequestBody @Valid ReviewUpdateRequest request,
     Authentication authentication
   ) {
     Long userId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(ApiResponse.success(reviewService.updateReview(doctorId, request, userId), "Avaliação atualizada com sucesso."));
+    return ResponseEntity.ok(ResponseWrapper.success(reviewService.updateReview(doctorId, request, userId), "Avaliação atualizada com sucesso."));
   }
 
   @GetMapping("/me/doctor/{doctorId}")
-  public ResponseEntity<ApiResponse<ReviewResponse>> getMyReviewForDoctor(@PathVariable Long doctorId, Authentication authentication) {
+  public ResponseEntity<ResponseWrapper<ReviewResponse>> getMyReviewForDoctor(@PathVariable Long doctorId, Authentication authentication) {
     Long userId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(ApiResponse.success(reviewService.getMyReviewForDoctor(doctorId, userId)));
+    return ResponseEntity.ok(ResponseWrapper.success(reviewService.getMyReviewForDoctor(doctorId, userId)));
   }
 }

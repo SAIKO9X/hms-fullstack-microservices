@@ -18,7 +18,7 @@ import com.hms.appointment.repositories.*;
 import com.hms.appointment.services.AppointmentService;
 import com.hms.common.audit.AuditChangeTracker;
 import com.hms.common.dto.event.EventEnvelope;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
@@ -62,7 +62,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       .orElseGet(() -> {
         log.info("Médico com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
-          ApiResponse<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userIdInput);
+          ResponseWrapper<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userIdInput);
 
           if (response == null || response.data() == null) {
             throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
@@ -90,7 +90,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       .orElseGet(() -> {
         log.info("Paciente com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
-          ApiResponse<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
+          ResponseWrapper<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
           PatientProfile ext = response.data();
 
           if (ext == null || ext.id() == null) {

@@ -3,7 +3,7 @@ package com.hms.billing.controllers;
 import com.hms.billing.entities.Invoice;
 import com.hms.billing.entities.PatientInsurance;
 import com.hms.billing.services.BillingService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,37 +23,37 @@ public class BillingController {
   private final BillingService billingService;
 
   @GetMapping("/invoices/patient/{patientId}")
-  public ResponseEntity<ApiResponse<List<Invoice>>> getPatientInvoices(@PathVariable String patientId, Authentication authentication) {
-    return ResponseEntity.ok(ApiResponse.success(billingService.getInvoicesByPatient(patientId)));
+  public ResponseEntity<ResponseWrapper<List<Invoice>>> getPatientInvoices(@PathVariable String patientId, Authentication authentication) {
+    return ResponseEntity.ok(ResponseWrapper.success(billingService.getInvoicesByPatient(patientId)));
   }
 
   @GetMapping("/invoices/doctor/{doctorId}")
-  public ResponseEntity<ApiResponse<List<Invoice>>> getDoctorInvoices(@PathVariable String doctorId) {
-    return ResponseEntity.ok(ApiResponse.success(billingService.getInvoicesByDoctor(doctorId)));
+  public ResponseEntity<ResponseWrapper<List<Invoice>>> getDoctorInvoices(@PathVariable String doctorId) {
+    return ResponseEntity.ok(ResponseWrapper.success(billingService.getInvoicesByDoctor(doctorId)));
   }
 
   @PostMapping("/insurance")
-  public ResponseEntity<ApiResponse<PatientInsurance>> addInsurance(@RequestBody InsuranceRequest request) {
+  public ResponseEntity<ResponseWrapper<PatientInsurance>> addInsurance(@RequestBody InsuranceRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(
+      .body(ResponseWrapper.success(
         billingService.registerPatientInsurance(request.patientId(), request.providerId(), request.policyNumber()),
         "Seguro registrado com sucesso."));
   }
 
   @PostMapping("/invoices/{invoiceId}/pay")
-  public ResponseEntity<ApiResponse<Invoice>> payInvoice(@PathVariable String invoiceId) {
-    return ResponseEntity.ok(ApiResponse.success(billingService.payInvoice(invoiceId), "Pagamento registrado."));
+  public ResponseEntity<ResponseWrapper<Invoice>> payInvoice(@PathVariable String invoiceId) {
+    return ResponseEntity.ok(ResponseWrapper.success(billingService.payInvoice(invoiceId), "Pagamento registrado."));
   }
 
   @PostMapping("/invoices/{invoiceId}/process-insurance")
-  public ResponseEntity<ApiResponse<Void>> processInsurancePayment(@PathVariable String invoiceId) {
+  public ResponseEntity<ResponseWrapper<Void>> processInsurancePayment(@PathVariable String invoiceId) {
     billingService.processInsurancePayment(invoiceId);
-    return ResponseEntity.ok(ApiResponse.success(null, "Processamento de seguro iniciado."));
+    return ResponseEntity.ok(ResponseWrapper.success(null, "Processamento de seguro iniciado."));
   }
 
   @GetMapping("/invoices/pending-insurance")
-  public ResponseEntity<ApiResponse<List<Invoice>>> getPendingInsuranceInvoices() {
-    return ResponseEntity.ok(ApiResponse.success(billingService.getPendingInsuranceInvoices()));
+  public ResponseEntity<ResponseWrapper<List<Invoice>>> getPendingInsuranceInvoices() {
+    return ResponseEntity.ok(ResponseWrapper.success(billingService.getPendingInsuranceInvoices()));
   }
 
   @GetMapping("/invoices/{id}/pdf")

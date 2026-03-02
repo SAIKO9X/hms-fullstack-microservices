@@ -1,6 +1,6 @@
 package com.hms.notification.controllers;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.notification.dto.response.NotificationResponse;
 import com.hms.notification.services.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -17,19 +17,19 @@ public class NotificationController {
   private final NotificationService notificationService;
 
   @GetMapping("/user/{userId}")
-  public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUserNotifications(@PathVariable String userId) {
-    return ResponseEntity.ok(ApiResponse.success(notificationService.getUserNotifications(userId)));
+  public ResponseEntity<ResponseWrapper<List<NotificationResponse>>> getUserNotifications(@PathVariable String userId) {
+    return ResponseEntity.ok(ResponseWrapper.success(notificationService.getUserNotifications(userId)));
   }
 
   @PatchMapping("/{id}/read")
-  public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
+  public ResponseEntity<ResponseWrapper<Void>> markAsRead(@PathVariable Long id) {
     notificationService.markAsRead(id);
-    return ResponseEntity.ok(ApiResponse.success(null, "Notificação marcada como lida."));
+    return ResponseEntity.ok(ResponseWrapper.success(null, "Notificação marcada como lida."));
   }
 
   @PatchMapping("/user/{userId}/read-all")
-  public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable String userId) {
+  public ResponseEntity<ResponseWrapper<Void>> markAllAsRead(@PathVariable String userId) {
     notificationService.markAllAsRead(userId);
-    return ResponseEntity.ok(ApiResponse.success(null, "Todas as notificações marcadas como lidas."));
+    return ResponseEntity.ok(ResponseWrapper.success(null, "Todas as notificações marcadas como lidas."));
   }
 }

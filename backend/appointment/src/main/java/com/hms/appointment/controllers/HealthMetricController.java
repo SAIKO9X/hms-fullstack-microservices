@@ -3,7 +3,7 @@ package com.hms.appointment.controllers;
 import com.hms.appointment.dto.request.HealthMetricCreateRequest;
 import com.hms.appointment.dto.response.HealthMetricResponse;
 import com.hms.appointment.services.HealthMetricService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -27,30 +27,30 @@ public class HealthMetricController {
 
   @PostMapping
   @PreAuthorize("hasRole('PATIENT')")
-  public ResponseEntity<ApiResponse<HealthMetricResponse>> addHealthMetric(
+  public ResponseEntity<ResponseWrapper<HealthMetricResponse>> addHealthMetric(
     Authentication authentication,
     @Valid @RequestBody HealthMetricCreateRequest request
   ) {
     Long patientId = SecurityUtils.getUserId(authentication);
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(healthMetricService.createHealthMetric(patientId, request)));
+      .body(ResponseWrapper.success(healthMetricService.createHealthMetric(patientId, request)));
   }
 
   @GetMapping("/latest")
   @PreAuthorize("hasRole('PATIENT')")
-  public ResponseEntity<ApiResponse<HealthMetricResponse>> getLatestMetric(Authentication authentication) {
+  public ResponseEntity<ResponseWrapper<HealthMetricResponse>> getLatestMetric(Authentication authentication) {
     Long patientId = SecurityUtils.getUserId(authentication);
-    return ResponseEntity.ok(ApiResponse.success(healthMetricService.getLatestHealthMetric(patientId)));
+    return ResponseEntity.ok(ResponseWrapper.success(healthMetricService.getLatestHealthMetric(patientId)));
   }
 
   @GetMapping("/history")
   @PreAuthorize("hasRole('PATIENT')")
-  public ResponseEntity<ApiResponse<PagedResponse<HealthMetricResponse>>> getHealthMetricHistory(
+  public ResponseEntity<ResponseWrapper<PagedResponse<HealthMetricResponse>>> getHealthMetricHistory(
     Authentication authentication,
     @PageableDefault(size = 10, sort = "recordedAt", direction = Sort.Direction.DESC) Pageable pageable
   ) {
     Long patientId = SecurityUtils.getUserId(authentication);
     Page<HealthMetricResponse> page = healthMetricService.getHealthMetricHistory(patientId, pageable);
-    return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(page)));
+    return ResponseEntity.ok(ResponseWrapper.success(PagedResponse.of(page)));
   }
 }

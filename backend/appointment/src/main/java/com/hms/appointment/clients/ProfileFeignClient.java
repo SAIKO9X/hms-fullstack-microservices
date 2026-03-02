@@ -3,7 +3,7 @@ package com.hms.appointment.clients;
 import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
 import com.hms.common.config.FeignClientInterceptor;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,16 +16,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface ProfileFeignClient {
 
   @GetMapping("/profile/doctors/by-user/{userId}")
-  ApiResponse<DoctorProfile> getDoctorByUserId(@PathVariable("userId") Long userId);
+  ResponseWrapper<DoctorProfile> getDoctorByUserId(@PathVariable("userId") Long userId);
 
   @GetMapping("/profile/doctors/{id}")
-  ApiResponse<DoctorProfile> getDoctor(@PathVariable("id") Long id);
+  ResponseWrapper<DoctorProfile> getDoctor(@PathVariable("id") Long id);
 
   @GetMapping("/profile/patients/{id}")
   PatientProfile getPatient(@PathVariable("id") Long id);
 
   @GetMapping("/profile/patients/by-user/{userId}")
-  ApiResponse<PatientProfile> getPatientByUserId(@PathVariable("userId") Long userId);
+  ResponseWrapper<PatientProfile> getPatientByUserId(@PathVariable("userId") Long userId);
 
   @GetMapping("/api/patients/{id}")
   PatientProfile getPatientById(@PathVariable("id") Long id);

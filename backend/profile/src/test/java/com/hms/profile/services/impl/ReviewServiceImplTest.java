@@ -1,6 +1,6 @@
 package com.hms.profile.services.impl;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.request.ReviewCreateRequest;
@@ -80,7 +80,7 @@ class ReviewServiceImplTest {
     when(pendingAppointment.status()).thenReturn(AppointmentStatus.SCHEDULED);
 
     when(appointmentClient.getAppointmentById(appointmentId))
-      .thenReturn(ApiResponse.success(pendingAppointment));
+      .thenReturn(ResponseWrapper.success(pendingAppointment));
 
     InvalidOperationException exception = assertThrows(InvalidOperationException.class, () -> {
       reviewService.createReview(request, currentUserId);
@@ -108,7 +108,7 @@ class ReviewServiceImplTest {
     when(completedAppointment.doctorId()).thenReturn(doctorId);
     when(completedAppointment.patientId()).thenReturn(mockPatient.getId());
 
-    when(appointmentClient.getAppointmentById(appointmentId)).thenReturn(ApiResponse.success(completedAppointment));
+    when(appointmentClient.getAppointmentById(appointmentId)).thenReturn(ResponseWrapper.success(completedAppointment));
     when(patientRepository.findByUserId(currentUserId)).thenReturn(Optional.of(mockPatient));
     when(doctorRepository.findById(doctorId)).thenReturn(Optional.of(mockDoctor));
 

@@ -1,6 +1,6 @@
 package com.hms.profile.controllers;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.profile.dto.response.AdminDashboardStatsResponse;
 import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.services.DoctorService;
@@ -24,14 +24,14 @@ public class AdminStatsController {
   private final DoctorService doctorService;
 
   @GetMapping("/counts")
-  public ResponseEntity<ApiResponse<AdminDashboardStatsResponse>> getDashboardCounts() {
+  public ResponseEntity<ResponseWrapper<AdminDashboardStatsResponse>> getDashboardCounts() {
     long totalPatients = patientService.countAllPatients();
     long totalDoctors = doctorService.countAllDoctors();
-    return ResponseEntity.ok(ApiResponse.success(new AdminDashboardStatsResponse(totalPatients, totalDoctors)));
+    return ResponseEntity.ok(ResponseWrapper.success(new AdminDashboardStatsResponse(totalPatients, totalDoctors)));
   }
 
   @GetMapping("/doctors-status")
-  public ResponseEntity<ApiResponse<List<DoctorStatusResponse>>> getDoctorsStatus() {
-    return ResponseEntity.ok(ApiResponse.success(doctorService.getDoctorsWithStatus()));
+  public ResponseEntity<ResponseWrapper<List<DoctorStatusResponse>>> getDoctorsStatus() {
+    return ResponseEntity.ok(ResponseWrapper.success(doctorService.getDoctorsWithStatus()));
   }
 }

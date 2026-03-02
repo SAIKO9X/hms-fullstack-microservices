@@ -3,7 +3,7 @@ package com.hms.chat.controllers;
 import com.hms.chat.dto.request.ChatMessageRequest;
 import com.hms.chat.dto.response.ChatMessageResponse;
 import com.hms.chat.services.ChatService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -44,7 +44,7 @@ public class ChatController {
 
   @ResponseBody
   @GetMapping("/chat/messages/{senderId}/{recipientId}")
-  public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> findChatMessages(@PathVariable Long senderId, @PathVariable Long recipientId) {
-    return ResponseEntity.ok(ApiResponse.success(chatService.findChatMessages(senderId, recipientId)));
+  public ResponseEntity<ResponseWrapper<List<ChatMessageResponse>>> findChatMessages(@PathVariable Long senderId, @PathVariable Long recipientId) {
+    return ResponseEntity.ok(ResponseWrapper.success(chatService.findChatMessages(senderId, recipientId)));
   }
 }

@@ -10,7 +10,7 @@ import com.hms.appointment.repositories.AppointmentRepository;
 import com.hms.appointment.repositories.DoctorReadModelRepository;
 import com.hms.appointment.repositories.DoctorUnavailabilityRepository;
 import com.hms.appointment.services.DoctorUnavailabilityService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +37,7 @@ public class DoctorUnavailabilityServiceImpl implements DoctorUnavailabilityServ
       .map(DoctorReadModel::getDoctorId)
       .orElseGet(() -> {
         try {
-          ApiResponse<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userId);
+          ResponseWrapper<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userId);
           if (response != null && response.data() != null) {
             return response.data().id();
           }

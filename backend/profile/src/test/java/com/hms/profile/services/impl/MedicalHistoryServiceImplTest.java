@@ -1,6 +1,6 @@
 package com.hms.profile.services.impl;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.response.AppointmentResponse;
 import com.hms.profile.dto.response.MedicalHistoryResponse;
@@ -51,7 +51,7 @@ class MedicalHistoryServiceImplTest {
     );
 
     when(appointmentFeignClient.getAppointmentHistoryForPatient(patientId))
-      .thenReturn(ApiResponse.success(List.of(appointmentMock)));
+      .thenReturn(ResponseWrapper.success(List.of(appointmentMock)));
 
     Doctor doctorMock = new Doctor();
     doctorMock.setId(doctorId);

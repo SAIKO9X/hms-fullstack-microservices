@@ -11,7 +11,7 @@ import com.hms.billing.repositories.InsuranceProviderRepository;
 import com.hms.billing.repositories.InvoiceRepository;
 import com.hms.billing.repositories.PatientInsuranceRepository;
 import com.hms.billing.services.BillingService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +42,7 @@ public class BillingServiceImpl implements BillingService {
   private String resolvePatientId(String userIdInput) {
     try {
       Long userId = Long.valueOf(userIdInput);
-      ApiResponse<PatientDTO> response = profileClient.getPatientByUserId(userId);
+      ResponseWrapper<PatientDTO> response = profileClient.getPatientByUserId(userId);
       if (response != null && response.data() != null) {
         return String.valueOf(response.data().id()); // retorna o patient_id como String
       }
@@ -152,7 +152,7 @@ public class BillingServiceImpl implements BillingService {
     try {
       if (doctorId == null) return BASE_FEE;
       Long id = Long.valueOf(doctorId);
-      ApiResponse<DoctorDTO> response = profileClient.getDoctor(id);
+      ResponseWrapper<DoctorDTO> response = profileClient.getDoctor(id);
       if (response != null && response.data() != null && response.data().consultationFee() != null) {
         return response.data().consultationFee();
       }
@@ -200,7 +200,7 @@ public class BillingServiceImpl implements BillingService {
     try {
       if (invoice.getPatientId() != null) {
         Long patientId = Long.valueOf(invoice.getPatientId());
-        ApiResponse<PatientDTO> pResponse = profileClient.getPatient(patientId);
+        ResponseWrapper<PatientDTO> pResponse = profileClient.getPatient(patientId);
         PatientDTO p = (pResponse != null) ? pResponse.data() : null;
         if (p != null) {
           pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
@@ -208,7 +208,7 @@ public class BillingServiceImpl implements BillingService {
       }
       if (invoice.getDoctorId() != null) {
         Long doctorId = Long.valueOf(invoice.getDoctorId());
-        ApiResponse<DoctorDTO> dResponse = profileClient.getDoctor(doctorId);
+        ResponseWrapper<DoctorDTO> dResponse = profileClient.getDoctor(doctorId);
         DoctorDTO d = (dResponse != null) ? dResponse.data() : null;
         if (d != null) {
           dName = "Dr. " + d.name();

@@ -5,7 +5,7 @@ import com.hms.appointment.dto.request.LabOrderCreateRequest;
 import com.hms.appointment.dto.response.LabOrderDTO;
 import com.hms.appointment.entities.LabOrder;
 import com.hms.appointment.services.LabOrderService;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,23 +22,23 @@ public class LabOrderController {
   private final LabOrderService labOrderService;
 
   @PostMapping
-  public ResponseEntity<ApiResponse<LabOrder>> createLabOrder(@RequestBody LabOrderCreateRequest request) {
+  public ResponseEntity<ResponseWrapper<LabOrder>> createLabOrder(@RequestBody LabOrderCreateRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(labOrderService.createLabOrder(request), "Pedido de exame criado."));
+      .body(ResponseWrapper.success(labOrderService.createLabOrder(request), "Pedido de exame criado."));
   }
 
   @GetMapping("/{appointmentId}")
-  public ResponseEntity<ApiResponse<List<LabOrder>>> getOrdersByAppointment(@PathVariable Long appointmentId) {
-    return ResponseEntity.ok(ApiResponse.success(labOrderService.getLabOrdersByAppointment(appointmentId)));
+  public ResponseEntity<ResponseWrapper<List<LabOrder>>> getOrdersByAppointment(@PathVariable Long appointmentId) {
+    return ResponseEntity.ok(ResponseWrapper.success(labOrderService.getLabOrdersByAppointment(appointmentId)));
   }
 
   @PreAuthorize("hasAnyRole('LAB_TECHNICIAN', 'ADMIN', 'DOCTOR')")
   @PatchMapping("/{orderId}/items/{itemId}/results")
-  public ResponseEntity<ApiResponse<LabOrderDTO>> addResultToItem(
+  public ResponseEntity<ResponseWrapper<LabOrderDTO>> addResultToItem(
     @PathVariable Long orderId,
     @PathVariable Long itemId,
     @RequestBody AddLabResultRequest request
   ) {
-    return ResponseEntity.ok(ApiResponse.success(labOrderService.addResultToItem(orderId, itemId, request)));
+    return ResponseEntity.ok(ResponseWrapper.success(labOrderService.addResultToItem(orderId, itemId, request)));
   }
 }

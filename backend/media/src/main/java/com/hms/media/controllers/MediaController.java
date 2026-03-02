@@ -1,6 +1,6 @@
 package com.hms.media.controllers;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.media.dto.MediaFileDto;
 import com.hms.media.entities.MediaFile;
 import com.hms.media.services.MediaService;
@@ -20,9 +20,9 @@ public class MediaController {
   private final MediaService mediaService;
 
   @PostMapping("/upload")
-  public ResponseEntity<ApiResponse<MediaFileDto>> uploadFile(@RequestParam("file") MultipartFile file) {
+  public ResponseEntity<ResponseWrapper<MediaFileDto>> uploadFile(@RequestParam("file") MultipartFile file) {
     return ResponseEntity.status(HttpStatus.CREATED)
-      .body(ApiResponse.success(mediaService.storeFile(file), "Upload realizado com sucesso."));
+      .body(ResponseWrapper.success(mediaService.storeFile(file), "Upload realizado com sucesso."));
   }
 
   @GetMapping("/{id}")

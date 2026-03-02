@@ -19,7 +19,7 @@ import com.hms.appointment.repositories.PatientReadModelRepository;
 import com.hms.appointment.repositories.PrescriptionRepository;
 import com.hms.appointment.services.PrescriptionService;
 import com.hms.common.dto.event.EventEnvelope;
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
@@ -262,7 +262,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     String patientName = "Paciente";
 
     try {
-      ApiResponse<DoctorProfile> response = profileClient.getDoctor(prescription.getAppointment().getDoctorId());
+      ResponseWrapper<DoctorProfile> response = profileClient.getDoctor(prescription.getAppointment().getDoctorId());
       DoctorProfile doctor = (response != null) ? response.data() : null;
       if (doctor != null) {
         doctorName = doctor.name();

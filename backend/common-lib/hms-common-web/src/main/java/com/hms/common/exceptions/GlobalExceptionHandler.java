@@ -1,6 +1,6 @@
 package com.hms.common.exceptions;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.ErrorDetails;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class GlobalExceptionHandler {
 
   // Trata todas as exceções que estendem HmsBaseException
   @ExceptionHandler(HmsBaseException.class)
-  public ResponseEntity<ApiResponse<Void>> handleHmsBaseException(HmsBaseException ex) {
+  public ResponseEntity<ResponseWrapper<Void>> handleHmsBaseException(HmsBaseException ex) {
     log.warn("HMS Exception [{}]: {}", ex.getErrorCode(), ex.getMessage());
 
     ErrorDetails errorDetails = new ErrorDetails(
@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
       null
     );
 
-    ApiResponse<Void> response = ApiResponse.error(ex.getMessage(), errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(ex.getMessage(), errorDetails);
 
     return ResponseEntity
       .status(ex.getHttpStatus())
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
 
   // Trata erros de validação do @Valid
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<ApiResponse<Void>> handleValidationException(
+  public ResponseEntity<ResponseWrapper<Void>> handleValidationException(
     MethodArgumentNotValidException ex
   ) {
     Map<String, String> errors = new HashMap<>();
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
     log.warn("Validation error: {}", errors);
 
     ErrorDetails errorDetails = ErrorDetails.validation(errors);
-    ApiResponse<Void> response = ApiResponse.error(
+    ResponseWrapper<Void> response = ResponseWrapper.error(
       "Erro de validação nos dados enviados",
       errorDetails
     );
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
 
   // Trata erros de validação de constraints (@NotNull, @Size, etc)
   @ExceptionHandler(ConstraintViolationException.class)
-  public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
+  public ResponseEntity<ResponseWrapper<Void>> handleConstraintViolation(
     ConstraintViolationException ex
   ) {
     Map<String, String> errors = new HashMap<>();
@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
     log.warn("Constraint violation: {}", errors);
 
     ErrorDetails errorDetails = ErrorDetails.validation(errors);
-    ApiResponse<Void> response = ApiResponse.error(
+    ResponseWrapper<Void> response = ResponseWrapper.error(
       "Violação de restrição nos dados",
       errorDetails
     );
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
 
   // Trata JSON malformado ou tipo incompatível
   @ExceptionHandler(HttpMessageNotReadableException.class)
-  public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(
+  public ResponseEntity<ResponseWrapper<Void>> handleHttpMessageNotReadable(
     HttpMessageNotReadableException ex
   ) {
     log.warn("Malformed JSON request: {}", ex.getMessage());
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
       "MALFORMED_JSON"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(
+    ResponseWrapper<Void> response = ResponseWrapper.error(
       "Formato de dados inválido. Verifique o JSON enviado.",
       errorDetails
     );
@@ -117,7 +117,7 @@ public class GlobalExceptionHandler {
 
   // Trata parâmetros obrigatórios ausentes
   @ExceptionHandler(MissingServletRequestParameterException.class)
-  public ResponseEntity<ApiResponse<Void>> handleMissingParams(
+  public ResponseEntity<ResponseWrapper<Void>> handleMissingParams(
     MissingServletRequestParameterException ex
   ) {
     log.warn("Missing request parameter: {}", ex.getParameterName());
@@ -132,7 +132,7 @@ public class GlobalExceptionHandler {
       "MISSING_PARAMETER"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(message, errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(message, errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.BAD_REQUEST)
@@ -141,7 +141,7 @@ public class GlobalExceptionHandler {
 
   // Trata erro de tipo de argumento (ex: String onde deveria ser Long)
   @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-  public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(
+  public ResponseEntity<ResponseWrapper<Void>> handleTypeMismatch(
     MethodArgumentTypeMismatchException ex
   ) {
     log.warn("Type mismatch for parameter '{}': expected {}, got {}",
@@ -158,7 +158,7 @@ public class GlobalExceptionHandler {
       "TYPE_MISMATCH"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(message, errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(message, errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.BAD_REQUEST)
@@ -167,7 +167,7 @@ public class GlobalExceptionHandler {
 
   // Trata rota não encontrada (404)
   @ExceptionHandler(NoHandlerFoundException.class)
-  public ResponseEntity<ApiResponse<Void>> handleNoHandlerFound(
+  public ResponseEntity<ResponseWrapper<Void>> handleNoHandlerFound(
     NoHandlerFoundException ex
   ) {
     log.warn("No handler found for {} {}", ex.getHttpMethod(), ex.getRequestURL());
@@ -183,7 +183,7 @@ public class GlobalExceptionHandler {
       "ROUTE_NOT_FOUND"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(message, errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(message, errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.NOT_FOUND)
@@ -192,7 +192,7 @@ public class GlobalExceptionHandler {
 
   // Trata IllegalArgumentException
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(
+  public ResponseEntity<ResponseWrapper<Void>> handleIllegalArgument(
     IllegalArgumentException ex
   ) {
     log.warn("Illegal argument: {}", ex.getMessage());
@@ -202,7 +202,7 @@ public class GlobalExceptionHandler {
       "ILLEGAL_ARGUMENT"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(ex.getMessage(), errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(ex.getMessage(), errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.BAD_REQUEST)
@@ -211,7 +211,7 @@ public class GlobalExceptionHandler {
 
   // Trata IllegalStateException
   @ExceptionHandler(IllegalStateException.class)
-  public ResponseEntity<ApiResponse<Void>> handleIllegalState(
+  public ResponseEntity<ResponseWrapper<Void>> handleIllegalState(
     IllegalStateException ex
   ) {
     log.warn("Illegal state: {}", ex.getMessage());
@@ -221,7 +221,7 @@ public class GlobalExceptionHandler {
       "ILLEGAL_STATE"
     );
 
-    ApiResponse<Void> response = ApiResponse.error(ex.getMessage(), errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(ex.getMessage(), errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.CONFLICT)
@@ -230,7 +230,7 @@ public class GlobalExceptionHandler {
 
   // Fallback para qualquer exceção não tratada
   @ExceptionHandler(Exception.class)
-  public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+  public ResponseEntity<ResponseWrapper<Void>> handleGenericException(Exception ex) {
     log.error("Unhandled exception", ex);
 
     ErrorDetails errorDetails = ErrorDetails.of(
@@ -241,7 +241,7 @@ public class GlobalExceptionHandler {
     // em produção, não expõe detalhes internos
     String message = "Erro interno do servidor. Por favor, tente novamente mais tarde.";
 
-    ApiResponse<Void> response = ApiResponse.error(message, errorDetails);
+    ResponseWrapper<Void> response = ResponseWrapper.error(message, errorDetails);
 
     return ResponseEntity
       .status(HttpStatus.INTERNAL_SERVER_ERROR)

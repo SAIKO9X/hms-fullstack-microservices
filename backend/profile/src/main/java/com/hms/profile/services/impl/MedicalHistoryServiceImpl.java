@@ -1,6 +1,6 @@
 package com.hms.profile.services.impl;
 
-import com.hms.common.dto.response.ApiResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.profile.clients.AppointmentFeignClient;
 import com.hms.profile.dto.response.AppointmentHistoryDto;
@@ -45,7 +45,7 @@ public class MedicalHistoryServiceImpl implements MedicalHistoryService {
 
   @CircuitBreaker(name = "appointmentService", fallbackMethod = "fetchHistoryFallback")
   public MedicalHistoryResponse fetchAndProcessHistory(Long patientProfileId) {
-    ApiResponse<List<AppointmentResponse>> response =
+    ResponseWrapper<List<AppointmentResponse>> response =
       appointmentFeignClient.getAppointmentHistoryForPatient(patientProfileId);
 
     List<AppointmentResponse> appointments =

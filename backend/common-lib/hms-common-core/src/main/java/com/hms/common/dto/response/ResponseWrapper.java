@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ApiResponse<T>(
+public record ResponseWrapper<T>(
   boolean success,
   String message,
   T data,
@@ -16,8 +16,8 @@ public record ApiResponse<T>(
 ) {
 
   // sucesso com dados
-  public static <T> ApiResponse<T> success(T data) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> success(T data) {
+    return ResponseWrapper.<T>builder()
       .success(true)
       .data(data)
       .timestamp(LocalDateTime.now())
@@ -25,8 +25,8 @@ public record ApiResponse<T>(
   }
 
   // sucesso com dados e mensagem customizada
-  public static <T> ApiResponse<T> success(T data, String message) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> success(T data, String message) {
+    return ResponseWrapper.<T>builder()
       .success(true)
       .message(message)
       .data(data)
@@ -35,8 +35,8 @@ public record ApiResponse<T>(
   }
 
   // sucesso sem dados, apenas mensagem
-  public static <T> ApiResponse<T> success(String message) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> success(String message) {
+    return ResponseWrapper.<T>builder()
       .success(true)
       .message(message)
       .timestamp(LocalDateTime.now())
@@ -44,8 +44,8 @@ public record ApiResponse<T>(
   }
 
   // resposta de erro simples
-  public static <T> ApiResponse<T> error(String message) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> error(String message) {
+    return ResponseWrapper.<T>builder()
       .success(false)
       .message(message)
       .timestamp(LocalDateTime.now())
@@ -53,8 +53,8 @@ public record ApiResponse<T>(
   }
 
   // resposta de erro com detalhes
-  public static <T> ApiResponse<T> error(String message, ErrorDetails errorDetails) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> error(String message, ErrorDetails errorDetails) {
+    return ResponseWrapper.<T>builder()
       .success(false)
       .message(message)
       .error(errorDetails)
@@ -63,8 +63,8 @@ public record ApiResponse<T>(
   }
 
   // resposta de erro com código de status
-  public static <T> ApiResponse<T> error(String message, int statusCode) {
-    return ApiResponse.<T>builder()
+  public static <T> ResponseWrapper<T> error(String message, int statusCode) {
+    return ResponseWrapper.<T>builder()
       .success(false)
       .message(message)
       .error(new ErrorDetails(statusCode, null, null))
