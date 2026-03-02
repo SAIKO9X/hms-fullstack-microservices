@@ -1,12 +1,13 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.PatientAppointmentControllerDocs;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
 import com.hms.appointment.dto.response.AppointmentStatsResponse;
 import com.hms.appointment.repositories.DoctorSummaryProjection;
 import com.hms.appointment.services.AppointmentService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/appointments/patient")
 @RequiredArgsConstructor
-public class PatientAppointmentController {
+public class PatientAppointmentController implements PatientAppointmentControllerDocs {
 
   private final AppointmentService appointmentService;
 

@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.AppointmentControllerDocs;
 import com.hms.appointment.dto.request.AppointmentCompleteRequest;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AppointmentUpdateRequest;
@@ -19,9 +20,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/appointments")
 @RequiredArgsConstructor
-public class AppointmentController {
+@RequestMapping("/appointments")
+public class AppointmentController implements AppointmentControllerDocs {
 
   private final AppointmentService appointmentService;
 

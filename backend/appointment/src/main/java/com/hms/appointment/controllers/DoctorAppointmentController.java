@@ -1,10 +1,11 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.DoctorAppointmentControllerDocs;
 import com.hms.appointment.dto.request.AppointmentCompleteRequest;
 import com.hms.appointment.dto.response.*;
 import com.hms.appointment.services.AppointmentService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('DOCTOR')")
 @RequestMapping("/doctor/appointments")
-public class DoctorAppointmentController {
+public class DoctorAppointmentController implements DoctorAppointmentControllerDocs {
 
   private final AppointmentService appointmentService;
 

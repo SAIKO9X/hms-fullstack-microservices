@@ -1,5 +1,6 @@
 package com.hms.chat.controllers;
 
+import com.hms.chat.docs.ChatControllerDocs;
 import com.hms.chat.dto.request.ChatMessageRequest;
 import com.hms.chat.dto.response.ChatMessageResponse;
 import com.hms.chat.services.ChatService;
@@ -18,7 +19,7 @@ import java.util.List;
 
 @Controller
 @RequiredArgsConstructor
-public class ChatController {
+public class ChatController implements ChatControllerDocs {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final ChatService chatService;

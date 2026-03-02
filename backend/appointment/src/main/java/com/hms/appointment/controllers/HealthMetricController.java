@@ -1,10 +1,11 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.HealthMetricControllerDocs;
 import com.hms.appointment.dto.request.HealthMetricCreateRequest;
 import com.hms.appointment.dto.response.HealthMetricResponse;
 import com.hms.appointment.services.HealthMetricService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/health-metrics")
 @RequiredArgsConstructor
-public class HealthMetricController {
+@RequestMapping("/health-metrics")
+public class HealthMetricController implements HealthMetricControllerDocs {
 
   private final HealthMetricService healthMetricService;
 

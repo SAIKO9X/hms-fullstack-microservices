@@ -1,10 +1,11 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.AdverseEffectReportControllerDocs;
 import com.hms.appointment.dto.request.AdverseEffectReportCreateRequest;
 import com.hms.appointment.dto.response.AdverseEffectReportResponse;
 import com.hms.appointment.services.AdverseEffectReportService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/adverse-effects")
-public class AdverseEffectReportController {
+public class AdverseEffectReportController implements AdverseEffectReportControllerDocs {
 
   private final AdverseEffectReportService reportService;
 

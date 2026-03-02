@@ -1,10 +1,11 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.MedicalDocumentControllerDocs;
 import com.hms.appointment.dto.request.MedicalDocumentCreateRequest;
 import com.hms.appointment.dto.response.MedicalDocumentResponse;
 import com.hms.appointment.services.MedicalDocumentService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
@@ -21,9 +22,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/documents")
 @RequiredArgsConstructor
-public class MedicalDocumentController {
+@RequestMapping("/documents")
+public class MedicalDocumentController implements MedicalDocumentControllerDocs {
 
   private final MedicalDocumentService documentService;
 

@@ -1,6 +1,7 @@
 package com.hms.media.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.media.docs.MediaControllerDocs;
 import com.hms.media.dto.MediaFileDto;
 import com.hms.media.entities.MediaFile;
 import com.hms.media.services.MediaService;
@@ -15,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/media")
 @RequiredArgsConstructor
-public class MediaController {
+public class MediaController implements MediaControllerDocs {
 
   private final MediaService mediaService;
 

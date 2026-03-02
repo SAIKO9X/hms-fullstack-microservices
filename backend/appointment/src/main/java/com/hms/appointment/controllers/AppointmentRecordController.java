@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.AppointmentRecordControllerDocs;
 import com.hms.appointment.dto.request.AppointmentRecordCreateRequest;
 import com.hms.appointment.dto.request.AppointmentRecordUpdateRequest;
 import com.hms.appointment.dto.response.AppointmentRecordResponse;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/records")
-public class AppointmentRecordController {
+public class AppointmentRecordController implements AppointmentRecordControllerDocs {
 
   private final AppointmentRecordService recordService;
 

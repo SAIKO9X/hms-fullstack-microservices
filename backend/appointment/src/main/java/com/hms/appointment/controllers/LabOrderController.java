@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.LabOrderControllerDocs;
 import com.hms.appointment.dto.request.AddLabResultRequest;
 import com.hms.appointment.dto.request.LabOrderCreateRequest;
 import com.hms.appointment.dto.response.LabOrderDTO;
@@ -15,9 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/appointments/lab-orders")
 @RequiredArgsConstructor
-public class LabOrderController {
+@RequestMapping("/appointments/lab-orders")
+public class LabOrderController implements LabOrderControllerDocs {
 
   private final LabOrderService labOrderService;
 

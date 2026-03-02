@@ -1,12 +1,13 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.PrescriptionControllerDocs;
 import com.hms.appointment.dto.request.PrescriptionCreateRequest;
 import com.hms.appointment.dto.request.PrescriptionUpdateRequest;
 import com.hms.appointment.dto.response.PrescriptionForPharmacyResponse;
 import com.hms.appointment.dto.response.PrescriptionResponse;
 import com.hms.appointment.services.PrescriptionService;
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/prescriptions")
 @RequiredArgsConstructor
-public class PrescriptionController {
+public class PrescriptionController implements PrescriptionControllerDocs {
 
   private final PrescriptionService prescriptionService;
 

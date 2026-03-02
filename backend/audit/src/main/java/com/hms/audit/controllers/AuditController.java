@@ -1,5 +1,6 @@
 package com.hms.audit.controllers;
 
+import com.hms.audit.docs.AuditControllerDocs;
 import com.hms.audit.entities.AuditLog;
 import com.hms.audit.repositories.AuditLogRepository;
 import com.hms.common.dto.response.ResponseWrapper;
@@ -17,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/audit-logs")
 @RequiredArgsConstructor
-public class AuditController {
+public class AuditController implements AuditControllerDocs {
 
   private final AuditLogRepository repository;
 

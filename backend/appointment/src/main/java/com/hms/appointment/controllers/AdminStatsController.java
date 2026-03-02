@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.AdminStatsControllerDocs;
 import com.hms.appointment.dto.response.AppointmentDetailResponse;
 import com.hms.appointment.dto.response.DailyActivityDto;
 import com.hms.appointment.services.AppointmentService;
@@ -15,7 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/admin/stats")
-public class AdminStatsController {
+public class AdminStatsController implements AdminStatsControllerDocs {
 
   private final AppointmentService appointmentService;
 

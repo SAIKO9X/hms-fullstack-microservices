@@ -1,5 +1,6 @@
 package com.hms.billing.controllers;
 
+import com.hms.billing.docs.BillingControllerDocs;
 import com.hms.billing.entities.Invoice;
 import com.hms.billing.entities.PatientInsurance;
 import com.hms.billing.services.BillingService;
@@ -18,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/billing")
 @RequiredArgsConstructor
-public class BillingController {
+public class BillingController implements BillingControllerDocs {
 
   private final BillingService billingService;
 

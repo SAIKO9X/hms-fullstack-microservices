@@ -1,6 +1,7 @@
 package com.hms.notification.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.notification.docs.NotificationControllerDocs;
 import com.hms.notification.dto.response.NotificationResponse;
 import com.hms.notification.services.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
-public class NotificationController {
+public class NotificationController implements NotificationControllerDocs {
 
   private final NotificationService notificationService;
 

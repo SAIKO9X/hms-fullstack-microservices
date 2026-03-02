@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.DoctorUnavailabilityControllerDocs;
 import com.hms.appointment.dto.request.DoctorUnavailabilityRequest;
 import com.hms.appointment.dto.response.DoctorUnavailabilityResponse;
 import com.hms.appointment.services.DoctorUnavailabilityService;
@@ -14,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/appointments/unavailability")
 @RequiredArgsConstructor
-public class DoctorUnavailabilityController {
+@RequestMapping("/appointments/unavailability")
+public class DoctorUnavailabilityController implements DoctorUnavailabilityControllerDocs {
 
   private final DoctorUnavailabilityService service;
 

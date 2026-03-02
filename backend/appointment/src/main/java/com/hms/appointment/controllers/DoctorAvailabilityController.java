@@ -1,5 +1,6 @@
 package com.hms.appointment.controllers;
 
+import com.hms.appointment.docs.DoctorAvailabilityControllerDocs;
 import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.AvailabilityResponse;
 import com.hms.appointment.services.AppointmentService;
@@ -16,7 +17,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/appointments/availability")
-public class DoctorAvailabilityController {
+public class DoctorAvailabilityController implements DoctorAvailabilityControllerDocs {
 
   private final AppointmentService appointmentService;
 
