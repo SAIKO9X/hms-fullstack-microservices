@@ -22,12 +22,19 @@ import java.util.List;
 
 @Tag(name = "Avaliações", description = "Endpoints para gerenciamento de avaliações de médicos")
 @SecurityRequirement(name = "bearerAuth")
+@ApiResponses({
+  @ApiResponse(responseCode = "401", description = "Não autorizado", content = @Content),
+  @ApiResponse(responseCode = "403", description = "Proibido", content = @Content),
+  @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content)
+})
 public interface ReviewControllerDocs {
 
   @Operation(summary = "Criar avaliação", description = "Cria uma nova avaliação (review/estrelas) para um médico.")
   @ApiResponses({
     @ApiResponse(responseCode = "201", description = "Avaliação enviada com sucesso"),
-    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "404", description = "Médico não encontrado", content = @Content),
+    @ApiResponse(responseCode = "409", description = "O paciente já avaliou este médico", content = @Content)
   })
   ResponseEntity<ResponseWrapper<ReviewResponse>> createReview(
     @RequestBody @Valid ReviewCreateRequest request,
@@ -35,7 +42,10 @@ public interface ReviewControllerDocs {
   );
 
   @Operation(summary = "Obter estatísticas do médico", description = "Retorna a média de estrelas e contagem de avaliações de um médico.")
-  @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Estatísticas recuperadas com sucesso"),
+    @ApiResponse(responseCode = "404", description = "Médico não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<DoctorRatingDto>> getDoctorStats(@Parameter(description = "ID do médico") @PathVariable Long doctorId);
 
   @Operation(summary = "Listar avaliações do médico", description = "Retorna todas as avaliações feitas para um determinado médico.")
@@ -43,7 +53,11 @@ public interface ReviewControllerDocs {
   ResponseEntity<ResponseWrapper<List<ReviewResponse>>> getDoctorReviews(@Parameter(description = "ID do médico") @PathVariable Long doctorId);
 
   @Operation(summary = "Atualizar avaliação", description = "Atualiza uma avaliação que já foi enviada pelo paciente logado.")
-  @ApiResponse(responseCode = "200", description = "Avaliação atualizada com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Avaliação atualizada com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "404", description = "Avaliação não encontrada", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<ReviewResponse>> updateReview(
     @Parameter(description = "ID do médico avaliado") @PathVariable Long doctorId,
     @RequestBody @Valid ReviewUpdateRequest request,
@@ -51,7 +65,10 @@ public interface ReviewControllerDocs {
   );
 
   @Operation(summary = "Obter minha avaliação", description = "Verifica se o usuário logado já fez uma avaliação para um médico e a retorna se existir.")
-  @ApiResponse(responseCode = "200", description = "Avaliação recuperada com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Avaliação recuperada com sucesso"),
+    @ApiResponse(responseCode = "404", description = "Nenhuma avaliação encontrada para este médico", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<ReviewResponse>> getMyReviewForDoctor(
     @Parameter(description = "ID do médico") @PathVariable Long doctorId,
     @Parameter(hidden = true) Authentication authentication

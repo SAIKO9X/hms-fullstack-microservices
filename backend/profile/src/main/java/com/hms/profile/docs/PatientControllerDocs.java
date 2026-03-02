@@ -26,21 +26,34 @@ import java.util.List;
 
 @Tag(name = "Pacientes", description = "Endpoints para gerenciamento de perfis de pacientes")
 @SecurityRequirement(name = "bearerAuth")
+@ApiResponses({
+  @ApiResponse(responseCode = "401", description = "Não autorizado (Token ausente ou inválido)", content = @Content),
+  @ApiResponse(responseCode = "403", description = "Proibido (Sem permissão para esta ação)", content = @Content),
+  @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content)
+})
 public interface PatientControllerDocs {
 
   @Operation(summary = "Criar perfil de paciente", description = "Cria um novo perfil de paciente para o usuário logado.")
   @ApiResponses({
     @ApiResponse(responseCode = "201", description = "Perfil criado com sucesso"),
-    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "409", description = "O usuário já possui um perfil de paciente", content = @Content)
   })
   ResponseEntity<ResponseWrapper<PatientResponse>> createPatientProfile(@Valid @RequestBody PatientCreateRequest request);
 
   @Operation(summary = "Obter meu perfil", description = "Recupera o perfil de paciente do usuário logado.")
-  @ApiResponse(responseCode = "200", description = "Perfil recuperado com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Perfil recuperado com sucesso"),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<PatientResponse>> getMyProfile(@Parameter(hidden = true) Authentication authentication);
 
   @Operation(summary = "Atualizar meu perfil", description = "Atualiza os dados do perfil de paciente do usuário logado.")
-  @ApiResponse(responseCode = "200", description = "Perfil atualizado com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Perfil atualizado com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<PatientResponse>> updateMyProfile(
     @Parameter(hidden = true) Authentication authentication,
     @Valid @RequestBody PatientUpdateRequest request
@@ -51,7 +64,10 @@ public interface PatientControllerDocs {
   ResponseEntity<ResponseWrapper<Boolean>> patientProfileExists(@Parameter(description = "ID do usuário") @PathVariable Long userId);
 
   @Operation(summary = "Obter perfil por ID de usuário", description = "Recupera o perfil de um paciente utilizando o ID do usuário base.")
-  @ApiResponse(responseCode = "200", description = "Perfil encontrado")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Perfil encontrado"),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<PatientResponse>> getProfileByUserId(@Parameter(description = "ID do usuário") @PathVariable Long userId);
 
   @Operation(summary = "Obter lista de pacientes (Dropdown)", description = "Retorna uma lista resumida de pacientes para selects e filtros.")
@@ -63,18 +79,29 @@ public interface PatientControllerDocs {
   ResponseEntity<ResponseWrapper<PagedResponse<PatientResponse>>> getAllPatientProfiles(@Parameter(hidden = true) Pageable pageable);
 
   @Operation(summary = "Obter perfil por ID", description = "Recupera os detalhes de um perfil de paciente pelo seu ID (Requer ADMIN ou DOCTOR).")
-  @ApiResponse(responseCode = "200", description = "Perfil encontrado")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Perfil encontrado"),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<PatientResponse>> getPatientProfileById(@Parameter(description = "ID do perfil do paciente") @PathVariable Long id);
 
   @Operation(summary = "Atualizar foto de perfil", description = "Atualiza a URL da foto de perfil do paciente logado.")
-  @ApiResponse(responseCode = "200", description = "Foto atualizada com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Foto atualizada com sucesso"),
+    @ApiResponse(responseCode = "400", description = "URL da imagem inválida", content = @Content),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<Void>> updatePatientProfilePicture(
     @Parameter(hidden = true) Authentication authentication,
     @Valid @RequestBody ProfilePictureUpdateRequest request
   );
 
   @Operation(summary = "Atualizar perfil (Admin)", description = "Atualiza os dados de qualquer paciente (Requer privilégios de ADMIN).")
-  @ApiResponse(responseCode = "200", description = "Perfil atualizado com sucesso")
+  @ApiResponses({
+    @ApiResponse(responseCode = "200", description = "Perfil atualizado com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "404", description = "Perfil de paciente não encontrado", content = @Content)
+  })
   ResponseEntity<ResponseWrapper<Void>> adminUpdatePatient(
     @Parameter(description = "ID do usuário (paciente)") @PathVariable("userId") Long userId,
     @RequestBody AdminPatientUpdateRequest updateRequest
