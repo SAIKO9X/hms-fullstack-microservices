@@ -1,13 +1,16 @@
 package com.hms.pharmacy.controllers;
 
+import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.common.exceptions.AccessDeniedException;
+import com.hms.common.security.Auditable;
+import com.hms.common.security.SecurityUtils;
+import com.hms.pharmacy.docs.PharmacySaleControllerDocs;
 import com.hms.pharmacy.dto.request.DirectSaleRequest;
 import com.hms.pharmacy.dto.request.PharmacySaleRequest;
 import com.hms.pharmacy.dto.response.PharmacyFinancialStatsResponse;
 import com.hms.pharmacy.dto.response.PharmacySaleResponse;
 import com.hms.pharmacy.services.PharmacySaleService;
-import com.hms.common.dto.response.ResponseWrapper;
-import com.hms.common.dto.response.PagedResponse;
-import com.hms.common.exceptions.AccessDeniedException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,15 +22,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.hms.common.security.Auditable;
-import com.hms.common.security.SecurityUtils;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/pharmacy/sales")
-public class PharmacySaleController {
+public class PharmacySaleController implements PharmacySaleControllerDocs {
 
   private final PharmacySaleService saleService;
 

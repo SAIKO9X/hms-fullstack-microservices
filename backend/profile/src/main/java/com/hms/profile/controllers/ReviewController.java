@@ -2,6 +2,7 @@ package com.hms.profile.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
+import com.hms.profile.docs.ReviewControllerDocs;
 import com.hms.profile.dto.request.ReviewCreateRequest;
 import com.hms.profile.dto.request.ReviewUpdateRequest;
 import com.hms.profile.dto.response.DoctorRatingDto;
@@ -19,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/profile/reviews")
 @RequiredArgsConstructor
-public class ReviewController {
+public class ReviewController implements ReviewControllerDocs {
 
   private final ReviewService reviewService;
 

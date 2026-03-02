@@ -3,6 +3,7 @@ package com.hms.profile.controllers;
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
 import com.hms.common.security.SecurityUtils;
+import com.hms.profile.docs.DoctorControllerDocs;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
 import com.hms.profile.dto.request.DoctorCreateRequest;
 import com.hms.profile.dto.request.DoctorUpdateRequest;
@@ -26,7 +27,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/profile/doctors")
-public class DoctorController {
+public class DoctorController implements DoctorControllerDocs {
 
   private final DoctorService doctorService;
 

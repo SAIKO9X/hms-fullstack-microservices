@@ -2,6 +2,7 @@ package com.hms.pharmacy.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.pharmacy.docs.MedicineControllerDocs;
 import com.hms.pharmacy.dto.request.MedicineRequest;
 import com.hms.pharmacy.dto.response.MedicineResponse;
 import com.hms.pharmacy.services.MedicineService;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/pharmacy/medicines")
-public class MedicineController {
+public class MedicineController implements MedicineControllerDocs {
 
   private final MedicineService medicineService;
 

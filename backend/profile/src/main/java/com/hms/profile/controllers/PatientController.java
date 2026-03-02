@@ -4,6 +4,7 @@ import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
+import com.hms.profile.docs.PatientControllerDocs;
 import com.hms.profile.dto.request.AdminPatientUpdateRequest;
 import com.hms.profile.dto.request.PatientCreateRequest;
 import com.hms.profile.dto.request.PatientUpdateRequest;
@@ -27,7 +28,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/profile/patients")
-public class PatientController {
+public class PatientController implements PatientControllerDocs {
 
   private final PatientService patientService;
 

@@ -2,6 +2,7 @@ package com.hms.profile.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.Auditable;
+import com.hms.profile.docs.MedicalHistoryControllerDocs;
 import com.hms.profile.dto.response.MedicalHistoryResponse;
 import com.hms.profile.services.MedicalHistoryService;
 import com.hms.profile.services.PatientService;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/profile")
 @RequiredArgsConstructor
-public class MedicalHistoryController {
+public class MedicalHistoryController implements MedicalHistoryControllerDocs {
 
   private final MedicalHistoryService medicalHistoryService;
   private final PatientService patientService;

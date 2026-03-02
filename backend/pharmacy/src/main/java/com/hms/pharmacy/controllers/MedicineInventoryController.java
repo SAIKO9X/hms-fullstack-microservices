@@ -1,7 +1,8 @@
 package com.hms.pharmacy.controllers;
 
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.pharmacy.docs.MedicineInventoryControllerDocs;
 import com.hms.pharmacy.dto.request.MedicineInventoryRequest;
 import com.hms.pharmacy.dto.response.MedicineInventoryResponse;
 import com.hms.pharmacy.services.MedicineInventoryService;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/pharmacy/inventory")
-public class MedicineInventoryController {
+public class MedicineInventoryController implements MedicineInventoryControllerDocs {
 
   private final MedicineInventoryService inventoryService;
 

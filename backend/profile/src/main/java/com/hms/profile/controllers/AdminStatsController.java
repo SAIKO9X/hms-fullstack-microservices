@@ -1,6 +1,7 @@
 package com.hms.profile.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.profile.docs.AdminStatsControllerDocs;
 import com.hms.profile.dto.response.AdminDashboardStatsResponse;
 import com.hms.profile.dto.response.DoctorStatusResponse;
 import com.hms.profile.services.DoctorService;
@@ -18,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/profile/admin/stats")
-public class AdminStatsController {
+public class AdminStatsController implements AdminStatsControllerDocs {
 
   private final PatientService patientService;
   private final DoctorService doctorService;
