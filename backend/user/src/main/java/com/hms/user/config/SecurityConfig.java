@@ -29,6 +29,14 @@ public class SecurityConfig {
   private final CommonJwtAuthFilter jwtAuthFilter;
   private final UserDetailsService userDetailsService;
 
+  private static final String[] SWAGGER_WHITELIST = {
+    "/v3/api-docs/**",
+    "/swagger-ui/**",
+    "/swagger-ui.html",
+    "/swagger-resources/**",
+    "/webjars/**"
+  };
+
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
@@ -36,6 +44,8 @@ public class SecurityConfig {
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/auth/**").permitAll()
         .requestMatchers("/actuator/**").permitAll()
+        .requestMatchers(SWAGGER_WHITELIST).permitAll()
+        .requestMatchers("/api/v1/auth/**").permitAll()
         .anyRequest().authenticated()
       )
       .formLogin(AbstractHttpConfigurer::disable)

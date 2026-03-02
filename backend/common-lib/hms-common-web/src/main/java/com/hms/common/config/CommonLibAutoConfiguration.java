@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Import;
 @ComponentScan(basePackages = "com.hms.common")
 @Import({
   FeignConfig.class,
-  GlobalExceptionHandler.class
+  GlobalExceptionHandler.class,
+  OpenApiConfig.class
 })
 public class CommonLibAutoConfiguration {
-  // configuração para auto-scan dos componentes da common-lib
 }

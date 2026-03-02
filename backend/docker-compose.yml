@@ -25,7 +25,9 @@ services:
       - hms-network
 
   eureka-server:
-    build: ./eureka-server
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
     container_name: eureka-server
     ports:
       - "8761:8761"
@@ -44,8 +46,9 @@ services:
       start_period: 120s
 
   gateway:
-    build: ./gateway
-    container_name: gateway
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     ports:
       - "9000:9000"
     environment:
@@ -286,6 +289,8 @@ services:
       context: .
       dockerfile: user/Dockerfile
     container_name: user-service
+    ports:
+      - "8081:8081"
     environment:
       - SERVER_PORT=8081
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -326,6 +331,8 @@ services:
       context: .
       dockerfile: profile/Dockerfile
     container_name: profile-service
+    ports:
+      - "8082:8082"
     environment:
       - SERVER_PORT=8082
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -364,6 +371,8 @@ services:
       context: .
       dockerfile: appointment/Dockerfile
     container_name: appointment-service
+    ports:
+      - "8083:8083"
     environment:
       - SERVER_PORT=8083
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -404,6 +413,8 @@ services:
       context: .
       dockerfile: pharmacy/Dockerfile
     container_name: pharmacy-service
+    ports:
+      - "8084:8084"
     environment:
       - SERVER_PORT=8084
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -440,6 +451,8 @@ services:
       context: .
       dockerfile: media/Dockerfile
     container_name: media-service
+    ports:
+      - "8085:8085"
     environment:
       - SERVER_PORT=8085
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -474,6 +487,8 @@ services:
       context: .
       dockerfile: chat/Dockerfile
     container_name: chat-service
+    ports:
+      - "8086:8086"
     environment:
       - SERVER_PORT=8086
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -508,6 +523,8 @@ services:
       context: .
       dockerfile: notification/Dockerfile
     container_name: notification-service
+    ports:
+      - "8087:8087"
     environment:
       - SERVER_PORT=8087
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -546,6 +563,8 @@ services:
       context: .
       dockerfile: billing/Dockerfile
     container_name: billing-service
+    ports:
+      - "8088:8088"
     environment:
       - SERVER_PORT=8088
       - EUREKA_URI=http://eureka-server:8761/eureka/
@@ -580,6 +599,8 @@ services:
       context: .
       dockerfile: audit/Dockerfile
     container_name: audit-service
+    ports:
+      - "8089:8089"
     environment:
       - SERVER_PORT=8089
       - EUREKA_URI=http://eureka-server:8761/eureka/
