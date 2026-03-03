@@ -19,6 +19,21 @@
 
     <properties>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
+
+        <!-- SonarCloud Properties -->
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.language>java</sonar.language>
+        <sonar.exclusions>
+            **/config/**,
+            **/*Application.java,
+            **/entities/**,
+            **/dto/**,
+            **/enums/**,
+            **/exceptions/**,
+            **/mapper/**
+        </sonar.exclusions>
     </properties>
 
     <!-- Microservices Modules -->
@@ -80,4 +95,80 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.sonarsource.scanner.maven</groupId>
+                    <artifactId>sonar-maven-plugin</artifactId>
+                    <version>4.0.0.4121</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.12</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                            <configuration>
+                                <!-- Relatório em target/site/jacoco/ -->
+                                <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>check</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <rule>
+                                        <element>BUNDLE</element>
+                                        <limits>
+                                            <limit>
+                                                <counter>LINE</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>0.30
+                                                </minimum>
+                                            </limit>
+                                        </limits>
+                                        <!-- exclui classes geradas e configs que não precisam de teste -->
+                                        <excludes>
+                                            <exclude>**/config/**</exclude>
+                                            <exclude>**/*Application.class</exclude>
+                                            <exclude>**/entities/**</exclude>
+                                            <exclude>**/dto/**</exclude>
+                                            <exclude>**/enums/**</exclude>
+                                            <exclude>**/exceptions/**</exclude>
+                                            <exclude>**/mapper/**</exclude>
+                                        </excludes>
+                                    </rule>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <!-- ativa o JaCoCo em todos os módulos filhos automaticamente -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
