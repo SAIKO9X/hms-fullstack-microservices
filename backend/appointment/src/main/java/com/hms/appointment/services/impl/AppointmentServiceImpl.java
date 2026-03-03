@@ -8,6 +8,7 @@ import com.hms.appointment.dto.event.AppointmentStatusChangedEvent;
 import com.hms.appointment.dto.event.WaitlistNotificationEvent;
 import com.hms.appointment.dto.external.DoctorProfile;
 import com.hms.appointment.dto.external.PatientProfile;
+import com.hms.appointment.dto.external.UserResponse;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.request.AvailabilityRequest;
 import com.hms.appointment.dto.response.*;
@@ -22,12 +23,17 @@ import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.AccessDeniedException;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
+import com.hms.common.exceptions.ServiceUnavailableException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -53,6 +59,7 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
   private final UserFeignClient userFeignClient;
+  @Autowired @Lazy private AppointmentServiceImpl self;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -62,15 +69,13 @@ public class AppointmentServiceImpl implements AppointmentService {
       .orElseGet(() -> {
         log.info("Médico com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
-          ResponseWrapper<DoctorProfile> response = profileFeignClient.getDoctorByUserId(userIdInput);
+          ResponseWrapper<DoctorProfile> response = self.fetchDoctorByUserIdSafely(userIdInput);
 
           if (response == null || response.data() == null) {
             throw new ResourceNotFoundException("Doctor Profile (User ID)", userIdInput);
           }
 
           DoctorProfile ext = response.data();
-          log.info("Sincronizando Médico: ProfileID={}, UserID={}, Nome={}", ext.id(), ext.userId(), ext.name());
-
           DoctorReadModel model = new DoctorReadModel();
           model.setDoctorId(ext.id());
           model.setUserId(ext.userId());
@@ -90,14 +95,12 @@ public class AppointmentServiceImpl implements AppointmentService {
       .orElseGet(() -> {
         log.info("Paciente com userId {} não encontrado localmente. Sincronizando via Profile Service...", userIdInput);
         try {
-          ResponseWrapper<PatientProfile> response = profileFeignClient.getPatientByUserId(userIdInput);
+          ResponseWrapper<PatientProfile> response = self.fetchPatientByUserIdSafely(userIdInput);
           PatientProfile ext = response.data();
 
           if (ext == null || ext.id() == null) {
             throw new ResourceNotFoundException("Patient Profile (User ID)", userIdInput);
           }
-
-          log.info("Sincronizando Paciente: ID={}, Nome={}", ext.id(), ext.name());
 
           PatientReadModel model = new PatientReadModel();
           model.setPatientId(ext.id());
@@ -660,7 +663,7 @@ public class AppointmentServiceImpl implements AppointmentService {
       DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
 
       if (patient == null) {
-        PatientProfile profile = profileFeignClient.getPatientById(app.getPatientId());
+        PatientProfile profile = self.fetchPatientByIdSafely(app.getPatientId());
         if (profile == null) {
           log.warn("Paciente {} não encontrado. Evento não publicado.", app.getPatientId());
           return;
@@ -710,23 +713,19 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   private void scheduleReminder(Appointment app) {
     try {
-      long delay = Duration.between(
-        LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
-
+      long delay = Duration.between(LocalDateTime.now(), app.getAppointmentDateTime().minusHours(24)).toMillis();
       if (delay <= 0) return;
 
       PatientReadModel patient = patientReadModelRepository.findById(app.getPatientId()).orElse(null);
       DoctorReadModel doctor = doctorReadModelRepository.findById(app.getDoctorId()).orElse(null);
 
       String patientName = patient != null ? patient.getFullName() : "Paciente";
-
       String patientEmail = null;
+
       if (patient != null && patient.getUserId() != null) {
         try {
-          var user = userFeignClient.getUserById(patient.getUserId());
-          if (user != null) {
-            patientEmail = user.email();
-          }
+          var user = self.fetchUserByIdSafely(patient.getUserId());
+          if (user != null) patientEmail = user.email();
         } catch (Exception e) {
           log.warn("Falha ao buscar e-mail via Feign para usuário {}: {}. Usando fallback.", patient.getUserId(), e.getMessage());
           patientEmail = patient.getEmail();
@@ -792,6 +791,56 @@ public class AppointmentServiceImpl implements AppointmentService {
     } catch (Exception e) {
       log.error("Erro ao notificar lista de espera: {}", e.getMessage());
     }
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchDoctorFallback")
+  @Retry(name = "profileService")
+  public ResponseWrapper<DoctorProfile> fetchDoctorByUserIdSafely(Long userId) {
+    return profileFeignClient.getDoctorByUserId(userId);
+  }
+
+  @SuppressWarnings("unused")
+  public ResponseWrapper<DoctorProfile> fetchDoctorFallback(Long userId, Throwable t) {
+    log.error("Profile Service indisponível ao buscar Médico {}: {}", userId, t.getMessage());
+    throw new ServiceUnavailableException("Serviço de perfis indisponível. Não foi possível validar o médico. Tente novamente mais tarde.");
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchPatientFallback")
+  @Retry(name = "profileService")
+  public ResponseWrapper<PatientProfile> fetchPatientByUserIdSafely(Long userId) {
+    return profileFeignClient.getPatientByUserId(userId);
+  }
+
+  @SuppressWarnings("unused")
+  public ResponseWrapper<PatientProfile> fetchPatientFallback(Long userId, Throwable t) {
+    log.error("Profile Service indisponível ao buscar Paciente por UserID {}: {}", userId, t.getMessage());
+    throw new ServiceUnavailableException("Serviço de perfis indisponível. Tente novamente mais tarde.");
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchPatientByIdFallback")
+  @Retry(name = "profileService")
+  public PatientProfile fetchPatientByIdSafely(Long patientId) {
+    return profileFeignClient.getPatientById(patientId);
+  }
+
+  @SuppressWarnings("unused")
+  public PatientProfile fetchPatientByIdFallback(Long patientId, Throwable t) {
+    log.warn("Profile Service fora do ar. Retornando paciente null para ID {}: {}", patientId, t.getMessage());
+    // retorna null para permitir que o processo continue, mas sem dados de contato. O lembrete será enviado sem e-mail se não houver cache.
+    return null;
+  }
+
+  @CircuitBreaker(name = "userService", fallbackMethod = "fetchUserFallback")
+  @Retry(name = "userService")
+  public UserResponse fetchUserByIdSafely(Long userId) {
+    return userFeignClient.getUserById(userId);
+  }
+
+  @SuppressWarnings("unused")
+  public UserResponse fetchUserFallback(Long userId, Throwable t) {
+    log.warn("User Service fora do ar. Fallback para UserID {}. O lembrete será enviado sem e-mail se não houver cache.", userId);
+    // retorna null ou um Mock para não travar a emissão do lembrete RabbitMQ
+    return null;
   }
 
   private record DateRange(LocalDateTime start, LocalDateTime end) {

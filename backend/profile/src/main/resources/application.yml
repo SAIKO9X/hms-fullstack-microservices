@@ -71,12 +71,13 @@ management:
 resilience4j:
   circuitbreaker:
     instances:
-      appointmentService: # nome da instância usada na anotação
-        registerHealthIndicator: true
-        slidingWindowSize: 10 # analisa as últimas 10 chamadas
-        minimumNumberOfCalls: 5 # só ativa depois de pelo menos 5 chamadas
-        permittredNumberOfCallsInHalfOpenState: 3 # tenta 3 vezes para ver se voltou
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 5s # espera 5s antes de tentar de novo
-        failureRateThreshold: 50 # abre o circuito se 50% falharem
-        eventConsumerBufferSize: 10
+      appointmentService:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+  retry:
+    instances:
+      appointmentService:
+        maxAttempts: 3
+        waitDuration: 1s

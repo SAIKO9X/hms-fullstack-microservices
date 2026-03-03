@@ -1,6 +1,6 @@
 server:
   port: ${SERVER_PORT:8086}
-  shutdown: graceful # aguarda requests terminarem antes de matar o processo
+  shutdown: graceful
 
 eureka:
   client:
@@ -12,7 +12,7 @@ eureka:
 
 spring:
   lifecycle:
-    timeout-per-shutdown-phase: 20s # tempo máximo de espera
+    timeout-per-shutdown-phase: 20s
   config:
     import: "optional:classpath:common-application.yml"
   application:

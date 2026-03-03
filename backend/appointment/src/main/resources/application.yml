@@ -75,8 +75,8 @@ management:
 
 resilience4j:
   circuitbreaker:
-    instances:
-      profileService:
+    configs:
+      default:
         registerHealthIndicator: true
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
@@ -84,3 +84,17 @@ resilience4j:
         automaticTransitionFromOpenToHalfOpenEnabled: true
         waitDurationInOpenState: 5s
         failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      profileService:
+        baseConfig: default
+      userService:
+        baseConfig: default
+  retry:
+    instances:
+      profileService:
+        maxAttempts: 3
+        waitDuration: 1s
+      userService:
+        maxAttempts: 3
+        waitDuration: 1s

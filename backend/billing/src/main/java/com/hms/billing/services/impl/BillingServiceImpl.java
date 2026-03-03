@@ -14,8 +14,12 @@ import com.hms.billing.services.BillingService;
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.exceptions.InvalidOperationException;
 import com.hms.common.exceptions.ResourceNotFoundException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,14 +41,18 @@ public class BillingServiceImpl implements BillingService {
   private final InsuranceProviderRepository providerRepository;
   private final ProfileFeignClient profileClient;
 
+  @Autowired
+  @Lazy
+  private BillingServiceImpl self;
+
   private static final BigDecimal BASE_FEE = new BigDecimal("200.00");
 
   private String resolvePatientId(String userIdInput) {
     try {
       Long userId = Long.valueOf(userIdInput);
-      ResponseWrapper<PatientDTO> response = profileClient.getPatientByUserId(userId);
+      ResponseWrapper<PatientDTO> response = self.fetchPatientByUserIdSafely(userId);
       if (response != null && response.data() != null) {
-        return String.valueOf(response.data().id()); // retorna o patient_id como String
+        return String.valueOf(response.data().id());
       }
     } catch (NumberFormatException e) {
       return userIdInput;
@@ -62,22 +70,19 @@ public class BillingServiceImpl implements BillingService {
       return;
     }
 
-    BigDecimal consultationFee = new BigDecimal("150.00");
+    // busca dinamicamente a taxa cadastrada no perfil do médico
+    BigDecimal consultationFee = fetchConsultationFee(doctorId);
 
     Invoice invoice = new Invoice();
     invoice.setAppointmentId(appointmentId);
     invoice.setPatientId(patientId);
     invoice.setDoctorId(doctorId);
     invoice.setTotalAmount(consultationFee);
-    invoice.setPatientPayable(consultationFee);
-    invoice.setInsuranceCovered(BigDecimal.ZERO);
 
-    invoice.setStatus(InvoiceStatus.PAID);
-    invoice.setPatientPaidAt(LocalDateTime.now());
-    invoice.setPaidAt(LocalDateTime.now());
+    applyInsuranceIfAvailable(invoice, patientId, consultationFee);
 
     invoiceRepository.save(invoice);
-    log.info("Fatura gerada e marcada como PAGA para a consulta ID {}", appointmentId);
+    log.info("Fatura gerada com status {} para a consulta ID {}", invoice.getStatus(), appointmentId);
   }
 
   @Override
@@ -152,7 +157,7 @@ public class BillingServiceImpl implements BillingService {
     try {
       if (doctorId == null) return BASE_FEE;
       Long id = Long.valueOf(doctorId);
-      ResponseWrapper<DoctorDTO> response = profileClient.getDoctor(id);
+      ResponseWrapper<DoctorDTO> response = self.fetchDoctorSafely(id);
       if (response != null && response.data() != null && response.data().consultationFee() != null) {
         return response.data().consultationFee();
       }
@@ -200,7 +205,7 @@ public class BillingServiceImpl implements BillingService {
     try {
       if (invoice.getPatientId() != null) {
         Long patientId = Long.valueOf(invoice.getPatientId());
-        ResponseWrapper<PatientDTO> pResponse = profileClient.getPatient(patientId);
+        ResponseWrapper<PatientDTO> pResponse = self.fetchPatientSafely(patientId);
         PatientDTO p = (pResponse != null) ? pResponse.data() : null;
         if (p != null) {
           pName = p.name() + (p.cpf() != null ? " (CPF: " + p.cpf() + ")" : "");
@@ -208,7 +213,7 @@ public class BillingServiceImpl implements BillingService {
       }
       if (invoice.getDoctorId() != null) {
         Long doctorId = Long.valueOf(invoice.getDoctorId());
-        ResponseWrapper<DoctorDTO> dResponse = profileClient.getDoctor(doctorId);
+        ResponseWrapper<DoctorDTO> dResponse = self.fetchDoctorSafely(doctorId);
         DoctorDTO d = (dResponse != null) ? dResponse.data() : null;
         if (d != null) {
           dName = "Dr. " + d.name();
@@ -221,5 +226,41 @@ public class BillingServiceImpl implements BillingService {
     data.put("patientName", pName);
     data.put("doctorName", dName);
     return data;
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchPatientByUserIdFallback")
+  @Retry(name = "profileService")
+  public ResponseWrapper<PatientDTO> fetchPatientByUserIdSafely(Long userId) {
+    return profileClient.getPatientByUserId(userId);
+  }
+
+  @SuppressWarnings("unused")
+  public ResponseWrapper<PatientDTO> fetchPatientByUserIdFallback(Long userId, Throwable t) {
+    log.warn("Profile Service offline. Fallback acionado para buscar paciente via userId: {}", userId);
+    return null;
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchPatientFallback")
+  @Retry(name = "profileService")
+  public ResponseWrapper<PatientDTO> fetchPatientSafely(Long patientId) {
+    return profileClient.getPatient(patientId);
+  }
+
+  @SuppressWarnings("unused")
+  public ResponseWrapper<PatientDTO> fetchPatientFallback(Long patientId, Throwable t) {
+    log.warn("Profile Service offline. O PDF da fatura será gerado sem os detalhes completos do paciente {}.", patientId);
+    return null;
+  }
+
+  @CircuitBreaker(name = "profileService", fallbackMethod = "fetchDoctorFallback")
+  @Retry(name = "profileService")
+  public ResponseWrapper<DoctorDTO> fetchDoctorSafely(Long doctorId) {
+    return profileClient.getDoctor(doctorId);
+  }
+
+  @SuppressWarnings("unused")
+  public ResponseWrapper<DoctorDTO> fetchDoctorFallback(Long doctorId, Throwable t) {
+    log.warn("Profile Service offline. O PDF da fatura será gerado sem o nome completo do médico {}.", doctorId);
+    return null;
   }
 }

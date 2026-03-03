@@ -47,3 +47,17 @@ application:
       internal: e.internal
     routing-keys:
       appointment-completed: rk.appointment.completed
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      profileService:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+  retry:
+    instances:
+      profileService:
+        maxAttempts: 3
+        waitDuration: 1s

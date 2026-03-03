@@ -48,7 +48,6 @@ public class ChatServiceImpl implements ChatService {
 
     ChatMessage savedMessage = repository.save(message);
 
-    // Agora request.senderName() funcionará pois atualizamos o DTO
     publishChatEvent(savedMessage, request.senderName());
 
     return ChatMessageResponse.fromEntity(savedMessage);
