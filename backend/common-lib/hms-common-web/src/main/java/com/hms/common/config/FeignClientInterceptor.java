@@ -15,8 +15,6 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
   private static final List<String> HEADERS_TO_PROPAGATE = Arrays.asList(
     "Authorization",
-    "X-Correlation-ID",
-    "X-Request-ID",
     "X-User-ID",
     "X-Tenant-ID"
   );
