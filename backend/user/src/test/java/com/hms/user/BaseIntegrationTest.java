@@ -1,14 +1,12 @@
-package com.hms.appointment;
+package com.hms.user;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
@@ -16,22 +14,14 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWireMock(port = 0)
 public abstract class BaseIntegrationTest {
 
   @Container
   @ServiceConnection
   static MySQLContainer<?> mysqlContainer = new MySQLContainer<>("mysql:8.0")
-    .withDatabaseName("hms_appointment_test")
+    .withDatabaseName("hms_user_test")
     .withUsername("test")
     .withPassword("test");
-
-  @Container
-  @ServiceConnection
-  static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer(
-    DockerImageName.parse("heidiks/rabbitmq-delayed-message-exchange:latest")
-      .asCompatibleSubstituteFor("rabbitmq")
-  );
 
   @Container
   @ServiceConnection(name = "redis")
@@ -48,3 +38,4 @@ public abstract class BaseIntegrationTest {
     registry.add("application.security.jwt.secret-key", () -> "dGVzdGUtc2VjcmV0LWtleS1wYXJhLWludGVncmFjYW8tc3ByaW5nLWJvb3QtandsLTI1NmJpdHM=");
   }
 }
+

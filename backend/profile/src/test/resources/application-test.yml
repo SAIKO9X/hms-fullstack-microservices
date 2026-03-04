@@ -16,7 +16,9 @@ spring:
     discovery:
       enabled: false
   cache:
-    type: none
+    type: redis
+    redis:
+      time-to-live: 600000
   data:
     redis:
       repositories:
