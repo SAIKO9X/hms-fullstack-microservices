@@ -1,0 +1,14 @@
+spring:
+  cloud:
+    discovery:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+application:
+  security:
+    jwt:
+      secret-key: c29tZVN1cGVyU2VjcmV0S2V5Rm9yVGVzdHNPTkxZMTIzNDU2Nzg=
+

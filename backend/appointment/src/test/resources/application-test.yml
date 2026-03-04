@@ -1,17 +1,39 @@
 spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/hms_appointment_test
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: false
   cloud:
     discovery:
-      enabled: false # desativa o eureka
+      enabled: false
   cache:
-    type: none
+    type: redis
+    redis:
+      time-to-live: 600000
   data:
     redis:
       repositories:
         enabled: false
+      host: localhost
+      port: 6379
   rabbitmq:
     listener:
       simple:
         auto-startup: false
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 eureka:
   client:
@@ -23,3 +45,9 @@ feign:
     url: http://localhost:${wiremock.server.port}
   user-service:
     url: http://localhost:${wiremock.server.port}
+
+application:
+  security:
+    jwt:
+      secret-key: c29tZVN1cGVyU2VjcmV0S2V5Rm9yVGVzdHNPTkxZMTIzNDU2Nzg=
+      expiration: 3600000
