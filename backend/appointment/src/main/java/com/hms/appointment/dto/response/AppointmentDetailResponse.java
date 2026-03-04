@@ -2,6 +2,7 @@ package com.hms.appointment.dto.response;
 
 import com.hms.appointment.enums.AppointmentStatus;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 public record AppointmentDetailResponse(
@@ -14,5 +15,5 @@ public record AppointmentDetailResponse(
   LocalDateTime appointmentDateTime,
   String reason,
   AppointmentStatus status
-) {
+) implements Serializable {
 }
