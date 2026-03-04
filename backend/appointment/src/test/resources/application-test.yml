@@ -30,13 +30,6 @@ eureka:
   client:
     enabled: false
 
-
-feign:
-  profile-service:
-    url: http://localhost:${wiremock.server.port}
-  user-service:
-    url: http://localhost:${wiremock.server.port}
-
 application:
   security:
     jwt:
