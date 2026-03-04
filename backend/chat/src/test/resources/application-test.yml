@@ -31,4 +31,3 @@ application:
     jwt:
       secret-key: c29tZVN1cGVyU2VjcmV0S2V5Rm9yVGVzdHNPTkxZMTIzNDU2Nzg=
       expiration: 3600000
-

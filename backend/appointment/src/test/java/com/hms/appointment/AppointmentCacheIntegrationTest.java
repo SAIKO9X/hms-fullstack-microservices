@@ -4,6 +4,7 @@ import com.hms.appointment.services.AppointmentService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Objects;
 
@@ -11,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+@TestPropertySource(properties = "spring.cache.type=redis")
 public class AppointmentCacheIntegrationTest extends BaseIntegrationTest {
 
   @Autowired
