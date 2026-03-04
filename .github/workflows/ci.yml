@@ -79,7 +79,7 @@ jobs:
         run: |
           mvn sonar:sonar \
             -Dsonar.projectKey=SAIKO9X_hms-fullstack-microservices \
-            -Dsonar.organization=<saiko-projects> \
+            -Dsonar.organization=saiko \
             -Dsonar.host.url=https://sonarcloud.io
 
   build-frontend:

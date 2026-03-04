@@ -7,8 +7,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -18,12 +16,15 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@Testcontainers
 public abstract class BaseIntegrationTest {
 
-  @Container
-  public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-    .withExposedPorts(6379);
+  public static final GenericContainer<?> redisContainer =
+    new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+      .withExposedPorts(6379);
+
+  static {
+    redisContainer.start();
+  }
 
   @RegisterExtension
   static WireMockExtension wiremock = WireMockExtension.newInstance()
@@ -31,15 +32,15 @@ public abstract class BaseIntegrationTest {
     .build();
 
   @DynamicPropertySource
-static void registerProperties(DynamicPropertyRegistry registry) {
-  // Redis
-  registry.add("spring.data.redis.host", redisContainer::getHost);
-  registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(6379).toString());
-  registry.add("spring.cache.type", () -> "redis");
+  static void registerProperties(DynamicPropertyRegistry registry) {
+    // Redis
+    registry.add("spring.data.redis.host", redisContainer::getHost);
+    registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(6379).toString());
+    registry.add("spring.cache.type", () -> "redis");
 
-  registry.add("feign.user-service.url", wiremock::baseUrl);
-  registry.add("feign.profile-service.url", wiremock::baseUrl);
-}
+    registry.add("feign.user-service.url", wiremock::baseUrl);
+    registry.add("feign.profile-service.url", wiremock::baseUrl);
+  }
 
   @BeforeEach
   void initWireMock() {
