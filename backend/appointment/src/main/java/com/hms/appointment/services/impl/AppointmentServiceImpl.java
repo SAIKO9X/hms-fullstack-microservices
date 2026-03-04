@@ -59,7 +59,9 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
   private final UserFeignClient userFeignClient;
-  @Autowired @Lazy private AppointmentServiceImpl self;
+  @Autowired
+  @Lazy
+  private AppointmentServiceImpl self;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -201,7 +203,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         doctor.getDoctorId(), range.start(), range.end());
     }
 
-    if (appointments.isEmpty()) return List.of();
+    if (appointments.isEmpty()) return Collections.emptyList();
 
     return appointments.stream()
       .map(app -> mapToDetailResponse(app, doctor))
