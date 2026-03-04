@@ -31,14 +31,15 @@ public abstract class BaseIntegrationTest {
     .build();
 
   @DynamicPropertySource
-  static void registerProperties(DynamicPropertyRegistry registry) {
-    // Redis
-    registry.add("spring.data.redis.host", redisContainer::getHost);
-    registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(6379).toString());
+static void registerProperties(DynamicPropertyRegistry registry) {
+  // Redis
+  registry.add("spring.data.redis.host", redisContainer::getHost);
+  registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(6379).toString());
+  registry.add("spring.cache.type", () -> "redis");
 
-    registry.add("feign.user-service.url", wiremock::baseUrl);
-    registry.add("feign.profile-service.url", wiremock::baseUrl);
-  }
+  registry.add("feign.user-service.url", wiremock::baseUrl);
+  registry.add("feign.profile-service.url", wiremock::baseUrl);
+}
 
   @BeforeEach
   void initWireMock() {
