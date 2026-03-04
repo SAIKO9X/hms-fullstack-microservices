@@ -84,14 +84,19 @@ CREATE TABLE IF NOT EXISTS lab_test_items (
 
 -- 6. Registros clínicos da consulta (1-to-1 com Appointment)
 CREATE TABLE IF NOT EXISTS tb_appointment_records (
-    id                  BIGINT          NOT NULL AUTO_INCREMENT,
-    appointment_id      BIGINT          NOT NULL UNIQUE,
-    anamnesis           LONGTEXT        NULL,
-    physical_exam       LONGTEXT        NULL,
-    diagnosis           LONGTEXT        NULL,
-    treatment_plan      LONGTEXT        NULL,
-    created_at          DATETIME(6)     NULL,
-    updated_at          DATETIME(6)     NULL,
+    id                          BIGINT          NOT NULL AUTO_INCREMENT,
+    appointment_id              BIGINT          NOT NULL UNIQUE,
+    chief_complaint             VARCHAR(255)    NOT NULL,
+    history_of_present_illness  TEXT            NULL,
+    physical_exam_notes         TEXT            NULL,
+    symptoms                    VARCHAR(255)    NULL,
+    diagnosis_cid10             VARCHAR(50)     NULL,
+    diagnosis_description       VARCHAR(255)    NULL,
+    treatment_plan              TEXT            NULL,
+    requested_tests             VARCHAR(255)    NULL,
+    notes                       TEXT            NULL,
+    created_at                  DATETIME(6)     NULL,
+    updated_at                  DATETIME(6)     NULL,
 
     CONSTRAINT pk_tb_appointment_records        PRIMARY KEY (id),
     CONSTRAINT fk_appointment_records_appt      FOREIGN KEY (appointment_id)
@@ -102,18 +107,15 @@ CREATE TABLE IF NOT EXISTS tb_appointment_records (
 CREATE TABLE IF NOT EXISTS tb_health_metrics (
     id              BIGINT          NOT NULL AUTO_INCREMENT,
     patient_id      BIGINT          NOT NULL,
-    appointment_id  BIGINT          NULL,
+    blood_pressure  VARCHAR(20)     NULL,
+    glucose_level   DOUBLE          NULL,
     weight          DOUBLE          NULL,
     height          DOUBLE          NULL,
-    blood_pressure  VARCHAR(20)     NULL,
+    bmi             DOUBLE          NULL,
     heart_rate      INT             NULL,
-    temperature     DOUBLE          NULL,
-    oxygen_saturation DOUBLE        NULL,
     recorded_at     DATETIME(6)     NULL,
 
-    CONSTRAINT pk_tb_health_metrics         PRIMARY KEY (id),
-    CONSTRAINT fk_health_metrics_appt       FOREIGN KEY (appointment_id)
-        REFERENCES tb_appointments (id)
+    CONSTRAINT pk_tb_health_metrics         PRIMARY KEY (id)
 );
 
 -- 8. Documentos médicos (laudos, exames, etc.)
@@ -157,11 +159,11 @@ CREATE TABLE IF NOT EXISTS tb_doctor_availability (
 
 -- 11. Indisponibilidade dos médicos (férias, bloqueios)
 CREATE TABLE IF NOT EXISTS tb_doctor_unavailability (
-    id          BIGINT          NOT NULL AUTO_INCREMENT,
-    doctor_id   BIGINT          NOT NULL,
-    start_date  DATE            NULL,
-    end_date    DATE            NULL,
-    reason      VARCHAR(255)    NULL,
+    id              BIGINT          NOT NULL AUTO_INCREMENT,
+    doctor_id       BIGINT          NOT NULL,
+    start_date_time DATETIME(6)     NOT NULL,
+    end_date_time   DATETIME(6)     NOT NULL,
+    reason          VARCHAR(255)    NULL,
 
     CONSTRAINT pk_tb_doctor_unavailability PRIMARY KEY (id)
 );
@@ -181,12 +183,13 @@ CREATE TABLE IF NOT EXISTS waitlist_entries (
 
 -- 13. Read model de médicos (projeção local para evitar chamadas ao profile-service)
 CREATE TABLE IF NOT EXISTS doctor_read_model (
-    id              BIGINT          NOT NULL,
-    name            VARCHAR(255)    NULL,
-    specialty       VARCHAR(255)    NULL,
-    crm             VARCHAR(50)     NULL,
+    doctor_id       BIGINT          NOT NULL,
+    user_id         BIGINT          NULL,
+    full_name       VARCHAR(255)    NULL,
+    specialization  VARCHAR(255)    NULL,
+    profile_picture VARCHAR(500)    NULL,
 
-    CONSTRAINT pk_doctor_read_model PRIMARY KEY (id)
+    CONSTRAINT pk_doctor_read_model PRIMARY KEY (doctor_id)
 );
 
 -- 14. Read model de pacientes

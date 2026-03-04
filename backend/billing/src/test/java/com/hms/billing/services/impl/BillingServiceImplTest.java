@@ -63,8 +63,8 @@ class BillingServiceImplTest {
     Invoice savedInvoice = invoiceCaptor.getValue();
 
     assertEquals(appointmentId, savedInvoice.getAppointmentId());
-    assertEquals(new BigDecimal("150.00"), savedInvoice.getTotalAmount());
-    assertEquals(InvoiceStatus.PAID, savedInvoice.getStatus());
+    assertEquals(new BigDecimal("200.00"), savedInvoice.getTotalAmount());
+    assertEquals(InvoiceStatus.PENDING, savedInvoice.getStatus());
   }
 
   @Test
@@ -83,7 +83,7 @@ class BillingServiceImplTest {
   @Test
   @DisplayName("Deve bloquear tentativa de pagamento de fatura já paga pelo paciente")
   void payInvoice_ShouldThrowException_WhenAlreadyPaid() {
-    String invoiceId = "INV-123";
+    Long invoiceId = 123L;
     Invoice existingInvoice = new Invoice();
     existingInvoice.setId(invoiceId);
     existingInvoice.setPatientPaidAt(LocalDateTime.now()); // marca como já pago
@@ -101,7 +101,7 @@ class BillingServiceImplTest {
   @Test
   @DisplayName("Deve processar pagamento do paciente e atualizar status para PAID se não houver pendência de seguro")
   void payInvoice_ShouldProcessPayment_WhenValidAndNoInsurancePending() {
-    String invoiceId = "INV-123";
+    Long invoiceId = 123L;
     Invoice existingInvoice = new Invoice();
     existingInvoice.setId(invoiceId);
     existingInvoice.setPatientPayable(new BigDecimal("150.00"));

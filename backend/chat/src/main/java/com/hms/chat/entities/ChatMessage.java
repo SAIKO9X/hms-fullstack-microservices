@@ -18,8 +18,7 @@ public class ChatMessage {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-  
-  // Identificador para buscar todo o histórico entre duas pessoas facilmente
+
   @Column(nullable = false)
   private String chatId;
 

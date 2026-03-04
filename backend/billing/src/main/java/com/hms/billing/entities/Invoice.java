@@ -16,13 +16,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Table(
   name = "tb_invoices", uniqueConstraints = {
-  @UniqueConstraint(columnNames = "appointmentId")
+  @UniqueConstraint(columnNames = "appointment_id")
 })
 public class Invoice {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
-  private String id;
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
   @Column(name = "pharmacy_sale_id")
   private Long pharmacySaleId;
@@ -31,10 +31,16 @@ public class Invoice {
   private String patientId;
   private String doctorId;
 
-  private BigDecimal totalAmount;         // Valor total da consulta (Ex: 200.00)
-  private BigDecimal insuranceCovered;    // Coberto pelo convênio (Ex: 160.00)
+  @Column(precision = 10, scale = 2, nullable = false)
+  private BigDecimal totalAmount;
+
+  @Column(precision = 10, scale = 2, nullable = false)
+  private BigDecimal insuranceCovered = BigDecimal.ZERO;    // Coberto pelo convênio (Ex: 160.00)
+
+  @Column(precision = 10, scale = 2, nullable = false)
   private BigDecimal patientPayable;      // A pagar pelo paciente (Ex: 40.00)
 
+  @Column(length = 50, nullable = false)
   @Enumerated(EnumType.STRING)
   private InvoiceStatus status;
 

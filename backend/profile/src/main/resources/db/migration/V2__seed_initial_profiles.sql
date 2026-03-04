@@ -1,10 +1,18 @@
 -- ============================================================
 -- V2__seed_initial_profiles.sql
 -- Seed inicial de perfis vinculados aos usuários do user-service
--- IDs de usuário: Admin=1, Doctor=2, Patient=3 (gerados pelo Flyway do user-service)
+--
+-- Nota: os user_ids são referenciados diretamente (sem subquery) pois
+-- o Profile Service possui seu próprio banco isolado (ms_profile_db) e
+-- não tem acesso à tabela tb_users do User Service (ms_user_db).
+-- Os IDs abaixo correspondem à ordem de inserção do seed do user-service:
+--   1 = admin@hms.com  (ADMIN)
+--   2 = doctor@hms.com (DOCTOR)
+--   3 = patient@hms.com (PATIENT)
+-- Os INSERTs são ignorados caso o perfil já exista (uq_*_user_id).
 -- ============================================================
 
-INSERT INTO tb_doctors (
+INSERT IGNORE INTO tb_doctors (
     user_id,
     name,
     crm_number,
@@ -14,7 +22,7 @@ INSERT INTO tb_doctors (
     consultation_fee
 )
 VALUES (
-    2,                      -- userId do 'Doctor Demo' (user-service)
+    2,
     'Doctor Demo',
     'CRM-SP-123456',
     'Clínica Geral',
@@ -23,7 +31,7 @@ VALUES (
     150.00
 );
 
-INSERT INTO tb_patients (
+INSERT IGNORE INTO tb_patients (
     user_id,
     name,
     cpf,
@@ -31,7 +39,7 @@ INSERT INTO tb_patients (
     gender
 )
 VALUES (
-    3,                      -- userId do 'Patient Demo' (user-service)
+    3,
     'Patient Demo',
     '000.000.000-00',
     'O_POSITIVE',

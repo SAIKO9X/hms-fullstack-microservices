@@ -2,8 +2,8 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
 
-RUN mvn clean install -DskipTests -pl common-lib -am
-RUN mvn clean package -DskipTests -pl billing -am
+RUN mvn clean install -Dmaven.test.skip=true -pl common-lib -am
+RUN mvn clean package -Dmaven.test.skip=true -pl billing -am
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

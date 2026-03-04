@@ -42,12 +42,12 @@ public class BillingController implements BillingControllerDocs {
   }
 
   @PostMapping("/invoices/{invoiceId}/pay")
-  public ResponseEntity<ResponseWrapper<Invoice>> payInvoice(@PathVariable String invoiceId) {
+  public ResponseEntity<ResponseWrapper<Invoice>> payInvoice(@PathVariable Long invoiceId) {
     return ResponseEntity.ok(ResponseWrapper.success(billingService.payInvoice(invoiceId), "Pagamento registrado."));
   }
 
   @PostMapping("/invoices/{invoiceId}/process-insurance")
-  public ResponseEntity<ResponseWrapper<Void>> processInsurancePayment(@PathVariable String invoiceId) {
+  public ResponseEntity<ResponseWrapper<Void>> processInsurancePayment(@PathVariable Long invoiceId) {
     billingService.processInsurancePayment(invoiceId);
     return ResponseEntity.ok(ResponseWrapper.success(null, "Processamento de seguro iniciado."));
   }
@@ -59,7 +59,7 @@ public class BillingController implements BillingControllerDocs {
 
   @GetMapping("/invoices/{id}/pdf")
   @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN', 'DOCTOR')")
-  public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable String id) {
+  public ResponseEntity<byte[]> downloadInvoicePdf(@PathVariable Long id) {
     byte[] pdfBytes = billingService.generateInvoicePdf(id);
 
     return ResponseEntity.ok()

@@ -118,7 +118,7 @@ public class BillingServiceImpl implements BillingService {
 
   @Override
   @Transactional
-  public Invoice payInvoice(String invoiceId) {
+  public Invoice payInvoice(Long invoiceId) {
     Invoice invoice = findInvoice(invoiceId);
     if (invoice.getPatientPaidAt() != null) {
       throw new InvalidOperationException("Esta fatura já foi paga pelo paciente.");
@@ -131,7 +131,7 @@ public class BillingServiceImpl implements BillingService {
 
   @Override
   @Transactional
-  public void processInsurancePayment(String invoiceId) {
+  public void processInsurancePayment(Long invoiceId) {
     Invoice invoice = findInvoice(invoiceId);
     if (invoice.getInsuranceCovered().compareTo(BigDecimal.ZERO) == 0) return;
 
@@ -142,13 +142,13 @@ public class BillingServiceImpl implements BillingService {
 
   @Override
   @Transactional(readOnly = true)
-  public byte[] generateInvoicePdf(String invoiceId) {
+  public byte[] generateInvoicePdf(Long invoiceId) {
     Invoice invoice = findInvoice(invoiceId);
     Map<String, Object> data = buildPdfData(invoice);
     return pdfGeneratorService.generatePdfFromHtml("invoice", data);
   }
 
-  private Invoice findInvoice(String id) {
+  private Invoice findInvoice(Long id) {
     return invoiceRepository.findById(id)
       .orElseThrow(() -> new ResourceNotFoundException("Invoice", id));
   }

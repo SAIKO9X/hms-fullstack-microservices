@@ -20,7 +20,7 @@ public class InsuranceProvider {
 
   private String name; // Ex: Unimed, Bradesco
 
-  @Column(name = "coverage_percentage")
+  @Column(name = "coverage_percentage", precision = 5, scale = 2, nullable = false)
   private BigDecimal coveragePercentage; // Ex: 0.80 (80%)
 
   private boolean active;

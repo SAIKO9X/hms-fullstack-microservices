@@ -57,7 +57,7 @@ public interface BillingControllerDocs {
     @ApiResponse(responseCode = "404", description = "Fatura não encontrada", content = @Content)
   })
   ResponseEntity<ResponseWrapper<Invoice>> payInvoice(
-    @Parameter(description = "ID da fatura", required = true) @PathVariable String invoiceId
+    @Parameter(description = "ID da fatura", required = true) @PathVariable Long invoiceId
   );
 
   @Operation(summary = "Processar Pagamento via Seguro", description = "Inicia o processamento de uma fatura utilizando o seguro/plano de saúde do paciente.")
@@ -66,7 +66,7 @@ public interface BillingControllerDocs {
     @ApiResponse(responseCode = "404", description = "Fatura não encontrada", content = @Content)
   })
   ResponseEntity<ResponseWrapper<Void>> processInsurancePayment(
-    @Parameter(description = "ID da fatura", required = true) @PathVariable String invoiceId
+    @Parameter(description = "ID da fatura", required = true) @PathVariable Long invoiceId
   );
 
   @Operation(summary = "Listar Faturas Pendentes do Seguro", description = "Retorna faturas que estão aguardando o pagamento e aprovação das operadoras de seguro.")
@@ -81,6 +81,6 @@ public interface BillingControllerDocs {
     @ApiResponse(responseCode = "404", description = "Fatura não encontrada", content = @Content)
   })
   ResponseEntity<byte[]> downloadInvoicePdf(
-    @Parameter(description = "ID da fatura", required = true) @PathVariable String id
+    @Parameter(description = "ID da fatura", required = true) @PathVariable Long id
   );
 }

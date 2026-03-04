@@ -21,11 +21,11 @@ public class PatientInsurance {
   @Column(nullable = false)
   private String patientId; // vindo do Profile Service
 
-  private String policyNumber; // Número da carteirinha
+  private String policyNumber; // número da carteirinha
 
   private LocalDate validUntil;
 
   @ManyToOne
-  @JoinColumn(name = "provider_id")
+  @JoinColumn(name = "provider_id", nullable = false)
   private InsuranceProvider provider;
 }

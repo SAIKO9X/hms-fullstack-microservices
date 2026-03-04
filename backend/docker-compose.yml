@@ -396,8 +396,10 @@ services:
       eureka-server:
         condition: service_healthy
       profile-service:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - hms-network

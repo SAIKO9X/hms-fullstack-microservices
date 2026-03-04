@@ -14,11 +14,11 @@ public interface BillingService {
 
   PatientInsurance registerPatientInsurance(String patientId, Long providerId, String policyNumber);
 
-  Invoice payInvoice(String invoiceId);
+  Invoice payInvoice(Long invoiceId);
 
-  void processInsurancePayment(String invoiceId);
+  void processInsurancePayment(Long invoiceId);
 
-  byte[] generateInvoicePdf(String invoiceId);
+  byte[] generateInvoicePdf(Long invoiceId);
 
   List<Invoice> getPendingInsuranceInvoices();
 }

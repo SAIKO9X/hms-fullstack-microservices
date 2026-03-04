@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface InvoiceRepository extends JpaRepository<Invoice, String> {
+public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
   List<Invoice> findByPatientId(String patientId);
 
   List<Invoice> findByDoctorId(String doctorId);

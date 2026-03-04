@@ -4,9 +4,12 @@
 -- Senha padrão para todos: Admin@123
 -- Hash BCrypt (cost 12):
 -- $2a$12$hqCCTwBwsPwwAZUGABi3OeR6UMSr4PwKF0ZJG5LL7RAq0dSKP0hAi
+--
+-- Nota: usa INSERT IGNORE para não falhar caso os usuários já existam
+-- (cenário onde o banco já foi populado antes da adoção do Flyway).
 -- ============================================================
 
-INSERT INTO tb_users (
+INSERT IGNORE INTO tb_users (
     name,
     email,
     password,
