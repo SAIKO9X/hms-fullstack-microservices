@@ -34,7 +34,6 @@ public abstract class BaseIntegrationTest {
   );
 
   @Container
-  @ServiceConnection(name = "redis")
   static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
     .withExposedPorts(6379);
 
@@ -46,5 +45,11 @@ public abstract class BaseIntegrationTest {
     // JWT Secret
     registry.add("JWT_SECRET", () -> "dGVzdGUtc2VjcmV0LWtleS1wYXJhLWludGVncmFjYW8tc3ByaW5nLWJvb3QtandsLTI1NmJpdHM=");
     registry.add("application.security.jwt.secret-key", () -> "dGVzdGUtc2VjcmV0LWtleS1wYXJhLWludGVncmFjYW8tc3ByaW5nLWJvb3QtandsLTI1NmJpdHM=");
+
+    registry.add("spring.data.redis.host", redisContainer::getHost);
+    registry.add("spring.data.redis.port", () -> redisContainer.getMappedPort(6379));
+
+    registry.add("spring.redis.host", redisContainer::getHost);
+    registry.add("spring.redis.port", () -> redisContainer.getMappedPort(6379));
   }
 }
