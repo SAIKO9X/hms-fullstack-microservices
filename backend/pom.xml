@@ -20,11 +20,12 @@
     <properties>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
 
-        <!-- SonarCloud Properties -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
+
         <sonar.exclusions>
             **/config/**,
             **/*Application.java,
@@ -34,6 +35,16 @@
             **/exceptions/**,
             **/mapper/**
         </sonar.exclusions>
+
+        <sonar.coverage.exclusions>
+            **/config/**,
+            **/*Application.java,
+            **/entities/**,
+            **/dto/**,
+            **/enums/**,
+            **/exceptions/**,
+            **/mapper/**
+        </sonar.coverage.exclusions>
     </properties>
 
     <!-- Microservices Modules -->
@@ -122,7 +133,7 @@
                                 <goal>report</goal>
                             </goals>
                             <configuration>
-                                <!-- Relatório em target/site/jacoco/ -->
+                                <!-- relatório em target/site/jacoco/ -->
                                 <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
                             </configuration>
                         </execution>

@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: ["main", "master"]
+    branches: [ "main", "master" ]
   pull_request:
-    branches: ["main", "master"]
+    branches: [ "main", "master" ]
 
 jobs:
   build-backend:
@@ -61,23 +61,19 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Compilar e Testar o Backend com Maven
+      - name: Build, Teste e SonarCloud Scan
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: ms_appointment_db
           DB_USER: mysql_appointment_user
           DB_PASSWORD: mysql_appointment_password
           SPRING_PROFILES_ACTIVE: test
-        run: mvn clean verify
-
-      - name: Análise SonarCloud
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn sonar:sonar \
+          mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey=SAIKO9X_hms-fullstack-microservices \
             -Dsonar.organization=saiko \
             -Dsonar.host.url=https://sonarcloud.io
