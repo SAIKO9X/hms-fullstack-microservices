@@ -3,7 +3,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN mvn clean package -DskipTests -pl gateway -am
+RUN mvn clean package -Dmaven.test.skip=true -pl gateway -am
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

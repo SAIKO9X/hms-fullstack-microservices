@@ -6,7 +6,7 @@ export const useProfileStatus = () => {
   const { profile, isLoading, user, isError, error } = useProfile();
 
   if (isLoading) {
-    return { isComplete: false, isLoading: true, isError: false };
+    return { isComplete: false, isLoading: true, isError: false, role: user?.role };
   }
 
   if (isError) {
@@ -14,12 +14,13 @@ export const useProfileStatus = () => {
       isComplete: false,
       isLoading: false,
       isError: true,
-      error, 
+      error,
+      role: user?.role,
     };
   }
 
   if (!profile) {
-    return { isComplete: false, isLoading: false, isError: false };
+    return { isComplete: false, isLoading: false, isError: false, role: user?.role };
   }
 
   let isComplete = false;

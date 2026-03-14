@@ -3,7 +3,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN mvn clean package -DskipTests -pl eureka-server -am
+RUN mvn clean package -Dmaven.test.skip=true -pl eureka-server -am
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

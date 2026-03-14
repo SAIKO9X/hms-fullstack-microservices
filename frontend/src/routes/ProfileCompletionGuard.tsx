@@ -1,11 +1,11 @@
-import { Navigate, Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation, matchPath } from "react-router";
 import { useProfileStatus } from "@/hooks/use-profile-check";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const ProfileCompletionGuard = () => {
   const location = useLocation();
-  const { isComplete, isLoading, role, isError } = useProfileStatus(); // Pegue o isError
+  const { isComplete, isLoading, role, isError } = useProfileStatus();
 
   if (isLoading) {
     return (
@@ -37,8 +37,16 @@ export const ProfileCompletionGuard = () => {
     );
   }
 
+  if (!role) {
+    return <Navigate to="/auth" replace />;
+  }
+
   const profileUrl = role === "DOCTOR" ? "/doctor/profile" : "/patient/profile";
-  const isAtProfilePage = location.pathname === profileUrl;
+
+  const isAtProfilePage = !!matchPath(
+    { path: profileUrl, end: false },
+    location.pathname,
+  );
 
   if (!isComplete) {
     if (!isAtProfilePage) {
