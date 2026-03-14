@@ -4,6 +4,8 @@ export const UserRole = {
   ADMIN: "ADMIN",
 } as const;
 
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
 export type UserResponse = {
   id: number;
   name: string;
@@ -13,10 +15,9 @@ export type UserResponse = {
 };
 
 export type AuthResponse = {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   tokenType: string;
   user: UserResponse;
   expiresIn: number;
 };
-
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];

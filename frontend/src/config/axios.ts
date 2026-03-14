@@ -41,7 +41,7 @@ export const setupResponseInterceptor = (store: AppStore) => {
     },
     (error: AxiosError<ApiResponse<any>>) => {
       if (error.response && error.response.status === 401) {
-        if (!window.location.pathname.includes("/login")) {
+        if (!window.location.pathname.includes("/auth")) {
           console.log("Token inválido ou expirado. Deslogando...");
           localStorage.removeItem("authToken");
           store.dispatch(logout());

@@ -5,7 +5,6 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { AuthResponse, UserResponse } from "@/types/auth.types";
 import { loginUser as loginUserService } from "@/services/auth";
 
-// Define a "forma" do estado de autenticação
 interface AuthState {
   user: UserResponse | null;
   token: string | null;
@@ -74,7 +73,7 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem("authToken");
     },
-    // Nova ação para limpar token expirado
+    // limpar token expirado
     clearExpiredToken: (state) => {
       const token = localStorage.getItem("authToken");
       if (token) {
@@ -86,7 +85,7 @@ const authSlice = createSlice({
             localStorage.removeItem("authToken");
           }
         } catch {
-          // Token inválido
+          // token inválido
           state.user = null;
           state.token = null;
           localStorage.removeItem("authToken");
@@ -105,8 +104,11 @@ const authSlice = createSlice({
         (state, action: PayloadAction<AuthResponse>) => {
           state.status = "succeeded";
           state.user = action.payload.user;
-          state.token = action.payload.token;
-          localStorage.setItem("authToken", action.payload.token);
+          state.token = action.payload.accessToken;
+
+          if (action.payload.accessToken) {
+            localStorage.setItem("authToken", action.payload.accessToken);
+          }
         },
       )
       .addCase(loginUser.rejected, (state, action) => {

@@ -5,7 +5,7 @@ export const PublicRoute = () => {
   const { user } = useAppSelector((state) => state.auth);
 
   if (user) {
-    let destination = "/"; // Um fallback seguro
+    let destination = "/";
 
     switch (user.role) {
       case "ADMIN":
