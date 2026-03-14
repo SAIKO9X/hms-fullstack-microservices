@@ -40,6 +40,14 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     """)
   List<Doctor> findAllCompleteProfiles();
 
+  @Query("""
+    SELECT d 
+    FROM Doctor d
+    WHERE d.name IS NOT NULL
+      AND d.name <> ''
+    """)
+  List<Doctor> findAllForStatusDashboard();
+
   List<Doctor> findAllByUserIdIn(List<Long> userIds);
 
   long count();
