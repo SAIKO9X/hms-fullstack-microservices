@@ -30,5 +30,7 @@ public interface PatientService {
 
   void adminUpdatePatient(Long userId, AdminPatientUpdateRequest updateRequest);
 
+  boolean checkCpfExists(String cpf);
+
   long countAllPatients();
 }

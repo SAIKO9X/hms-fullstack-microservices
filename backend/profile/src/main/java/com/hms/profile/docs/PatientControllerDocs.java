@@ -106,4 +106,8 @@ public interface PatientControllerDocs {
     @Parameter(description = "ID do usuário (paciente)") @PathVariable("userId") Long userId,
     @RequestBody AdminPatientUpdateRequest updateRequest
   );
+
+  @Operation(summary = "Verificar existência de CPF", description = "Verifica se já existe um paciente cadastrado com o CPF informado.")
+  @ApiResponse(responseCode = "200", description = "Verificação concluída")
+  ResponseEntity<ResponseWrapper<Boolean>> checkCpfExists(@Parameter(description = "CPF do paciente") @PathVariable String cpf);
 }

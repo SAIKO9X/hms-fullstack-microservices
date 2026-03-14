@@ -2,6 +2,7 @@ package com.hms.user.services.impl;
 
 import com.hms.common.dto.event.EventEnvelope;
 import com.hms.common.exceptions.*;
+import com.hms.user.clients.ProfileFeignClient;
 import com.hms.user.dto.event.UserCreatedEvent;
 import com.hms.user.dto.event.UserUpdatedEvent;
 import com.hms.user.dto.request.AdminCreateUserRequest;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
   private final JwtService jwtService;
   private final AuthenticationManager authenticationManager;
   private final RabbitTemplate rabbitTemplate;
+  private final ProfileFeignClient profileFeignClient;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -149,6 +151,8 @@ public class UserServiceImpl implements UserService {
   public UserResponse createUser(UserRequest request) {
     validateEmailUnique(request.email(), null);
 
+    validateCpfOrCrm(request.role(), request.cpfOuCrm());
+
     User user = request.toEntity();
     user.setPassword(encoder.encode(user.getPassword()));
     user.setActive(false);
@@ -210,6 +214,12 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public UserResponse adminCreateUser(AdminCreateUserRequest request) {
     validateEmailUnique(request.email(), null);
+
+    if (request.role() == UserRole.PATIENT) {
+      validateCpfOrCrm(UserRole.PATIENT, request.cpf());
+    } else if (request.role() == UserRole.DOCTOR) {
+      validateCpfOrCrm(UserRole.DOCTOR, request.crmNumber());
+    }
 
     User newUser = new User();
     newUser.setName(request.name());
@@ -403,6 +413,25 @@ public class UserServiceImpl implements UserService {
       log.info("Evento USER_UPDATED enviado para usuário ID: {}", user.getId());
     } catch (Exception e) {
       log.error("Erro RabbitMQ UserUpdated: {}", e.getMessage());
+    }
+  }
+
+  private void validateCpfOrCrm(UserRole role, String cpfOuCrm) {
+    if (cpfOuCrm == null || cpfOuCrm.isBlank()) return;
+
+    try {
+      if (role == UserRole.PATIENT) {
+        if (Boolean.TRUE.equals(profileFeignClient.checkCpfExists(cpfOuCrm).data())) {
+          throw new ResourceAlreadyExistsException("Paciente", "Já existe um cadastro utilizando este CPF.");
+        }
+      } else if (role == UserRole.DOCTOR) {
+        if (Boolean.TRUE.equals(profileFeignClient.checkCrmExists(cpfOuCrm).data())) {
+          throw new ResourceAlreadyExistsException("Médico", "Já existe um cadastro utilizando este CRM.");
+        }
+      }
+    } catch (feign.FeignException e) {
+      log.error("Erro ao comunicar com profile-service para checar CPF/CRM: {}", e.getMessage());
+      throw new InvalidOperationException("Não foi possível validar o documento neste momento. Tente novamente em instantes.");
     }
   }
 }

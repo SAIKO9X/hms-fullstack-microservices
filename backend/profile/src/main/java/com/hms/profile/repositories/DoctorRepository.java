@@ -18,9 +18,9 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
   @Query("""
     SELECT new com.hms.profile.dto.response.DoctorDropdownResponse(
-        d.id,        
-        d.userId, 
-        d.name, 
+        d.id,
+        d.userId,
+        d.name,
         d.consultationFee
     )
     FROM Doctor d
@@ -30,25 +30,26 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
   List<DoctorDropdownResponse> findAllForDropdown();
 
   @Query("""
-    SELECT d 
+    SELECT d
     FROM Doctor d
     WHERE d.consultationFee IS NOT NULL
-      AND d.specialization IS NOT NULL 
+      AND d.specialization IS NOT NULL
       AND d.specialization <> ''
-      AND d.biography IS NOT NULL 
+      AND d.biography IS NOT NULL
       AND d.biography <> ''
     """)
   List<Doctor> findAllCompleteProfiles();
 
   @Query("""
-    SELECT d 
+    SELECT d
     FROM Doctor d
     WHERE d.name IS NOT NULL
       AND d.name <> ''
     """)
   List<Doctor> findAllForStatusDashboard();
 
-  List<Doctor> findAllByUserIdIn(List<Long> userIds);
+
+  boolean existsByCrmNumber(String crmNumber);
 
   long count();
 }

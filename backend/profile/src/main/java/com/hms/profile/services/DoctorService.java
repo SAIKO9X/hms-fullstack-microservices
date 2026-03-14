@@ -32,5 +32,7 @@ public interface DoctorService {
 
   void adminUpdateDoctor(Long userId, AdminDoctorUpdateRequest updateRequest);
 
+  boolean checkCrmExists(String crm);
+
   long countAllDoctors();
 }

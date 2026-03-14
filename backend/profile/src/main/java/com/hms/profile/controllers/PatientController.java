@@ -1,7 +1,7 @@
 package com.hms.profile.controllers;
 
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.Auditable;
 import com.hms.common.security.SecurityUtils;
 import com.hms.profile.docs.PatientControllerDocs;
@@ -98,5 +98,10 @@ public class PatientController implements PatientControllerDocs {
   ) {
     patientService.adminUpdatePatient(userId, updateRequest);
     return ResponseEntity.ok(ResponseWrapper.success(null, "Perfil atualizado pelo administrador."));
+  }
+
+  @GetMapping("/exists/cpf/{cpf}")
+  public ResponseEntity<ResponseWrapper<Boolean>> checkCpfExists(@PathVariable String cpf) {
+    return ResponseEntity.ok(ResponseWrapper.success(patientService.checkCpfExists(cpf)));
   }
 }

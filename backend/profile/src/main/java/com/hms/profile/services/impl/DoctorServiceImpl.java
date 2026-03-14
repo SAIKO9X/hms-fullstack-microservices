@@ -147,6 +147,12 @@ public class DoctorServiceImpl implements DoctorService {
   public long countAllDoctors() {
     return doctorRepository.count();
   }
+  
+  @Override
+  @Transactional(readOnly = true)
+  public boolean checkCrmExists(String crm) {
+    return doctorRepository.existsByCrmNumber(crm);
+  }
 
   private Doctor findDoctorByUserId(Long userId) {
     return doctorRepository.findByUserId(userId)

@@ -106,4 +106,8 @@ public interface DoctorControllerDocs {
     @Parameter(description = "ID do usuário (médico)") @PathVariable("userId") Long userId,
     @RequestBody AdminDoctorUpdateRequest updateRequest
   );
+
+  @Operation(summary = "Verificar existência de CRM", description = "Verifica se já existe um médico cadastrado com o CRM informado.")
+  @ApiResponse(responseCode = "200", description = "Verificação concluída")
+  ResponseEntity<ResponseWrapper<Boolean>> checkCrmExists(@Parameter(description = "CRM do médico") @PathVariable String crm);
 }

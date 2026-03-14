@@ -1,7 +1,7 @@
 package com.hms.profile.controllers;
 
-import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.dto.response.PagedResponse;
+import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.common.security.SecurityUtils;
 import com.hms.profile.docs.DoctorControllerDocs;
 import com.hms.profile.dto.request.AdminDoctorUpdateRequest;
@@ -87,5 +87,10 @@ public class DoctorController implements DoctorControllerDocs {
   public ResponseEntity<ResponseWrapper<Void>> adminUpdateDoctor(@PathVariable("userId") Long userId, @RequestBody AdminDoctorUpdateRequest updateRequest) {
     doctorService.adminUpdateDoctor(userId, updateRequest);
     return ResponseEntity.ok(ResponseWrapper.success(null, "Perfil médico atualizado pelo administrador."));
+  }
+
+  @GetMapping("/exists/crm/{crm}")
+  public ResponseEntity<ResponseWrapper<Boolean>> checkCrmExists(@PathVariable String crm) {
+    return ResponseEntity.ok(ResponseWrapper.success(doctorService.checkCrmExists(crm)));
   }
 }

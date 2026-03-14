@@ -174,6 +174,12 @@ public class PatientServiceImpl implements PatientService {
   }
 
   @Override
+  @Transactional(readOnly = true)
+  public boolean checkCpfExists(String cpf) {
+    return patientRepository.existsByCpf(cpf);
+  }
+
+  @Override
   public long countAllPatients() {
     return patientRepository.count();
   }
