@@ -37,4 +37,20 @@ public class User {
   private String verificationCode;
 
   private LocalDateTime verificationCodeExpiresAt;
+
+  @Column(length = 512)
+  private String refreshToken;
+
+  @Column(length = 255)
+  private String resetPasswordToken;
+
+  private LocalDateTime resetPasswordTokenExpiresAt;
+
+  private int failedLoginAttempts = 0;
+
+  private LocalDateTime accountLockedUntil;
+
+  private int passwordResetRequests = 0;
+
+  private LocalDateTime lastPasswordResetRequest;
 }

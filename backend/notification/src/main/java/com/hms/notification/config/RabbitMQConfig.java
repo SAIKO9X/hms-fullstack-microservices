@@ -29,6 +29,7 @@ public class RabbitMQConfig {
   public static final String STOCK_LOW_QUEUE = "notification.stock.low.queue";
   public static final String NOTIFICATION_QUEUE = "notification.queue";
   public static final String DELAYED_EXCHANGE = "delayed.exchange";
+  public static final String PASSWORD_RESET_QUEUE = "notification.password.reset.queue";
 
   @Value("${application.rabbitmq.routing-key}")
   private String routingKey;
@@ -41,6 +42,11 @@ public class RabbitMQConfig {
   @Bean
   public Queue notificationQueue() {
     return new Queue(NOTIFICATION_QUEUE, true);
+  }
+
+  @Bean
+  public Queue passwordResetQueue() {
+    return new Queue(PASSWORD_RESET_QUEUE, true);
   }
 
   @Bean
@@ -146,6 +152,11 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(notificationQueue())
       .to(exchange())
       .with(routingKey);
+  }
+
+  @Bean
+  public Binding passwordResetBinding() {
+    return BindingBuilder.bind(passwordResetQueue()).to(exchange()).with("user.event.password-reset");
   }
 
   @Bean

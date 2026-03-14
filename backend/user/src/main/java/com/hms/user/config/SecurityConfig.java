@@ -43,6 +43,7 @@ public class SecurityConfig {
       .csrf(AbstractHttpConfigurer::disable)
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/auth/**").permitAll()
+        .requestMatchers("/users/register").permitAll()
         .requestMatchers("/actuator/**").permitAll()
         .requestMatchers(SWAGGER_WHITELIST).permitAll()
         .requestMatchers("/api/v1/auth/**").permitAll()

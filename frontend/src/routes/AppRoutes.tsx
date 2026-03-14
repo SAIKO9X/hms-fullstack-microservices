@@ -47,6 +47,8 @@ import { AdminDoctorHistoryPage } from "@/features/admin/pages/AdminDoctorHistor
 import { AdminPatientMedicalHistoryPage } from "@/features/admin/pages/AdminPatientMedicalHistoryPage";
 import { AdminInsurancePage } from "@/features/admin/pages/AdminInsurancePage";
 import AuditLogsPage from "@/features/admin/pages/AuditLogsPage";
+import ForgotPasswordPage from "@/features/auth/pages/ForgotPasswordPage";
+import ResetPasswordPage from "@/features/auth/pages/ResetPasswordPage";
 
 export const AppRoutes = () => {
   return (
@@ -58,6 +60,11 @@ export const AppRoutes = () => {
         <Route element={<AuthLayout />}>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/verify" element={<VerifyAccountPage />} />
+          <Route
+            path="/auth/forgot-password"
+            element={<ForgotPasswordPage />}
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
       </Route>
 

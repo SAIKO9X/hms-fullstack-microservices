@@ -4,7 +4,6 @@ export const UserRole = {
   ADMIN: "ADMIN",
 } as const;
 
-// Define e exporta o tipo para o objeto User que vem na resposta
 export type UserResponse = {
   id: number;
   name: string;
@@ -13,7 +12,6 @@ export type UserResponse = {
   active: boolean;
 };
 
-// Define e exporta o tipo para a resposta completa do login
 export type AuthResponse = {
   token: string;
   tokenType: string;

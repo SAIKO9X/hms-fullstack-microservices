@@ -1,9 +1,7 @@
 package com.hms.user.services.impl;
 
 import com.hms.common.dto.event.EventEnvelope;
-import com.hms.common.exceptions.InvalidCredentialsException;
-import com.hms.common.exceptions.ResourceAlreadyExistsException;
-import com.hms.common.exceptions.ResourceNotFoundException;
+import com.hms.common.exceptions.*;
 import com.hms.user.dto.event.UserCreatedEvent;
 import com.hms.user.dto.event.UserUpdatedEvent;
 import com.hms.user.dto.request.AdminCreateUserRequest;
@@ -51,31 +49,99 @@ public class UserServiceImpl implements UserService {
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
 
+  @Value("${application.frontend.url:http://localhost:5173}")
+  private String frontendUrl;
+
   @Value("${application.rabbitmq.user-created-routing-key}")
   private String userCreatedRoutingKey;
 
   @Value("${application.rabbitmq.user-updated-routing-key:user.event.updated}")
   private String userUpdatedRoutingKey;
 
+  @Value("${application.rabbitmq.password-reset-routing-key:user.event.password-reset}")
+  private String passwordResetRoutingKey;
+
   @Override
   public AuthResponse login(LoginRequest request) {
+    User user = userRepository.findByEmail(request.email())
+      .orElseThrow(InvalidCredentialsException::new);
+
+    if (user.getAccountLockedUntil() != null) {
+      if (user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+        long minutesLeft = java.time.Duration.between(LocalDateTime.now(), user.getAccountLockedUntil()).toMinutes();
+        throw new InvalidOperationException("Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em " + (minutesLeft > 0 ? minutesLeft : 1) + " minuto(s).");
+      } else {
+        // se o bloqueio expirou, libera a conta e zera as falhas
+        user.setAccountLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+      }
+    }
+
     try {
       authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(request.email(), request.password())
       );
     } catch (BadCredentialsException ex) {
+      // se a senha estiver errada, incrementa as falhas
+      int attempts = user.getFailedLoginAttempts() + 1;
+      user.setFailedLoginAttempts(attempts);
+
+
+      if (attempts >= 5) { // bloqueia após 5 tentativas erradas
+        user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+        throw new InvalidOperationException("Muitas tentativas incorretas. Conta bloqueada por 15 minutos.");
+      }
+
+      userRepository.save(user);
       throw new InvalidCredentialsException();
     }
 
-    User user = userRepository.findByEmail(request.email())
-      .orElseThrow(() -> new ResourceNotFoundException("User", request.email()));
+    if (!user.isActive()) {
+      throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
+    }
 
-    if (!user.isActive()) throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
+    // zera as falhas após um login bem-sucedido
+    if (user.getFailedLoginAttempts() > 0) {
+      user.setFailedLoginAttempts(0);
+      user.setAccountLockedUntil(null);
+    }
 
-    String jwtToken = jwtService.generateToken(user);
+    String accessToken = jwtService.generateAccessToken(user);
+    String refreshToken = jwtService.generateRefreshToken(user);
     long expirationTime = jwtService.getExpirationTime();
 
-    return AuthResponse.create(jwtToken, UserResponse.fromEntity(user), expirationTime);
+    user.setRefreshToken(refreshToken);
+    userRepository.save(user);
+
+    return AuthResponse.create(UserResponse.fromEntity(user), expirationTime, accessToken, refreshToken);
+  }
+
+  @Override
+  public AuthResponse refreshToken(String incomingRefreshToken) {
+    String userEmail = jwtService.extractUsername(incomingRefreshToken);
+
+    if (userEmail == null) {
+      throw new InvalidTokenException("Refresh token inválido ou malformado.");
+    }
+
+    User user = userRepository.findByEmail(userEmail)
+      .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+
+    if (!jwtService.isTokenValid(incomingRefreshToken, user.getEmail()) || !incomingRefreshToken.equals(user.getRefreshToken())) {
+      throw new InvalidTokenException("Refresh token expirado ou revogado. Faça login novamente.");
+    }
+
+    // gerar novos tokens (Rotação de tokens)
+    String newAccessToken = jwtService.generateAccessToken(user);
+    String newRefreshToken = jwtService.generateRefreshToken(user);
+
+    // atualizar o Refresh Token ativo no banco
+    user.setRefreshToken(newRefreshToken);
+    userRepository.save(user);
+
+    return AuthResponse.create(UserResponse.fromEntity(user), jwtService.getExpirationTime(), newAccessToken, newRefreshToken);
   }
 
   @Override
@@ -215,6 +281,73 @@ public class UserServiceImpl implements UserService {
     userRepository.save(user);
 
     publishUserCreatedEvent(user, null, null, newCode);
+  }
+
+  @Override
+  @Transactional
+  public void forgotPassword(String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new ResourceNotFoundException("Usuário", email));
+
+    // --- PROTEÇÃO CONTRA SPAM ---
+    LocalDateTime now = LocalDateTime.now();
+
+    // se ele já pediu reset nas últimas 24 horas...
+    if (user.getLastPasswordResetRequest() != null && user.getLastPasswordResetRequest().isAfter(now.minusHours(24))) {
+      if (user.getPasswordResetRequests() >= 3) {
+        throw new InvalidOperationException("Limite de solicitações excedido. Você só pode solicitar a recuperação de senha 3 vezes a cada 24 horas.");
+      }
+      user.setPasswordResetRequests(user.getPasswordResetRequests() + 1);
+    } else {
+      // passou de 24 horas, reseta o contador
+      user.setPasswordResetRequests(1);
+    }
+    user.setLastPasswordResetRequest(now);
+
+    // gera o token e salva no banco com expiração de 30 minutos
+    String token = UUID.randomUUID().toString();
+    user.setResetPasswordToken(token);
+    user.setResetPasswordTokenExpiresAt(now.plusMinutes(30));
+    userRepository.save(user);
+
+    String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+    var event = new com.hms.user.dto.event.PasswordResetEvent(
+      user.getEmail(),
+      user.getName(),
+      resetLink,
+      30
+    );
+
+    EventEnvelope<com.hms.user.dto.event.PasswordResetEvent> envelope = EventEnvelope.create(
+      "PASSWORD_RESET_REQUESTED",
+      UUID.randomUUID().toString(),
+      event
+    );
+
+    rabbitTemplate.convertAndSend(exchange, passwordResetRoutingKey, envelope);
+    log.info("Evento PASSWORD_RESET enviado para usuário ID: {}", user.getId());
+  }
+
+  @Override
+  @Transactional
+  public void resetPassword(String token, String newPassword) {
+    User user = userRepository.findByResetPasswordToken(token)
+      .orElseThrow(() -> new InvalidOperationException("Token inválido ou não encontrado."));
+
+    if (user.getResetPasswordTokenExpiresAt().isBefore(LocalDateTime.now())) {
+      throw new InvalidOperationException("O token de recuperação expirou. Solicite um novo.");
+    }
+
+    // atualiza a senha e limpa os tokens
+    user.setPassword(encoder.encode(newPassword));
+    user.setResetPasswordToken(null);
+    user.setResetPasswordTokenExpiresAt(null);
+
+    // invalida o refresh token atual para deslogar de outros dispositivos por segurança
+    user.setRefreshToken(null);
+
+    userRepository.save(user);
   }
 
   private User findUserByIdOrThrow(Long id) {

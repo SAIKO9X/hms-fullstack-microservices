@@ -7,7 +7,5 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Service
 @RequiredArgsConstructor
 public class ApiService {
-
   private final WebClient.Builder webClient;
-
 }

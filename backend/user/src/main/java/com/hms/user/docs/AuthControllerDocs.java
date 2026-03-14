@@ -1,7 +1,10 @@
 package com.hms.user.docs;
 
 import com.hms.common.dto.response.ResponseWrapper;
+import com.hms.user.dto.request.ForgotPasswordRequest;
 import com.hms.user.dto.request.LoginRequest;
+import com.hms.user.dto.request.RefreshTokenRequest;
+import com.hms.user.dto.request.ResetPasswordRequest;
 import com.hms.user.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@Tag(name = "Autenticação", description = "Endpoints para gerenciamento de login e verificação de contas")
+@Tag(name = "Autenticação", description = "Endpoints para gerenciamento de login, tokens e senhas")
 @ApiResponses({
   @ApiResponse(responseCode = "500", description = "Erro interno no servidor", content = @Content)
 })
@@ -51,5 +54,36 @@ public interface AuthControllerDocs {
   })
   ResponseEntity<ResponseWrapper<Void>> resendCode(
     @Parameter(description = "Email do usuário", required = true) @RequestParam String email
+  );
+
+  @Operation(summary = "Atualizar Token", description = "Gera um novo par de Access e Refresh tokens utilizando um Refresh Token válido.")
+  @ApiResponses(value = {
+    @ApiResponse(responseCode = "200", description = "Tokens atualizados com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos", content = @Content),
+    @ApiResponse(responseCode = "401", description = "Refresh token inválido, expirado ou revogado", content = @Content)
+  })
+  ResponseEntity<ResponseWrapper<AuthResponse>> refreshToken(
+    @Parameter(description = "Refresh token atual", required = true)
+    @Valid @RequestBody RefreshTokenRequest request
+  );
+
+  @Operation(summary = "Solicitar recuperação de senha", description = "Envia um e-mail com o link de recuperação caso a conta exista.")
+  @ApiResponses(value = {
+    @ApiResponse(responseCode = "200", description = "Solicitação processada com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Email inválido ou não fornecido", content = @Content)
+  })
+  ResponseEntity<ResponseWrapper<Void>> forgotPassword(
+    @Parameter(description = "Email do usuário para envio do link", required = true)
+    @Valid @RequestBody ForgotPasswordRequest request
+  );
+
+  @Operation(summary = "Redefinir senha", description = "Define uma nova senha utilizando um token de recuperação válido.")
+  @ApiResponses(value = {
+    @ApiResponse(responseCode = "200", description = "Senha alterada com sucesso"),
+    @ApiResponse(responseCode = "400", description = "Dados inválidos (senha fraca, token ausente ou expirado)", content = @Content)
+  })
+  ResponseEntity<ResponseWrapper<Void>> resetPassword(
+    @Parameter(description = "Token de recuperação e nova senha", required = true)
+    @Valid @RequestBody ResetPasswordRequest request
   );
 }

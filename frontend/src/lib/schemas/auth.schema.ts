@@ -36,6 +36,28 @@ export const RegisterFormSchema = z
     }
   });
 
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email("Formato de e-mail inválido"),
+});
+
+export const ResetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "A senha deve ter pelo menos 8 caracteres")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/,
+        "A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número",
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export type ForgotPasswordData = z.infer<typeof ForgotPasswordSchema>;
+export type ResetPasswordData = z.infer<typeof ResetPasswordSchema>;
 export type LoginData = z.infer<typeof LoginSchema>;
 export type RegisterFormData = z.infer<typeof RegisterFormSchema>;
 export type RegisterData = Omit<RegisterFormData, "confirmPassword">;

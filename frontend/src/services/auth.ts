@@ -55,3 +55,34 @@ export const resendVerificationCode = async (email: string) => {
     );
   }
 };
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const response = await api.post<ApiResponse<void>>(
+      "/auth/forgot-password",
+      {
+        email,
+      },
+    );
+    return response.data.message;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+        "Ocorreu um erro ao processar a solicitação.",
+    );
+  }
+};
+
+export const resetPassword = async (token: string, newPassword: string) => {
+  try {
+    const response = await api.post<ApiResponse<void>>("/auth/reset-password", {
+      token,
+      newPassword,
+    });
+    return response.data.message;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || "Ocorreu um erro ao redefinir a senha.",
+    );
+  }
+};

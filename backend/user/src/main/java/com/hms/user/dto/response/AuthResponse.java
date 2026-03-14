@@ -1,12 +1,19 @@
 package com.hms.user.dto.response;
 
 public record AuthResponse(
-  String token,
   String tokenType,
   UserResponse user,
-  Long expiresIn
+  Long expiresIn,
+  String accessToken,
+  String refreshToken
 ) {
-  public static AuthResponse create(String token, UserResponse user, Long expiresIn) {
-    return new AuthResponse(token, "Bearer", user, expiresIn);
+  public static AuthResponse create(UserResponse user, Long expiresIn, String accessToken, String refreshToken) {
+    return new AuthResponse(
+      "Bearer",
+      user,
+      expiresIn,
+      accessToken,
+      refreshToken
+    );
   }
 }

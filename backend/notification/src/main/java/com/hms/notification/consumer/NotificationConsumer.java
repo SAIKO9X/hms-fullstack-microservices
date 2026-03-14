@@ -136,7 +136,6 @@ public class NotificationConsumer {
     if (event.doctorEmail() != null) {
       sendLabResultEmailToDoctor(event);
 
-      // Usa o doctorUserId se disponível, senão fallback para doctorId
       Long docRecipientId = event.doctorUserId() != null ? event.doctorUserId() : event.doctorId();
 
       saveInAppNotification(docRecipientId,
@@ -147,7 +146,6 @@ public class NotificationConsumer {
 
     // notificar Paciente
     if (event.patientId() != null) {
-      // Usa o patientUserId se disponível, senão fallback para patientId
       Long patRecipientId = event.patientUserId() != null ? event.patientUserId() : event.patientId();
 
       saveInAppNotification(
@@ -263,6 +261,34 @@ public class NotificationConsumer {
       message,
       NotificationType.NEW_REVIEW
     );
+  }
+
+  @RabbitListener(queues = "${application.rabbitmq.queues.password-reset:notification.password.reset.queue}")
+  public void handlePasswordReset(EventEnvelope<PasswordResetEvent> envelope) {
+    PasswordResetEvent event = envelope.getPayload();
+    log.info("Processando envio de e-mail de redefinição de senha para: {}", event.email());
+
+    try {
+      Context context = new Context();
+      context.setVariable("userName", event.userName());
+      context.setVariable("resetLink", event.resetLink());
+      context.setVariable("expirationMinutes", event.expirationMinutes());
+
+      String htmlBody = templateEngine.process("password-reset-email", context);
+
+      MimeMessage message = mailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, StandardCharsets.UTF_8.name());
+      helper.setTo(event.email());
+      helper.setSubject("Redefinição de Senha - HMS");
+      helper.setText(htmlBody, true);
+      helper.setFrom("sistema@hms.com");
+
+      mailSender.send(message);
+      log.info("E-mail de redefinição enviado com sucesso para: {}", event.email());
+
+    } catch (MessagingException e) {
+      log.error("Erro ao enviar e-mail de redefinição de senha", e);
+    }
   }
 
   private void saveInAppNotification(String recipientId, String title, String message, NotificationType type) {

@@ -2,7 +2,10 @@ package com.hms.user.controllers;
 
 import com.hms.common.dto.response.ResponseWrapper;
 import com.hms.user.docs.AuthControllerDocs;
+import com.hms.user.dto.request.ForgotPasswordRequest;
 import com.hms.user.dto.request.LoginRequest;
+import com.hms.user.dto.request.RefreshTokenRequest;
+import com.hms.user.dto.request.ResetPasswordRequest;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.services.UserService;
 import jakarta.validation.Valid;
@@ -35,5 +38,23 @@ public class AuthController implements AuthControllerDocs {
   public ResponseEntity<ResponseWrapper<Void>> resendCode(@RequestParam String email) {
     userService.resendVerificationCode(email);
     return ResponseEntity.ok(ResponseWrapper.success(null, "Código de verificação reenviado."));
+  }
+
+  @PostMapping("/refresh")
+  public ResponseEntity<ResponseWrapper<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+    AuthResponse response = userService.refreshToken(request.refreshToken());
+    return ResponseEntity.ok(ResponseWrapper.success(response));
+  }
+
+  @PostMapping("/forgot-password")
+  public ResponseEntity<ResponseWrapper<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    userService.forgotPassword(request.email());
+    return ResponseEntity.ok(ResponseWrapper.success(null, "Se o e-mail existir, um link de recuperação foi enviado."));
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<ResponseWrapper<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+    userService.resetPassword(request.token(), request.newPassword());
+    return ResponseEntity.ok(ResponseWrapper.success(null, "Senha alterada com sucesso. Você já pode fazer login."));
   }
 }
